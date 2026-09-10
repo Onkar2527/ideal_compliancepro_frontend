@@ -9,10 +9,6 @@ import { LayoutService } from '../service/layout.service';
     imports: [CommonModule, AppMenu],
     template: ` 
     <div class="layout-sidebar" [class.no-transition]="layoutService.isSidebarResizing()" [style.width.rem]="sidebarWidth">
-        <div class="sidebar-header" style="padding: 0.75rem 0.25rem; display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0.35rem 0.5rem; border-bottom: 1px solid #e2eaf2;">
-            <i class="pi pi-shield" style="font-size: 1.35rem; color: var(--primary-color);"></i>
-            <span class="sidebar-brand-name" style="font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 800; color: #1e293b; letter-spacing: -0.02em;">CompliancePro</span>
-        </div>
         <app-menu></app-menu>
         <div class="sidebar-resize-handle" 
              (mousedown)="onResizeStart($event)"
@@ -25,7 +21,7 @@ import { LayoutService } from '../service/layout.service';
             height: calc(100vh - 3.5rem);
             top: 3.5rem; /* Below topbar */
             left: 0;
-            width: var(--sidebar-width, 15rem);
+            width: var(--sidebar-width, 14.5rem);
             background: linear-gradient(180deg, #f4f8fc 0%, #f8fafc 42%, #f7f9fc 100%);
             border-right: 1px solid #d9e2ec;
             box-shadow: inset -1px 0 0 rgba(31, 59, 87, 0.04);
@@ -64,7 +60,7 @@ import { LayoutService } from '../service/layout.service';
     `]
 })
 export class AppSidebar implements OnInit, OnDestroy {
-    sidebarWidth: number = 15; // Compact default for audit workspace
+    sidebarWidth: number = 14.5; // Compact sleek default for workspace
     private startX = 0;
     private startWidth = 0;
     private mouseMoveListener: (() => void) | null = null;
@@ -83,31 +79,20 @@ export class AppSidebar implements OnInit, OnDestroy {
         // Load saved width from localStorage
         const savedWidth = localStorage.getItem('sidebarWidth');
         const compactWidthApplied =
-            localStorage.getItem('sidebarCompactWidthApplied');
+            localStorage.getItem('sidebarCompactWidthApplied_v2');
 
-        if (savedWidth) {
+        if (savedWidth && compactWidthApplied) {
             const parsedWidth =
                 parseFloat(savedWidth);
 
             if (!Number.isNaN(parsedWidth)) {
                 // Always constrain the loaded width to safe bounds
-                const constrainedWidth = Math.max(12, Math.min(24, parsedWidth));
-                this.sidebarWidth =
-                    compactWidthApplied
-                        ? constrainedWidth
-                        : Math.min(constrainedWidth, 15);
+                this.sidebarWidth = Math.max(11, Math.min(20, parsedWidth));
             }
-
-            if (!compactWidthApplied) {
-                localStorage.setItem(
-                    'sidebarCompactWidthApplied',
-                    '1',
-                );
-                localStorage.setItem(
-                    'sidebarWidth',
-                    this.sidebarWidth.toString(),
-                );
-            }
+        } else {
+            this.sidebarWidth = 14.5;
+            localStorage.setItem('sidebarCompactWidthApplied_v2', '1');
+            localStorage.setItem('sidebarWidth', '14.5');
         }
 
         // Always update CSS variable on init for breadcrumb positioning

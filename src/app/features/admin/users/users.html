@@ -107,7 +107,7 @@
                         </app-select-field>
                     </div>
                     <div class="field col-12 md:col-6">
-                        <ng-container *ngIf="role() !== 'CO'">
+                        <ng-container *ngIf="role() !== 'CO' && role() !== 'CCO'">
                             <app-select-field
                                 label="Branch / Dept"
                                 [field]="branchId"
@@ -117,18 +117,18 @@
                                 [showClear]="true">
                             </app-select-field>
                         </ng-container>
-                        <ng-container *ngIf="role() === 'CO'">
+                        <ng-container *ngIf="role() === 'CO' || role() === 'CCO'">
                             <div class="flex flex-column gap-2 mt-2">
                                 <label class="font-medium text-sm text-gray-700">Managed Branches / Departments</label>
                                 <p-multiSelect 
                                     [options]="branches()" 
-                                    [(ngModel)]="managedBranchIds" 
+                                    [ngModel]="managedBranchIds()" 
                                     (ngModelChange)="managedBranchIds.set($event)"
                                     optionLabel="label" 
                                     optionValue="value"
                                     [optionDisabled]="'disabled'"
                                     display="chip" 
-                                    placeholder="Select Branches" 
+                                    placeholder="Select Branches (Leave empty for All)" 
                                     [style]="{'width':'100%'}"
                                     class="w-full">
                                 </p-multiSelect>

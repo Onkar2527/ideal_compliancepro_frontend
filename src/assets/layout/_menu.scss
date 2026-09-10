@@ -2,28 +2,56 @@
 
 .layout-sidebar {
     position: fixed;
-    // width is now controlled by the component
     height: calc(100vh - 3.5rem);
     z-index: 999;
     overflow-y: auto;
-    overflow-x: hidden;
     user-select: none;
     top: 3.5rem;
     left: 0;
     transition:
         transform var(--layout-section-transition-duration),
-        left var(--layout-section-transition-duration);
-    background:
-        linear-gradient(
-            180deg,
-            #f4f8fc 0%,
-            #f8fafc 42%,
-            #f7f9fc 100%
-        );
-    border-right: 1px solid #d9e2ec;
-    box-shadow: inset -1px 0 0 rgba(31, 59, 87, 0.04);
+        left var(--layout-section-transition-duration),
+        width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* LIGHT MODE: Banking Cool Blue-Grey Sidebar (Non-white) */
+    background: #f0f4f8;
+    border-right: 1px solid #cbd5e1;
+    box-shadow: inset -1px 0 0 rgba(15, 41, 66, 0.02), 4px 0 16px rgba(15, 41, 66, 0.02);
     border-radius: 0;
-    padding: 0.5rem 0.625rem;
+    padding: 0.85rem 0.625rem;
+    
+    &::-webkit-scrollbar {
+        width: 5px;
+    }
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(15, 41, 66, 0.15);
+        border-radius: 4px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: rgba(15, 41, 66, 0.3);
+    }
+}
+
+/* Dark Mode Overrides for Sidebar Background and Borders */
+:root[class*='app-dark'] .layout-sidebar,
+.app-dark .layout-sidebar {
+    background: linear-gradient(
+        180deg,
+        #070a1a 0%,
+        #0c0f2b 100%
+    );
+    border-right-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.3), 4px 0 16px rgba(0, 0, 0, 0.2);
+    
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+    }
+    &::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.22);
+    }
 }
 
 .layout-menu {
@@ -33,14 +61,26 @@
 
     .layout-root-menuitem {
         > .layout-menuitem-root-text {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             text-transform: uppercase;
             font-weight: 800;
-            letter-spacing: 0;
-            color: #52677a;
-            margin: 0.85rem 0.35rem 0.4rem;
-            padding: 0.35rem 0.5rem;
-            border-bottom: 1px solid #e2eaf2;
+            letter-spacing: 0.08em;
+            color: #0f2942; /* Banking Navy for clear structural headers */
+            margin: 1.25rem 0.35rem 0.45rem;
+            padding: 0.25rem 0.4rem;
+            position: relative;
+            
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: -2px;
+                left: 0.4rem;
+                width: 1.25rem;
+                height: 2px;
+                background-color: #0284c7; /* Banking Blue indicator */
+                opacity: 0.5;
+                border-radius: 2px;
+            }
         }
 
         > a {
@@ -76,19 +116,24 @@
             align-items: center;
             position: relative;
             outline: 0 none;
-            color: var(--text-color);
+            color: #334155; /* Slate-700 inactive text */
             cursor: pointer;
-            padding: 0.5rem 0.6rem;
+            padding: 0.55rem 0.75rem;
+            margin: 0.15rem 0;
             border-left: 3px solid transparent;
-            border-radius: 4px;
+            border-radius: 30px;
             transition:
-                background-color var(--element-transition-duration),
-                box-shadow var(--element-transition-duration);
+                background-color 0.2s ease,
+                color 0.2s ease,
+                transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.22s ease,
+                box-shadow 0.2s ease;
 
             .layout-menuitem-icon {
-                margin-right: 0.5rem;
-                color: #496a86;
+                margin-right: 0.65rem;
+                color: #64748b; /* Slate-500 icon color */
                 font-size: 0.95rem;
+                transition: color 0.22s ease, transform 0.22s ease;
             }
 
             .layout-menuitem-copy {
@@ -98,83 +143,133 @@
 
             .layout-menuitem-text {
                 display: block;
-                font-size: 0.86rem;
+                font-size: 0.84rem;
                 font-weight: 500;
-                line-height: 1.2;
-                letter-spacing: 0;
+                line-height: 1.25;
+                letter-spacing: -0.01em;
             }
 
             .layout-menuitem-meta {
                 font-size: 0.68rem;
-                line-height: 1.2;
+                font-weight: 500;
+                line-height: 1.25;
+                color: #64748b;
+                opacity: 0.9;
+                margin-top: 0.18rem;
             }
 
             .layout-submenu-toggler {
-                font-size: 75%;
+                font-size: 70%;
                 margin-left: auto;
-                transition: transform var(--element-transition-duration);
-                color: #7a8fa1;
+                transition: transform var(--element-transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
+                color: #94a3b8;
             }
 
             &.active-route {
-                font-weight: 700;
-                color: #14395c;
-                background: #dfeaf5;
-                border-left-color: #1f5f93;
+                font-weight: 600;
+                color: #0369a1; /* Sky Blue-700 for active item text */
+                background: #e0f2fe; /* Light Blue-100 active item backdrop */
+                border-left-color: #0284c7; /* Solid blue active indicator */
+                box-shadow: 0 1px 2px rgba(2, 132, 199, 0.05);
 
-                .layout-menuitem-icon,
+                .layout-menuitem-icon {
+                    color: #0369a1;
+                    transform: scale(1.06);
+                }
+                
                 .layout-submenu-toggler {
-                    color: #1f5f93;
+                    color: #0369a1;
                 }
             }
 
-            &:hover {
-                background-color: #eaf1f7;
+            &:hover:not(.active-route) {
+                background-color: #e2e8f0; /* Slate-200 hover */
+                color: #0f2942; /* Banking Navy hover text */
+                transform: translateX(4px);
+
+                .layout-menuitem-icon {
+                    color: #0369a1;
+                }
             }
 
-            &:focus {
-                @include focused-inset();
+            &:focus-visible {
+                outline: 2px solid #0284c7;
+                outline-offset: -2px;
             }
         }
 
+        /* Nested Submenu Structure - Elegant tree lines */
         ul {
             overflow: hidden;
             border-radius: var(--content-border-radius);
+            border-left: 1px solid #cbd5e1;
+            margin-left: 1.2rem;
+            padding-left: 0.4rem;
+            transition: max-height 0.4s cubic-bezier(0.86, 0, 0.07, 1);
 
             li {
                 a {
-                    margin-left: 0.5rem;
+                    margin-left: 0 !important;
                 }
 
-                li {
-                    a {
-                        margin-left: 1rem;
-                    }
-
-                    li {
-                        a {
-                            margin-left: 1.25rem;
-                        }
-
-                        li {
-                            a {
-                                margin-left: 1.5rem;
-                            }
-
-                            li {
-                                a {
-                                    margin-left: 1.75rem;
-                                }
-
-                                li {
-                                    a {
-                                        margin-left: 2rem;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                ul {
+                    border-left: 1px solid #cbd5e1;
+                    margin-left: 0.75rem;
+                    padding-left: 0.4rem;
                 }
+            }
+        }
+    }
+}
+
+/* Dark Mode menu item specific overrides */
+:root[class*='app-dark'] {
+    .layout-menu {
+        .layout-root-menuitem > .layout-menuitem-root-text {
+            color: #7986cb;
+            
+            &::after {
+                background-color: #9fa8da;
+            }
+        }
+
+        ul a {
+            color: #c5cae9;
+            
+            .layout-menuitem-icon {
+                color: #7986cb;
+            }
+            
+            .layout-menuitem-meta {
+                color: #7986cb;
+            }
+
+            &.active-route {
+                color: #ffffff;
+                background: rgba(99, 102, 241, 0.25);
+                border-left-color: #9fa8da;
+
+                .layout-menuitem-icon,
+                .layout-submenu-toggler {
+                    color: #ffffff;
+                }
+            }
+
+            &:hover:not(.active-route) {
+                background-color: rgba(255, 255, 255, 0.06);
+                color: #ffffff;
+
+                .layout-menuitem-icon {
+                    color: #9fa8da;
+                }
+            }
+        }
+
+        ul ul {
+            border-left-color: rgba(99, 102, 241, 0.2);
+            
+            ul {
+                border-left-color: rgba(99, 102, 241, 0.2);
             }
         }
     }

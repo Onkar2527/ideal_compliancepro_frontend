@@ -113,8 +113,8 @@ import { DialogModule } from 'primeng/dialog';
 
     <!-- Task Headers Groups -->
     <ng-container *ngFor="let group of taskGroups()">
-      <div class="bg-indigo-600 text-white font-bold px-4 py-2 mt-4 rounded-t-xl" 
-           style="background-color: #4f46e5; text-transform: uppercase; font-size: 0.825rem; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+      <div class="text-white font-bold px-4 py-2 mt-4 rounded-t-xl" 
+           style="background-color: #0f2942; text-transform: uppercase; font-size: 0.825rem; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
         <span>Compliance</span>
         <span class="text-xs opacity-90">{{ group.tasks.length }} Tasks</span>
       </div>
@@ -508,7 +508,7 @@ import { DialogModule } from 'primeng/dialog';
           <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; max-height: 180px; overflow-y: auto; background: #ffffff;">
             <div *ngFor="let ev of selectedTaskForChain.evidence_history" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.75rem;">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
-                <a [href]="ev.file_url" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #4f46e5; text-decoration: none;">
+                <a [href]="ev.file_url" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #0f2942; text-decoration: none;">
                   <i class="pi pi-file-pdf text-red-500"></i> View Evidence PDF
                 </a>
                 <span style="font-size: 0.68rem; color: #64748b;" *ngIf="ev.submitted_at">

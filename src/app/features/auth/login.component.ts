@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { ButtonModule } from 'primeng/button';
 import { AuthService } from '../../core/services/auth/auth.service';
+import { LayoutService } from '../../shell/layout/service/layout.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { OfflineTranslationService } from '../../core/services/offline-translation.service';
@@ -30,6 +31,7 @@ export class LoginComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private messageService = inject(MessageService);
+  layoutService = inject(LayoutService);
   translationService = inject(OfflineTranslationService);
 
   username = '';
@@ -40,6 +42,10 @@ export class LoginComponent {
   error = signal<string | undefined>(undefined);
 
   selectedLanguage = this.translationService.getCurrentLanguage();
+
+  toggleTheme() {
+    this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+  }
 
   async onLanguageChange(lang: string) {
     this.selectedLanguage = lang;

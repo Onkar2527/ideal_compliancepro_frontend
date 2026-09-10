@@ -6,7 +6,7 @@
     --layout-content-gutter: 0.75rem;
     padding: 4rem var(--layout-content-gutter) 0 var(--layout-content-gutter); // topbar + compact page gutter
     transition: margin-left var(--layout-section-transition-duration);
-    background: #eef3f7;
+    background: var(--ap-page-bg);
 }
 
 .layout-main-container.no-transition {

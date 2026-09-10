@@ -8,14 +8,13 @@
     top: 0;
     width: 100%;
     padding: 0 0.75rem;
-     background-color: rgba(63, 81, 181, 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
     
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    /* Banking Proper Navy Blue background */
+    background: #0f2942;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     
-    transition: left var(--layout-section-transition-duration);
+    transition: left var(--layout-section-transition-duration), background-color var(--layout-section-transition-duration);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -38,7 +37,7 @@
         -webkit-app-region: no-drag;
     }
 
-    // Specific cursor for buttons and links - must come after topbar cursor
+    // Specific cursor for buttons and links
     button,
     a,
     .p-button,
@@ -64,9 +63,10 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 4px;
-        background: rgba(255, 255, 255, 0.1);
+        padding: 0.25rem 0.85rem;
+        border-radius: 30px; /* Modern Pill Shape */
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         margin-right: 1rem;
         font-size: 0.95rem;
         font-weight: 600;
@@ -77,14 +77,13 @@
 
         &.online {
             i {
-                color: #4ade80; // Green Icon only
+                color: #4ade80;
             }
-             // Text inherits white from below or default
         }
         
         &.offline {
             i {
-                color: #ef4444; // Red Icon only
+                color: #f87171;
             }
         }
 
@@ -113,7 +112,7 @@
             align-items: center;
             justify-content: center;
             color: #ffffff;
-            border-radius: 6px;
+            border-radius: 50%; /* Modern Circular Shape */
             cursor: pointer;
             transition: all 0.2s ease;
 
@@ -130,6 +129,38 @@
                 font-size: 1rem;
             }
         }
+
+        // Circular dynamic logout button style
+        ::ng-deep .p-button.logout-btn {
+            width: 2.25rem !important;
+            height: 2.25rem !important;
+            border-radius: 50% !important; /* Perfect circle */
+            background: rgba(239, 68, 68, 0.12) !important; /* Soft transparent red */
+            border: 1px solid rgba(239, 68, 68, 0.2) !important;
+            color: #f87171 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            transition: all 0.22s ease-in-out !important;
+
+            &:hover {
+                background: #ef4444 !important; /* Solid red on hover */
+                color: #ffffff !important;
+                border-color: #ef4444 !important;
+                transform: scale(1.08);
+
+                .p-button-icon {
+                    color: #ffffff !important;
+                }
+            }
+
+            .p-button-icon {
+                color: #f87171 !important;
+                font-size: 0.95rem !important;
+                margin: 0 !important;
+            }
+        }
     }
 
     .layout-topbar-left {
@@ -141,7 +172,6 @@
     }
 
     justify-content: space-between;
-
 
     .layout-topbar-logo {
         display: inline-flex;
@@ -187,7 +217,7 @@
         justify-content: center;
         align-items: center;
         color: #ffffff;
-        border-radius: 4px;
+        border-radius: 50%; /* Modern Circular Shape */
         width: 2.25rem;
         height: 2.25rem;
         transition: all 0.2s ease;
@@ -221,7 +251,7 @@
             padding: 0 0.75rem !important;
             color: var(--text-color) !important;
             border: 1px solid var(--surface-border) !important;
-            border-radius: 6px !important;
+            border-radius: 30px !important; /* Modern Pill Shape */
             font-weight: 600 !important;
             font-size: 0.875rem !important;
             background: var(--surface-card) !important;
@@ -240,35 +270,56 @@
         }
     }
 
-    .layout-topbar-user-profile {
-        margin: 0 1.5rem;
-        padding: 0.5rem 1rem;
-        background: var(--surface-ground);
-        border-radius: 4px;
-        border: 1px solid var(--surface-border);
+    /* Cohesive User Profile Box (Always Dark Glass Style, Pill Shape) */
+    .topbar-profile {
+        margin: 0 0.5rem;
+        padding: 0.35rem 0.85rem;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 30px; /* Modern Pill Shape */
+        border: 1px solid rgba(255, 255, 255, 0.12);
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.65rem;
         box-shadow: none;
+        transition: all 0.22s ease-in-out;
 
-        .user-id {
+        .profile-avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            color: #ffffff;
             font-weight: 700;
-            color: var(--text-color);
-            font-size: 0.9rem;
-            letter-spacing: 0.5px;
+            font-size: 0.95rem;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        &::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background-color: #22c55e; /* Green status dot */
-            border-radius: 50%;
+        &:hover .profile-avatar {
+            transform: scale(1.06);
+        }
+
+        .profile-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #ffffff;
+            letter-spacing: 0.02em;
+        }
+
+        .profile-role {
+            font-size: 0.68rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: rgba(255, 255, 255, 0.7);
         }
     }
 
-    // Search wrapper styling
+    // Search wrapper styling (Pill Input)
     .topbar-search-wrapper {
         flex: none;
         max-width: none;
@@ -279,13 +330,12 @@
             width: 100%;
         }
 
-        // Icon styling
         .p-icon-field {
             width: 100%;
 
             .p-input-icon {
-                color: var(--text-color);
-                left: 0.75rem;
+                color: rgba(255, 255, 255, 0.5) !important;
+                left: 0.95rem;
             }
         }
 
@@ -293,96 +343,271 @@
         .p-autocomplete-input,
         input.p-inputtext {
             height: 2.25rem !important;
-            background: var(--surface-card) !important;
-            border: 1px solid var(--surface-border) !important;
-            border-radius: 6px !important;
-            color: var(--text-color) !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 30px !important; /* Modern Pill Shape */
+            color: #ffffff !important;
             font-size: 0.9rem !important;
             font-weight: 500 !important;
-            padding: 0 1rem 0 2.5rem !important; // Extra left padding for icon
+            padding: 0 1rem 0 2.5rem !important;
             transition: all 0.2s ease !important;
             letter-spacing: 0.3px !important;
 
             &::placeholder {
-                color: var(--text-color-secondary) !important;
+                color: rgba(255, 255, 255, 0.45) !important;
                 font-weight: 400 !important;
             }
 
             &:focus {
-                background: var(--surface-ground) !important;
-                border-color: var(--primary-color) !important;
-                box-shadow: 0 0 0 3px var(--primary-color-alpha-20) !important;
-                color: var(--text-color) !important;
+                background: rgba(255, 255, 255, 0.14) !important;
+                border-color: #38bdf8 !important;
+                box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+                color: #ffffff !important;
             }
 
             &:enabled:hover {
-                border-color: var(--surface-border-hover) !important;
+                border-color: rgba(255, 255, 255, 0.24) !important;
             }
         }
     }
 
-    // General chip styling (company code, etc.)
+    // Language selector dropdown trigger inside topbar (Pill Trigger)
+    .language-select-dropdown {
+        height: 2.25rem !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 30px !important; /* Modern Pill Shape */
+        color: #ffffff !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+        
+        .p-select-label {
+            color: #ffffff !important;
+            font-size: 0.9rem !important;
+            padding: 0 0.85rem !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+            line-height: 2.25rem !important;
+        }
+
+        .p-select-dropdown {
+            color: rgba(255, 255, 255, 0.8) !important;
+            margin-right: 0.25rem;
+        }
+        
+        &:not(.p-disabled):hover {
+            border-color: rgba(255, 255, 255, 0.24) !important;
+            background: rgba(255, 255, 255, 0.14) !important;
+        }
+        
+        &.p-focus {
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+        }
+    }
+
+    // General chip styling (Pill Chip)
     .p-chip {
         height: 2.25rem;
-        padding: 0 0.75rem;
-        border-radius: 4px;
-        background: var(--surface-ground);
-        border: 1px solid var(--surface-border);
-        color: var(--text-color);
+        padding: 0 0.85rem;
+        border-radius: 30px; /* Modern Pill Shape */
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #ffffff;
         font-weight: 600;
         font-size: 0.875rem;
 
         .p-chip-icon {
-            color: var(--text-color);
+            color: rgba(255, 255, 255, 0.8);
             font-size: 0.875rem;
         }
 
         .p-chip-text {
-            color: var(--text-color);
+            color: #ffffff;
             font-weight: 600;
         }
     }
 
     .logout-button {
-         // Keep existing classes from PrimeNG, just ensure color contrast
-         color: var(--text-color) !important;
+         color: #ffffff !important;
          
          &:hover {
             background: rgba(239, 68, 68, 0.2) !important;
-            color: var(--text-color) !important;
+            color: #ffffff !important;
             border-color: #ef4444 !important;
          }
     }
 }
 
-@media (max-width: 991px) {
-    .layout-topbar {
-        padding: 0 1rem;
-        
-        .layout-topbar-user-profile {
-            display: none;
-        }
-
-        // Hide non-essential actions on small screens
-        .hide-on-small {
-            display: none !important;
-        }
-
-        // Make search bar more compact
-        .topbar-search-wrapper {
-            max-width: 200px;
-        }
-
+/* ==========================================================================
+   Dark Mode Overrides for Layout Topbar
+   ========================================================================== */
+:root[class*='app-dark'] .layout-topbar,
+.app-dark .layout-topbar {
+    background: linear-gradient(
+        90deg,
+        #070a1a 0%,
+        #0c0f2b 100%
+    );
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    
+    .layout-topbar-logo {
+        color: #ffffff !important;
         .bank-name {
-            font-size: 0.8rem !important;
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            color: #ffffff !important;
+        }
+    }
+    
+    .layout-topbar-action {
+        color: #ffffff !important;
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+        i {
+            color: #ffffff !important;
+        }
+    }
+
+    .win-btn {
+        color: #ffffff !important;
+        &:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+        }
+    }
+
+    .window-controls {
+        border-left-color: rgba(255, 255, 255, 0.18) !important;
+    }
+
+    .network-status {
+        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: transparent !important;
+        
+        .status-text {
+            color: #ffffff !important;
+        }
+    }
+
+    .topbar-profile {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+
+        .profile-avatar {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)) !important;
+            color: #ffffff !important;
+        }
+
+        .profile-name {
+            color: #ffffff !important;
+        }
+
+        .profile-role {
+            color: rgba(255, 255, 255, 0.65) !important;
+        }
+    }
+
+    .topbar-search-wrapper {
+        .p-icon-field .p-input-icon {
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+
+        input,
+        .p-autocomplete-input,
+        input.p-inputtext {
+            background: rgba(255, 255, 255, 0.06) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+
+            &::placeholder {
+                color: rgba(255, 255, 255, 0.45) !important;
+            }
+
+            &:focus {
+                background: rgba(255, 255, 255, 0.12) !important;
+                border-color: var(--primary-color, #3f51b5) !important;
+                box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2) !important;
+                color: #ffffff !important;
+            }
+
+            &:enabled:hover {
+                border-color: rgba(255, 255, 255, 0.24) !important;
+            }
+        }
+    }
+
+    .language-select-dropdown {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #ffffff !important;
+
+        .p-select-label {
+            color: #ffffff !important;
+        }
+
+        .p-select-dropdown {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        &:not(.p-disabled):hover {
+            border-color: rgba(255, 255, 255, 0.24) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        &.p-focus {
+            border-color: var(--primary-color, #3f51b5) !important;
+            box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2) !important;
+        }
+    }
+
+    .p-chip {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #ffffff !important;
+
+        .p-chip-icon {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        .p-chip-text {
+            color: #ffffff !important;
+        }
+    }
+
+    .logout-button {
+        color: #ffffff !important;
+
+        &:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+            color: #ffffff !important;
+            border-color: #ef4444 !important;
         }
     }
 }
 
-// Additional breakpoint for very small screens
+/* ==========================================================================
+   Responsive Breakpoints & Status Accents
+   ========================================================================== */
+@media (max-width: 991px) {
+    .layout-topbar {
+        padding: 0 1rem;
+        
+        .topbar-profile {
+            display: none;
+        }
+
+        .hide-on-small {
+            display: none !important;
+        }
+
+        .topbar-search-wrapper {
+            max-width: 200px;
+        }
+    }
+}
+
 @media (max-width: 768px) {
     .layout-topbar {
         padding: 0 0.5rem;
@@ -394,31 +619,13 @@
         .layout-topbar-logo img {
             height: 3.5rem;
         }
-
-        .bank-name {
-            display: none !important;
-        }
-    }
-}
-
-@media (max-width: 576px) {
-    .layout-topbar {
-        .topbar-search-wrapper {
-            max-width: 110px !important;
-        }
-        .layout-topbar-left {
-            gap: 0.25rem !important;
-        }
-        .layout-topbar-actions {
-            gap: 0.25rem !important;
-        }
     }
 }
 
 .chip-online {
   height: 2.25rem;
-  padding: 0 0.75rem;
-  border-radius: 6px;
+  padding: 0 0.85rem;
+  border-radius: 30px;
   background: rgba(34, 197, 94, 0.15) !important;
   border: 1px solid rgba(34, 197, 94, 0.3);
   color: #22c55e !important;
@@ -432,8 +639,8 @@
 
 .chip-offline {
   height: 2.25rem;
-  padding: 0 0.75rem;
-  border-radius: 6px;
+  padding: 0 0.85rem;
+  border-radius: 30px;
   background: rgba(239, 68, 68, 0.15) !important;
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444 !important;

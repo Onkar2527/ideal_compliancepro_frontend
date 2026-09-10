@@ -7,7 +7,7 @@
     <!-- Left: Dept/Branch & Task Set -->
     <div style="flex: 1.2; min-width: 240px;">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-        <span style="font-size: 0.7rem; font-weight: 700; background: #e0e7ff; color: #4338ca; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
+        <span style="font-size: 0.7rem; font-weight: 700; background: #f0f4f8; color: #0f2942; border: 1px solid #cbd5e1; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
           {{ assignmentMeta()?.branch_name }}
         </span>
         <span style="font-size: 0.7rem; font-weight: 700; background: #f3f4f6; color: #4b5563; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
@@ -22,7 +22,7 @@
 
     <!-- Middle: Circular Details -->
     <div style="flex: 1.5; min-width: 260px; border-left: 1px solid #f3f4f6; padding-left: 1rem;">
-      <span style="font-size: 0.725rem; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">
+      <span style="font-size: 0.725rem; font-weight: 700; color: #0f2942; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">
         <i class="pi pi-file" style="font-size: 0.725rem; margin-right: 0.25rem;"></i> Circular Details
       </span>
       <p style="font-size: 0.9rem; font-weight: 700; color: #1f2937; margin: 0; line-height: 1.35;" [title]="assignmentMeta()?.circular_title || 'N/A'">
@@ -110,7 +110,7 @@
   <!-- Task Groups -->
   <div *ngFor="let group of filteredTaskGroups()" class="task-group-wrapper">
     <div class="task-group-header">
-      <i class="pi pi-folder-open" style="color: #4f46e5;"></i>
+      <i class="pi pi-folder-open" style="color: #0f2942;"></i>
       {{ group.headerName }}
       <span class="group-count">{{ group.tasks.length }} tasks</span>
     </div>
@@ -157,7 +157,7 @@
                 {{ t.remarks || '—' }}
                 <!-- Evidence Link -->
                 <div *ngIf="t.has_evidence && t.evidence_url" style="margin-top: 0.5rem;">
-                  <a [href]="t.evidence_url" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 no-underline" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; text-decoration: none; color: #4f46e5;">
+                  <a [href]="t.evidence_url" target="_blank" class="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 no-underline" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; text-decoration: none; color: #0f2942;">
                     <i class="pi pi-file-pdf text-red-500"></i> View Evidence PDF
                   </a>
                 </div>
@@ -243,7 +243,7 @@
   <!-- Final Review Decision Panel -->
   <div class="decision-panel" *ngIf="isReviewActive()">
     <div class="decision-panel-header">
-      <i class="pi pi-shield" style="color: #4f46e5; font-size: 1.2rem;"></i>
+      <i class="pi pi-shield" style="color: #0f2942; font-size: 1.2rem;"></i>
       CCO Final Decision
     </div>
 
@@ -344,7 +344,7 @@
         <div style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; max-height: 180px; overflow-y: auto; background: #ffffff;">
           <div *ngFor="let ev of selectedTaskForChain.evidence_history" style="padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.75rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.25rem;">
-              <a [href]="ev.file_url" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #4f46e5; text-decoration: none;">
+              <a [href]="ev.file_url" target="_blank" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #0f2942; text-decoration: none;">
                 <i class="pi pi-file-pdf text-red-500"></i> View Evidence PDF
               </a>
               <span style="font-size: 0.68rem; color: #64748b;" *ngIf="ev.submitted_at">

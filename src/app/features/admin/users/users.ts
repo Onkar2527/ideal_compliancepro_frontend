@@ -165,7 +165,7 @@ export class Users implements OnInit {
   isActive = signal<boolean>(true);
   
   onRoleChange(newRole: string | null) {
-    if (newRole === 'CO') {
+    if (newRole === 'CO' || newRole === 'CCO') {
       this.branchId.set(null);
     } else {
       this.managedBranchIds.set([]);
@@ -234,7 +234,7 @@ export class Users implements OnInit {
     const currentUserId = this.userId();
     const currentRole = this.role();
     const options = this.rawBranches().map(b => {
-      const isAssignedToOther = currentRole === 'CO' && b.co_user_id && b.co_user_id !== currentUserId;
+      const isAssignedToOther = (currentRole === 'CO' || currentRole === 'CCO') && b.co_user_id && b.co_user_id !== currentUserId;
       return {
         label: isAssignedToOther ? `${b.name} (Assigned)` : b.name,
         value: b.id,
@@ -314,8 +314,8 @@ export class Users implements OnInit {
         full_name: this.fullName(),
         email: this.email(),
         role: this.role(),
-        branch_id: this.role() !== 'CO' ? this.branchId() : null,
-        managed_branch_ids: this.role() === 'CO' ? this.managedBranchIds() : [],
+        branch_id: (this.role() !== 'CO' && this.role() !== 'CCO') ? this.branchId() : null,
+        managed_branch_ids: (this.role() === 'CO' || this.role() === 'CCO') ? this.managedBranchIds() : [],
         is_active: this.isActive()
       };
 

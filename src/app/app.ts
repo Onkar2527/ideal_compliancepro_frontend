@@ -95,24 +95,24 @@ export class App implements OnInit {
   ngOnInit(): void {
     console.log(this.config);
 
-    // Initialize theme with indigo primary color (#3F51B5)
-    const indigoPalette = {
-      50: '#e8eaf6',
-      100: '#c5cae9',
-      200: '#9fa8da',
-      300: '#7986cb',
-      400: '#5c6bc0',
-      500: '#3F51B5',
-      600: '#3949ab',
-      700: '#303f9f',
-      800: '#283593',
-      900: '#1a237e',
-      950: '#0d1642'
+    // Initialize theme with banking navy primary color (matching layout shell)
+    const bankingNavyPalette = {
+      50: '#f0f4f8',
+      100: '#cbd5e1',
+      200: '#94a3b8',
+      300: '#64748b',
+      400: '#475569',
+      500: '#0f2942', // Match Topbar Banking Navy
+      600: '#153554', // Lighter hover navy
+      700: '#1a4166',
+      800: '#204d78',
+      900: '#25598a',
+      950: '#0b1d2e'
     };
 
     updatePreset({
       semantic: {
-        primary: indigoPalette,
+        primary: bankingNavyPalette,
         surface: "ocean",
 
         /* ------------------------------------------------------

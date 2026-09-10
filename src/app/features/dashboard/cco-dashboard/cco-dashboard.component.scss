@@ -5,71 +5,114 @@
 
 /* Hero Section */
 .dashboard-hero {
-  background: linear-gradient(135deg, var(--primary-800, #1e3a8a) 0%, var(--primary-600, #3b82f6) 100%);
+  background:
+    radial-gradient(ellipse at 5% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 10%, rgba(24, 61, 107, 0.8) 0%, transparent 55%),
+    linear-gradient(110deg, #0f2942 0%, #0f2942 50%, #142f4e 75%, #183d6b 100%);
   border-radius: 16px;
-  padding: 2.5rem 2rem;
+  padding: 2.25rem 2rem;
   color: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1.5rem;
-  box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.18),
+    0 12px 40px rgba(15, 41, 66, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 
   &::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    filter: blur(50px);
+    background: radial-gradient(circle, rgba(24, 61, 107, 0.9) 0%, transparent 70%);
+    filter: blur(60px);
     pointer-events: none;
   }
 
   .hero-left {
     flex: 1;
     min-width: 280px;
+    position: relative;
+    z-index: 1;
 
     .hero-tag {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
       text-transform: uppercase;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
-      letter-spacing: 1.5px;
-      background: rgba(255, 255, 255, 0.2);
-      padding: 0.25rem 0.75rem;
-      border-radius: 30px;
-      margin-bottom: 0.75rem;
-      backdrop-filter: blur(4px);
+      letter-spacing: 2px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 0.3rem 0.85rem;
+      border-radius: 100px;
+      margin-bottom: 0.85rem;
+      color: rgba(255, 255, 255, 0.85);
     }
 
-    h1 { margin: 0; font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
-    p  { margin: 0.5rem 0 0 0; font-size: 1.05rem; opacity: 0.9; font-weight: 400; }
+    h1 {
+      margin: 0;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      color: #ffffff;
+    }
+    p {
+      margin: 0.5rem 0 0 0;
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 400;
+    }
   }
 
   .hero-right {
     display: flex;
     align-items: center;
+    position: relative;
+    z-index: 1;
 
     .role-badge {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      padding: 0.6rem 1.2rem;
-      border-radius: 12px;
-      font-size: 0.95rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 0.65rem 1.25rem;
+      border-radius: 14px;
+      font-size: 0.9rem;
       font-weight: 600;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      i { font-size: 1.1rem; }
+      color: rgba(255, 255, 255, 0.9);
+      transition: background 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      i {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.75);
+      }
     }
   }
 }

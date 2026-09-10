@@ -98,6 +98,16 @@ interface SearchItem {
               </ng-template>
             </p-select>
 
+        <!-- Dark/Light Theme Button -->
+        <p-button
+          class="layout-topbar-action hide-on-small"
+          [icon]="layoutService.layoutConfig().darkTheme ? 'pi pi-moon' : 'pi pi-sun'"
+          severity="secondary"
+          (click)="toggleTheme()"
+          pTooltip="Toggle Dark/Light Mode"
+          tooltipPosition="bottom"
+        ></p-button>
+
         <div class="notification-container hide-on-small" #notifBtnContainer (click)="op.toggle($event, notifBtnContainer)">
           <p-button
             icon="pi pi-bell"
@@ -117,7 +127,7 @@ interface SearchItem {
             <!-- Sticky Header -->
             <div class="notification-dropdown-header">
               <div class="flex align-items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem;">
-                <span class="font-bold text-base text-900" style="font-weight: 700; font-size: 1rem; color: #111827;">Notifications</span>
+                <span class="notification-header-title">Notifications</span>
                 <span *ngIf="unreadCount() > 0" class="unread-badge">
                   {{ unreadCount() }} new
                 </span>
@@ -155,14 +165,14 @@ interface SearchItem {
                 </div>
 
                 <!-- Main Content -->
-                <div class="item-content-body" style="display: flex; flex-direction: column; gap: 0.15rem;">
-                  <div class="item-title-text" [class.text-semibold]="!n.is_read" style="font-size: 0.85rem; color: #111827; font-weight: 700;">
+                <div class="item-content-body">
+                  <div class="item-title-text" [class.text-semibold]="!n.is_read">
                     {{ n.title || 'Notification' }}
                   </div>
-                  <div class="item-message-text" style="font-size: 0.78rem; color: #4b5563; line-height: 1.35;">
+                  <div class="item-message-text">
                     {{ n.message }}
                   </div>
-                  <div class="item-meta-row" style="margin-top: 0.15rem;">
+                  <div class="item-meta-row">
                     <span class="item-time">{{ getRelativeTime(n.created_at) }}</span>
                   </div>
                 </div>
@@ -295,7 +305,7 @@ interface SearchItem {
           align-items: center;
           justify-content: center;
           padding: 0 4px;
-          border: 1.5px solid #5c6bc0; /* matches topbar header background color nicely */
+          border: 1.5px solid #0f2942; /* matches topbar header background color nicely */
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
           pointer-events: none;
           z-index: 10;
@@ -471,9 +481,15 @@ interface SearchItem {
         z-index: 10;
       }
 
+      ::ng-deep .notification-header-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-color, #111827);
+      }
+
       ::ng-deep .unread-badge {
         background: rgba(59, 130, 246, 0.1);
-        color: var(--primary-color);
+        color: #2563eb;
         font-size: 0.72rem;
         font-weight: 700;
         padding: 0.15rem 0.5rem;
@@ -486,7 +502,7 @@ interface SearchItem {
         font-size: 0.78rem !important;
         font-weight: 600 !important;
         padding: 0 !important;
-        color: var(--primary-color) !important;
+        color: #2563eb !important;
         height: auto !important;
         width: auto !important;
       }
@@ -534,7 +550,7 @@ interface SearchItem {
         background-color: var(--surface-hover);
       }
       ::ng-deep .notification-item-row.unread-item {
-        background-color: rgba(59, 130, 246, 0.02);
+        background-color: rgba(59, 130, 246, 0.04);
       }
 
       ::ng-deep .item-icon-wrapper {
@@ -554,29 +570,33 @@ interface SearchItem {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.2rem;
         min-width: 0;
       }
 
-      ::ng-deep .item-message-text {
+      ::ng-deep .item-title-text {
         font-size: 0.85rem;
-        color: var(--text-color);
+        color: var(--text-color, #111827);
+        font-weight: 700;
+        line-height: 1.3;
+      }
+
+      ::ng-deep .item-message-text {
+        font-size: 0.8rem;
+        color: var(--text-color-secondary, #64748b);
         line-height: 1.4;
         word-wrap: break-word;
-      }
-      ::ng-deep .item-message-text.text-semibold {
-        font-weight: 600;
-        color: var(--text-color-900);
       }
 
       ::ng-deep .item-meta-row {
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        margin-top: 0.15rem;
       }
       ::ng-deep .item-time {
         font-size: 0.72rem;
-        color: var(--text-color-secondary);
+        color: var(--text-color-secondary, #94a3b8);
       }
 
       ::ng-deep .unread-indicator-dot {
@@ -602,7 +622,7 @@ interface SearchItem {
       ::ng-deep .view-all-link {
         font-size: 0.825rem;
         font-weight: 600;
-        color: var(--primary-color);
+        color: #2563eb;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
@@ -612,8 +632,78 @@ interface SearchItem {
         transition: color 0.2s;
       }
       ::ng-deep .view-all-link:hover {
-        color: var(--primary-dark-color);
+        color: #1d4ed8;
         text-decoration: underline;
+      }
+
+      /* Dark Mode Specific Overrides */
+      :root[class*='app-dark'] ::ng-deep,
+      .app-dark ::ng-deep {
+        .notification-dropdown-card,
+        .notification-dropdown-header,
+        .notification-list-container,
+        .notification-dropdown-footer {
+          background: #1e293b !important;
+          border-color: #334155 !important;
+        }
+
+        .notification-header-title,
+        .item-title-text,
+        .empty-title {
+          color: #f8fafc !important;
+        }
+
+        .item-message-text,
+        .empty-subtitle {
+          color: #94a3b8 !important;
+        }
+
+        .item-time {
+          color: #64748b !important;
+        }
+
+        .notification-item-row {
+          border-color: #334155 !important;
+
+          &:hover {
+            background-color: #273549 !important;
+          }
+
+          &.unread-item {
+            background-color: rgba(59, 130, 246, 0.08) !important;
+          }
+        }
+
+        .unread-badge {
+          background: rgba(59, 130, 246, 0.2) !important;
+          color: #93c5fd !important;
+        }
+
+        .mark-all-btn,
+        .view-all-link {
+          color: #60a5fa !important;
+        }
+
+        .item-icon-wrapper.bg-green-50 {
+          background-color: rgba(34, 197, 94, 0.15) !important;
+          color: #4ade80 !important;
+          border-color: rgba(34, 197, 94, 0.3) !important;
+        }
+        .item-icon-wrapper.bg-red-50 {
+          background-color: rgba(239, 68, 68, 0.15) !important;
+          color: #f87171 !important;
+          border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+        .item-icon-wrapper.bg-amber-50 {
+          background-color: rgba(245, 158, 11, 0.15) !important;
+          color: #fbbf24 !important;
+          border-color: rgba(245, 158, 11, 0.3) !important;
+        }
+        .item-icon-wrapper.bg-blue-50 {
+          background-color: rgba(59, 130, 246, 0.15) !important;
+          color: #60a5fa !important;
+          border-color: rgba(59, 130, 246, 0.3) !important;
+        }
       }
 
       /* Empty State */
@@ -650,6 +740,7 @@ export class AppTopbar implements OnInit, OnDestroy {
   router = inject(Router);
   authService = inject(AuthService);
   config = inject(APP_CONFIG);
+  layoutService = inject(LayoutService);
 
   @ViewChild('searchInput') searchInput!: AutoComplete;
   private searchSubscription?: Subscription;
@@ -657,6 +748,10 @@ export class AppTopbar implements OnInit, OnDestroy {
   userName = 'User';
   userDesignation = '';
   branchId: number | null = null;
+
+  toggleTheme() {
+    this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+  }
 
   // Notifications State
   notifications: any[] = [];
@@ -684,7 +779,6 @@ export class AppTopbar implements OnInit, OnDestroy {
   private items: SearchItem[] = [];
 
   constructor(
-    public layoutService: LayoutService,
     private zone: NgZone,
   ) { }
 

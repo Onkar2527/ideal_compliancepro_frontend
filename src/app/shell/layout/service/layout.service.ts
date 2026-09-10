@@ -29,9 +29,9 @@ interface MenuChangeEvent {
 export class LayoutService {
     _config: layoutConfig = {
         preset: 'Aura',
-        primary: 'indigo',  // Material Design Indigo #3F51B5
+        primary: 'navy',  // Banking Navy #0f2942
         surface: null,
-        darkTheme: false,
+        darkTheme: typeof localStorage !== 'undefined' ? localStorage.getItem('darkTheme') === 'true' : false,
         menuMode: 'static'
     };
 
@@ -85,19 +85,23 @@ export class LayoutService {
         effect(() => {
             const config = this.layoutConfig();
             if (config) {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('darkTheme', String(!!config.darkTheme));
+                }
                 this.onConfigUpdate();
             }
         });
 
         effect(() => {
             const config = this.layoutConfig();
+            if (!config) return;
 
-            if (!this.initialized || !config) {
+            if (!this.initialized) {
                 this.initialized = true;
-                return;
+                this.toggleDarkMode(config);
+            } else {
+                this.handleDarkModeTransition(config);
             }
-
-            this.handleDarkModeTransition(config);
         });
     }
 

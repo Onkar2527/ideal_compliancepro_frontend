@@ -13,7 +13,7 @@
         &.layout-overlay {
             .layout-main-container {
                 margin-left: 0;
-                padding-left: var(--layout-content-gutter, 0.5rem);
+                padding-left: var(--layout-content-gutter, 0.75rem);
             }
 
             .layout-sidebar {
@@ -42,8 +42,7 @@
 
         &.layout-static {
             .layout-main-container {
-                margin-left: var(--sidebar-width, 15rem);
-                border-left: 1px solid var(--surface-border, #cbd5e1);
+                margin-left: var(--sidebar-width, 14.5rem);
             }
 
             &.layout-static-inactive {
@@ -54,8 +53,7 @@
 
                 .layout-main-container {
                     margin-left: 0;
-                    padding-left: var(--layout-content-gutter, 0.5rem);
-                    border-left: none;
+                    padding-left: var(--layout-content-gutter, 0.75rem);
                 }
             }
         }
@@ -74,7 +72,7 @@
     .layout-wrapper {
         .layout-main-container {
             margin-left: 0;
-            padding-left: var(--layout-content-gutter, 0.5rem);
+            padding-left: var(--layout-content-gutter, 0.75rem);
         }
 
         .layout-sidebar {
@@ -84,7 +82,6 @@
             height: 100vh;
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
-            max-width: 85vw !important;
             transition:
                 transform 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99),
                 left 0.4s cubic-bezier(0.05, 0.74, 0.2, 0.99);

@@ -1,21 +1,35 @@
 <p-toast></p-toast>
 
 <div class="login-page">
+  <!-- Theme Toggle Button in Top Right Corner -->
+  <div class="login-theme-toggle">
+    <button pButton type="button" [icon]="layoutService.layoutConfig().darkTheme ? 'pi pi-moon' : 'pi pi-sun'"
+      severity="secondary" (click)="toggleTheme()" aria-label="Toggle theme"></button>
+  </div>
 
   <!-- Fixed Banner -->
-  <div class="top-banner"></div>
+  <div class="top-banner">
+    <div class="glow-node node-1"></div>
+    <div class="glow-node node-2"></div>
+    <div class="glow-node node-3"></div>
+  </div>
+
+  <!-- Background Floating Shapes in White Space -->
+  <div class="bg-shape shape-1"></div>
+  <div class="bg-shape shape-2"></div>
+  <div class="bg-shape shape-3"></div>
 
   <!-- Scrollable Content -->
   <div class="content-section">
     <!-- Brand -->
-    <div class="brand-section">
+    <div class="brand-section animate-item">
       <h1>Compliance Pro</h1>
       <p>AI POWERED COMPLIANCE MANAGEMENT</p>
     </div>
 
     <!-- Login -->
     <div class="login-wrapper">
-      <div class="login-card">
+      <div class="login-card animate-item delay-1">
         <h2>Login to Your Account</h2>
 
         <div class="company-name">Compliance Pro Access</div>
@@ -27,66 +41,81 @@
 
           <form #loginForm="ngForm" (ngSubmit)="onLogin()" autocomplete="off">
             <!-- Username -->
-            <div class="input-group">
+            <div class="input-group animate-item delay-2">
               <label for="username">Employee Code</label>
-
-              <input
-                id="username"
-                pInputText
-                type="text"
-                [(ngModel)]="username"
-                name="username"
-                placeholder="Enter Employee Code"
-                class="w-full custom-input"
-                required
-                autocomplete="username"
-              />
+              <div class="input-icon-wrapper">
+                <i class="pi pi-user input-icon"></i>
+                <input
+                  id="username"
+                  pInputText
+                  type="text"
+                  [(ngModel)]="username"
+                  name="username"
+                  placeholder="Enter Employee Code"
+                  class="w-full custom-input icon-indent"
+                  required
+                  autocomplete="username"
+                />
+              </div>
             </div>
 
             <!-- Password -->
-            <div class="input-group">
+            <div class="input-group animate-item delay-3">
               <label for="password">Password</label>
-
-              <p-password
-                inputId="password"
-                [(ngModel)]="password"
-                name="password"
-                [toggleMask]="true"
-                [feedback]="false"
-                placeholder="Enter Password"
-                styleClass="w-full"
-                inputStyleClass="w-full custom-input"
-                autocomplete="current-password"
-                required
-              >
-              </p-password>
+              <div class="input-icon-wrapper">
+                <i class="pi pi-lock input-icon"></i>
+                <p-password
+                  inputId="password"
+                  [(ngModel)]="password"
+                  name="password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  placeholder="Enter Password"
+                  styleClass="w-full"
+                  inputStyleClass="w-full custom-input icon-indent"
+                  autocomplete="current-password"
+                  required
+                >
+                </p-password>
+              </div>
             </div>
 
             <!-- Login Button -->
             <button
               pButton
               type="submit"
-              [label]="loading() ? 'Logging in...' : 'Login'"
               [loading]="loading()"
               [disabled]="loading() || !username || !password"
-              class="login-btn"
-            ></button>
+              class="login-btn animate-item delay-4"
+            >
+              {{ loading() ? 'Logging in...' : 'Login' }}
+            </button>
+
+            <!-- Language Selector (Segmented Control matching ideal-auditpro) -->
+            <div class="login-language-selector animate-item delay-4">
+              <div class="segmented-control">
+                <input
+                  type="radio"
+                  id="lang-en"
+                  name="lang"
+                  value="en"
+                  [(ngModel)]="selectedLanguage"
+                  (change)="onLanguageChange('en')"
+                />
+                <label for="lang-en">English</label>
+
+                <input
+                  type="radio"
+                  id="lang-mr"
+                  name="lang"
+                  value="mr"
+                  [(ngModel)]="selectedLanguage"
+                  (change)="onLanguageChange('mr')"
+                />
+                <label for="lang-mr">मराठी</label>
+              </div>
+            </div>
           </form>
-
-
-          <!-- Language Toggle -->
-          <div class="lang-toggle-row">
-            <button
-              class="lang-pill"
-              [class.active]="selectedLanguage === 'en'"
-              (click)="onLanguageChange('en')"
-            >English</button>
-            <button
-              class="lang-pill"
-              [class.active]="selectedLanguage === 'mr'"
-              (click)="onLanguageChange('mr')"
-            >मराठी</button>
-          </div>
         </div>
       </div>
     </div>

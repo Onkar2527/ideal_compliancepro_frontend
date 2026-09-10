@@ -17,12 +17,12 @@
 /* ── Back button ── */
 .back-btn {
   background: none; border: none;
-  color: #4f46e5; font-weight: 600;
+  color: #0f2942; font-weight: 600;
   cursor: pointer; display: flex;
   align-items: center; gap: 0.4rem;
   font-size: 0.9rem; padding: 0;
 }
-.back-btn:hover { color: #3730a3; }
+.back-btn:hover { color: #153554; }
 
 /* ── Assignment / Review Header Card ── */
 .review-header-card {
@@ -49,7 +49,7 @@
 .progress-not      { color: #dc2626; }
 .progress-approved { color: #15803d; }
 .progress-redo     { color: #b45309; }
-.progress-total    { color: #4f46e5; }
+.progress-total    { color: #0f2942; }
 
 /* Compact chip spacing for decision summary p-buttons */
 .ds-chip { min-width: unset !important; }
@@ -63,7 +63,7 @@
 .status-review   { background: #fef3c7; color: #92400e; }
 .status-complete { background: #dcfce7; color: #15803d; }
 .status-rejected { background: #fee2e2; color: #b91c1c; }
-.status-progress { background: #e0e7ff; color: #4338ca; }
+.status-progress { background: #e0e7ff; color: #0f2942; }
 
 /* ── Bulk Actions Bar (review pages) ── */
 .bulk-actions-bar {
@@ -95,9 +95,10 @@
   border: 1px solid #e5e7eb; border-radius: 8px 8px 0 0; border-bottom: none;
 }
 .group-count {
-  margin-left: auto; background: #e0e7ff; color: #4338ca;
+  margin-left: auto; background: #f0f4f8; color: #0f2942;
   font-size: 0.68rem; font-weight: 800;
-  padding: 0.1rem 0.5rem; border-radius: 999px;
+  padding: 0.15rem 0.6rem; border-radius: 999px;
+  border: 1px solid #cbd5e1;
 }
 
 /* ── Question Card (the main checklist card) ── */
@@ -142,8 +143,9 @@
   min-height: 1.85rem;
   width: 1.85rem;
   height: 1.85rem;
-  background: #eef2ff; 
-  color: #4f46e5;
+  background: #f0f4f8; 
+  color: #0f2942;
+  border: 1px solid #cbd5e1;
   display: flex; 
   align-items: center; 
   justify-content: center;
@@ -216,7 +218,7 @@
   background-color: white; box-sizing: border-box;
   outline: none; transition: border-color 0.2s;
 }
-.answer-control:focus { border-color: #4f46e5; }
+.answer-control:focus { border-color: #0f2942; }
 
 /* ── Read-only Branch Remark Box (review pages) ── */
 .branch-remark-box {
@@ -240,20 +242,20 @@
 .evidence-link {
   display: inline-flex; align-items: center; gap: 0.3rem;
   font-size: 0.78rem; font-weight: 700;
-  color: #4f46e5; text-decoration: none;
+  color: #0f2942; text-decoration: none;
 }
-.evidence-link:hover { color: #3730a3; }
+.evidence-link:hover { color: #153554; }
 .no-evidence { font-size: 0.75rem; color: #9ca3af; font-style: italic; }
 
 /* ── Save Row Button (branch fill view) ── */
 .save-row-btn {
-  background: #4f46e5; color: white; border: none;
+  background: #0f2942; color: white; border: none;
   border-radius: 6px; padding: 0.4rem;
   font-size: 0.85rem; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   gap: 0.2rem; width: 100%; height: 2.15rem; transition: background 0.2s;
 }
-.save-row-btn:hover:not(:disabled) { background: #4338ca; }
+.save-row-btn:hover:not(:disabled) { background: #153554; }
 .save-row-btn:disabled { color: #9ca3af; background: #f3f4f6; cursor: not-allowed; border: 1px solid #e5e7eb; }
 
 /* ── Upload Button (branch fill view) ── */
@@ -270,14 +272,14 @@
 
 /* ── Submit Compliance Button (branch fill view) ── */
 .submit-compliance-btn {
-  background: #4f46e5; color: white; border: none;
+  background: #0f2942; color: white; border: none;
   border-radius: 8px; padding: 0.75rem 1.5rem;
   font-size: 0.95rem; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   width: 100%; text-transform: uppercase;
   letter-spacing: 0.05em; transition: background 0.2s;
 }
-.submit-compliance-btn:hover:not(:disabled) { background: #4338ca; }
+.submit-compliance-btn:hover:not(:disabled) { background: #153554; }
 .submit-compliance-btn:disabled { background: #d1d5db; cursor: not-allowed; }
 
 /* ── Per-Task Review Toggle Buttons (review pages) ── */
