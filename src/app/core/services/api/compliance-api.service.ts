@@ -369,6 +369,10 @@ export class ComplianceApiService {
     return this.http.patch<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/complete`, { compliance_status: complianceStatus, remarks });
   }
 
+  delegateTaskToSubDept(assignmentId: number, taskId: number, subDeptId: number | null) {
+    return this.http.patch<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/delegate`, { sub_dept_id: subDeptId });
+  }
+
   getTaskRemarksHistory(assignmentId: number, taskId: number) {
     return this.http.get<any[]>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/remarks-history`);
   }

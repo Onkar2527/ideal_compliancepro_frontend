@@ -32,26 +32,94 @@ export class Dashboard implements OnInit {
 
   ngOnInit() {
     this.loading.set(true);
-    this.api.getDashboardStats().subscribe({
-      next: (data) => {
-        this.stats = data;
-        this.statusCards = [
-          { label: 'Pending Timeline', value: data.assignments.pendingTimeline, color: '#eab308' },
-          { label: 'Timeline Review', value: data.assignments.timelineReview, color: '#f97316' },
-          { label: 'In Progress', value: data.assignments.inProgress, color: '#3b82f6' },
-          { label: 'Review Pending', value: data.assignments.reviewPending, color: '#a855f7' },
-          { label: 'Completed', value: data.assignments.completed, color: '#22c55e' },
-        ];
-        if (this.role === 'CCO' || this.role === 'ADMIN') {
-          this.statusCards.push({ label: 'Escalated', value: data.assignments.escalated, color: '#ef4444' });
+    this.api.getBranches().subscribe({
+      next: (branches) => {
+        const user = this.auth.currentUser();
+        let allowedBranchNames: string[] = [];
+        let allowedBranchIds: number[] = [];
+
+        if (user && user.role === 'CO') {
+          const userManagedBranches = branches.filter((b: any) => String(b.co_user_id) === String(user.id));
+          if (userManagedBranches.length > 0) {
+            allowedBranchNames = userManagedBranches.map((b: any) => (b.name || '').trim().toLowerCase());
+            allowedBranchIds = userManagedBranches.map((b: any) => b.id);
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const mappedIds = new Set(user.managed_branch_ids);
+            const userMapped = branches.filter((b: any) => mappedIds.has(b.id));
+            allowedBranchNames = userMapped.map((b: any) => (b.name || '').trim().toLowerCase());
+            allowedBranchIds = userMapped.map((b: any) => b.id);
+          }
+        } else if (user && user.role === 'CCO') {
+          const userManagedBranches = branches.filter((b: any) => String(b.cco_user_id) === String(user.id));
+          if (userManagedBranches.length > 0) {
+            allowedBranchNames = userManagedBranches.map((b: any) => (b.name || '').trim().toLowerCase());
+            allowedBranchIds = userManagedBranches.map((b: any) => b.id);
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const mappedIds = new Set(user.managed_branch_ids);
+            const userMapped = branches.filter((b: any) => mappedIds.has(b.id));
+            allowedBranchNames = userMapped.map((b: any) => (b.name || '').trim().toLowerCase());
+            allowedBranchIds = userMapped.map((b: any) => b.id);
+          }
         }
-        this.loading.set(false);
-        this.cdr.detectChanges();
+
+        this.api.getDashboardStats().subscribe({
+          next: (data) => {
+            if (allowedBranchNames.length > 0) {
+              const allowedNamesSet = new Set(allowedBranchNames);
+              const allowedIdsSet = new Set(allowedBranchIds);
+              if (data.coMetrics?.branchReports) {
+                data.coMetrics.branchReports = data.coMetrics.branchReports.filter((br: any) => allowedIdsSet.has(br.id) || (br.name && allowedNamesSet.has(br.name.trim().toLowerCase())));
+                if (data.coMetrics) {
+                  data.coMetrics.totalBranches = data.coMetrics.branchReports.filter((br: any) => br.type === 'BRANCH').length;
+                  data.coMetrics.totalHeadOffice = data.coMetrics.branchReports.filter((br: any) => br.type === 'DEPARTMENT').length;
+                }
+              }
+              if (data.coMetrics?.awaitingActionQueue) {
+                data.coMetrics.awaitingActionQueue = data.coMetrics.awaitingActionQueue.filter((item: any) => item.branch_name && allowedNamesSet.has(item.branch_name.trim().toLowerCase()));
+              }
+              if (data.ccoMetrics?.awaitingActionQueue) {
+                data.ccoMetrics.awaitingActionQueue = data.ccoMetrics.awaitingActionQueue.filter((item: any) => item.branch_name && allowedNamesSet.has(item.branch_name.trim().toLowerCase()));
+              }
+              if (data.ccoMetrics) {
+                const deptCount = branches.filter((b: any) => allowedIdsSet.has(b.id) && b.type === 'DEPARTMENT').length;
+                const branchCount = branches.filter((b: any) => allowedIdsSet.has(b.id) && b.type === 'BRANCH').length;
+                data.ccoMetrics.totalBranches = branchCount;
+                data.ccoMetrics.totalHeadOffice = deptCount;
+              }
+            }
+            this.stats = data;
+            this.statusCards = [
+              { label: 'Pending Timeline', value: data.assignments?.pendingTimeline ?? 0, color: '#eab308' },
+              { label: 'Timeline Review', value: data.assignments?.timelineReview ?? 0, color: '#f97316' },
+              { label: 'In Progress', value: data.assignments?.inProgress ?? 0, color: '#3b82f6' },
+              { label: 'Review Pending', value: data.assignments?.reviewPending ?? 0, color: '#a855f7' },
+              { label: 'Completed', value: data.assignments?.completed ?? 0, color: '#22c55e' },
+            ];
+            if (this.role === 'CCO' || this.role === 'ADMIN') {
+              this.statusCards.push({ label: 'Escalated', value: data.assignments?.escalated ?? 0, color: '#ef4444' });
+            }
+            this.loading.set(false);
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Error fetching dashboard stats:', err);
+            this.loading.set(false);
+            this.cdr.detectChanges();
+          }
+        });
       },
-      error: (err) => {
-        console.error('Error fetching dashboard stats:', err);
-        this.loading.set(false);
-        this.cdr.detectChanges();
+      error: () => {
+        this.api.getDashboardStats().subscribe({
+          next: (data) => {
+            this.stats = data;
+            this.loading.set(false);
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            this.loading.set(false);
+            this.cdr.detectChanges();
+          }
+        });
       }
     });
   }

@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, computed } from "@angular/core";
+import { Component, OnInit, signal, computed, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
 import { ActivatedRoute, Router } from "@angular/router";
-import { inject } from "@angular/core";
 import { APP_CONFIG } from "../../core/services/config/config.token";
+import { AuthService } from "../../core/services/auth/auth.service";
+import { ComplianceApiService } from "../../core/services/api/compliance-api.service";
 import { NotificationService } from "../../core/services/notification/notification.service";
 import { TableComponent, TableColumn, TableAction } from "../../shared/components/table/table.component";
 import { SelectModule } from "primeng/select";
@@ -93,6 +94,8 @@ export class CcoReviewComponent implements OnInit {
   taskSetType = signal<string | null>(null);
 
   private config: any = inject(APP_CONFIG);
+  private auth = inject(AuthService);
+  private api = inject(ComplianceApiService);
 
   readonly frequencyMap: Record<string, string> = {
     '0': 'Daily',
@@ -222,42 +225,78 @@ export class CcoReviewComponent implements OnInit {
   }
 
   loadAssignments() {
-    let url = `${this.config.apiUrl}/assignments?limit=1000`;
-    const type = this.taskSetType();
-    if (type) url += `&task_set_type=${type}`;
-    this.http.get<any>(url).subscribe({
-      next: (res) => {
-        const data = res.data || res;
-        const mappedData = data.map((a: any) => {
-          const total     = parseInt(a.total_tasks, 10) || 0;
-          const completed = parseInt(a.completed_tasks, 10) || 0;
-          const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
-          
-          // Format standard Date string dd/MM/yyyy
-          let dateStr = '';
-          if (a.proposed_timeline) {
-            const d = new Date(a.proposed_timeline);
-            if (!isNaN(d.getTime())) {
-              dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-            }
-          }
-          
-          // Combine Date with Time if available
-          let dueScheduleText = dateStr || 'N/A';
-          if (a.due_time) {
-            dueScheduleText += ` ${a.due_time}`;
-          }
+    this.api.getBranches().subscribe({
+      next: (branches) => {
+        const user = this.auth.currentUser();
+        let allowedBranchNames: string[] = [];
 
-          return {
-            ...a,
-            frequency:     this.frequencyMap[a.frequency] || a.frequency,
-            progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
-            due_schedule_text: dueScheduleText
-          };
+        if (user && user.role === 'CCO') {
+          const userManagedBranches = branches.filter((b: any) => String(b.cco_user_id) === String(user.id));
+          if (userManagedBranches.length > 0) {
+            allowedBranchNames = userManagedBranches.map((b: any) => (b.name || '').trim().toLowerCase());
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const mappedIds = new Set(user.managed_branch_ids);
+            allowedBranchNames = branches
+              .filter((b: any) => mappedIds.has(b.id))
+              .map((b: any) => (b.name || '').trim().toLowerCase());
+          }
+        } else if (user && user.role === 'CO') {
+          const userManagedBranches = branches.filter((b: any) => String(b.co_user_id) === String(user.id));
+          if (userManagedBranches.length > 0) {
+            allowedBranchNames = userManagedBranches.map((b: any) => (b.name || '').trim().toLowerCase());
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const mappedIds = new Set(user.managed_branch_ids);
+            allowedBranchNames = branches
+              .filter((b: any) => mappedIds.has(b.id))
+              .map((b: any) => (b.name || '').trim().toLowerCase());
+          }
+        }
+
+        let url = `${this.config.apiUrl}/assignments?limit=1000`;
+        const type = this.taskSetType();
+        if (type) url += `&task_set_type=${type}`;
+
+        this.http.get<any>(url).subscribe({
+          next: (res) => {
+            let data = res.data || res;
+            if (allowedBranchNames.length > 0) {
+              const allowedSet = new Set(allowedBranchNames);
+              data = data.filter((a: any) => a.branch_name && allowedSet.has(a.branch_name.trim().toLowerCase()));
+            }
+
+            const mappedData = data.map((a: any) => {
+              const total     = parseInt(a.total_tasks, 10) || 0;
+              const completed = parseInt(a.completed_tasks, 10) || 0;
+              const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
+              
+              // Format standard Date string dd/MM/yyyy
+              let dateStr = '';
+              if (a.proposed_timeline) {
+                const d = new Date(a.proposed_timeline);
+                if (!isNaN(d.getTime())) {
+                  dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+              }
+              
+              // Combine Date with Time if available
+              let dueScheduleText = dateStr || 'N/A';
+              if (a.due_time) {
+                dueScheduleText += ` ${a.due_time}`;
+              }
+
+              return {
+                ...a,
+                frequency:     this.frequencyMap[a.frequency] || a.frequency,
+                progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
+                due_schedule_text: dueScheduleText
+              };
+            });
+            this.rawAssignments.set(mappedData);
+          },
+          error: (err) => this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText))
         });
-        this.rawAssignments.set(mappedData);
       },
-      error: (err) => this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText))
+      error: (err) => this.notification.error("Failed to load branch data: " + (err.message || err.statusText))
     });
   }
 

@@ -335,10 +335,31 @@ export class AssignmentsComponent implements OnInit {
   constructor(private api: ComplianceApiService, private router: Router) { }
 
   ngOnInit() {
-    this.loadAssignments();
     this.loadTaskSets();
     this.api.getBranches().subscribe(data => {
-      this.branches.set(data);
+      const user = this.auth.currentUser();
+      let managedBranches = data;
+      if (user && user.role === 'CO') {
+        const userMapped = data.filter((b: any) => String(b.co_user_id) === String(user.id));
+        if (userMapped.length > 0) {
+          managedBranches = userMapped;
+        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+          const ids = new Set(user.managed_branch_ids);
+          const filtered = data.filter((b: any) => ids.has(b.id));
+          if (filtered.length > 0) managedBranches = filtered;
+        }
+      } else if (user && user.role === 'CCO') {
+        const userMapped = data.filter((b: any) => String(b.cco_user_id) === String(user.id));
+        if (userMapped.length > 0) {
+          managedBranches = userMapped;
+        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+          const ids = new Set(user.managed_branch_ids);
+          const filtered = data.filter((b: any) => ids.has(b.id));
+          if (filtered.length > 0) managedBranches = filtered;
+        }
+      }
+      this.branches.set(managedBranches);
+      this.loadAssignments();
     });
   }
 
@@ -355,8 +376,34 @@ export class AssignmentsComponent implements OnInit {
     const type = this.selectedTaskSetTypeFilter();
     if (type) params.task_set_type = type;
 
+    const user = this.auth.currentUser();
+    const currentBranches = this.branches();
+    let allowedBranchNames: string[] = [];
+    if (user && user.role === 'CO' && currentBranches.length > 0) {
+      const userMapped = currentBranches.filter((b: any) => String(b.co_user_id) === String(user.id));
+      if (userMapped.length > 0) {
+        allowedBranchNames = userMapped.map((b: any) => (b.name || '').trim().toLowerCase());
+      } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+        const ids = new Set(user.managed_branch_ids);
+        allowedBranchNames = currentBranches.filter((b: any) => ids.has(b.id)).map((b: any) => (b.name || '').trim().toLowerCase());
+      }
+    } else if (user && user.role === 'CCO' && currentBranches.length > 0) {
+      const userMapped = currentBranches.filter((b: any) => String(b.cco_user_id) === String(user.id));
+      if (userMapped.length > 0) {
+        allowedBranchNames = userMapped.map((b: any) => (b.name || '').trim().toLowerCase());
+      } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+        const ids = new Set(user.managed_branch_ids);
+        allowedBranchNames = currentBranches.filter((b: any) => ids.has(b.id)).map((b: any) => (b.name || '').trim().toLowerCase());
+      }
+    }
+
     this.api.getAssignments(params).subscribe(res => {
-      this.assignments.set(this.transformAssignments(res.data));
+      let data = res.data || [];
+      if (allowedBranchNames.length > 0) {
+        const allowedSet = new Set(allowedBranchNames);
+        data = data.filter((r: any) => r.branch_name && allowedSet.has(r.branch_name.trim().toLowerCase()));
+      }
+      this.assignments.set(this.transformAssignments(data));
       this.totalRecords.set(res.total);
     });
   }

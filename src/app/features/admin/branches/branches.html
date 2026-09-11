@@ -83,6 +83,21 @@
                             [error]="submitted() && !branchType() ? 'Type is required' : ''">
                         </app-select-field>
                     </div>
+                    <div class="field col-12" *ngIf="branchType() === 'DEPARTMENT'">
+                        <app-select-field
+                            label="Parent Department"
+                            [field]="parentId"
+                            [options]="parentDepartmentOptions()"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Select Parent (Optional)"
+                            [showClear]="true"
+                            [virtualScroll]="false">
+                        </app-select-field>
+                        <small class="text-gray-500 block mt-1" style="font-size: 0.75rem;">
+                          Leave empty if this is a Top-Level / Main Department (e.g. IT, Finance).
+                        </small>
+                    </div>
                 </div>
             </section>
         </div>

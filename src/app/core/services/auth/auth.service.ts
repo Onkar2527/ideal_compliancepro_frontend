@@ -19,6 +19,8 @@ export interface User {
   branchName?: string;
   roleId?: string | null;
   user_type_id?: string | number | null;
+  managed_branch_ids?: number[];
+  managedBranchIds?: number[];
 }
 
 export interface AuthResponse {
@@ -123,6 +125,8 @@ export class AuthService {
       branchId: user.branchId ?? user.branch_id ?? null,
       branch_name: user.branch_name ?? user.branchName ?? '',
       branchName: user.branchName ?? user.branch_name ?? '',
+      managed_branch_ids: user.managed_branch_ids ?? user.managedBranchIds ?? [],
+      managedBranchIds: user.managed_branch_ids ?? user.managedBranchIds ?? []
     } as User;
   }
 }

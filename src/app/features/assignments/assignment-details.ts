@@ -147,6 +147,9 @@ import { DialogModule } from 'primeng/dialog';
                   <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block" style="font-size: 0.65rem; letter-spacing: 0.05em;">
                     {{ t.circular_title }}
                   </span>
+                  <span *ngIf="t.sub_dept_name" style="padding: 0.15rem 0.55rem; background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <i class="pi pi-users" style="font-size: 0.65rem;"></i> Sub-Dept: {{ t.sub_dept_name }}
+                  </span>
                   <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                     <i class="pi pi-check-circle" style="font-size: 0.65rem;"></i> Accepted
                   </span>
@@ -293,6 +296,23 @@ import { DialogModule } from 'primeng/dialog';
                 <div class="text-xs text-gray-500 font-bold mb-2 flex items-center gap-1" style="font-size: 0.75rem; width: 100%; display: flex; align-items: center;">
                   <i class="pi pi-calendar-times text-indigo-500"></i> Task Due Date: 
                   <span class="text-gray-900 font-extrabold">{{ (t.due_date ? (t.due_date | date:'dd/MM/yyyy') : (proposedTimeline() | date:'dd/MM/yyyy')) }}</span>
+                </div>
+
+                <!-- Sub-Department Delegation Control (Shown when sub-departments exist) -->
+                <div *ngIf="availableSubDepts().length > 1 && !isReviewer() && assignmentStatus() !== 'COMPLETED'" class="mb-3 p-2 bg-indigo-50/60 border border-indigo-100 rounded-lg flex items-center justify-between gap-2" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.4rem 0.65rem; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 6px;">
+                  <span class="text-xs font-bold text-indigo-900 flex items-center gap-1" style="font-size: 0.75rem; font-weight: 700; color: #3730a3; display: flex; align-items: center; gap: 0.35rem;">
+                    <i class="pi pi-sitemap text-indigo-600"></i> Mode / Assignee:
+                  </span>
+                  <p-select 
+                    [options]="availableSubDepts()" 
+                    [ngModel]="t.sub_dept_id || null" 
+                    (ngModelChange)="onTaskSubDeptChange(t, $event)"
+                    optionLabel="label" 
+                    optionValue="value" 
+                    placeholder="Select Assignee"
+                    styleClass="h-2rem text-xs font-semibold"
+                    appendTo="body">
+                  </p-select>
                 </div>
 
                 <!-- Per-Task Review Status Banner for Department View -->
@@ -653,6 +673,9 @@ export class AssignmentDetailsComponent implements OnInit {
   selectedFilesMap = signal<Record<number, File>>({});
   rowSavingMap = signal<Record<number, boolean>>({});
   headerSavingMap = new Map<string, boolean>();
+
+  // Sub-departments available for delegation
+  availableSubDepts = signal<{ label: string, value: number | null }[]>([]);
 
   constructor(
     private route: ActivatedRoute,
@@ -1023,6 +1046,7 @@ export class AssignmentDetailsComponent implements OnInit {
       this.circularReferenceNo.set(first.circular_reference_no || '');
       this.circularTitle.set(first.circular_title || '');
       this.authorityName.set(first.authority_name || '');
+      this.loadSubDepartments(first.branch_name || '');
     } else {
       this.assignmentStatus.set('');
       this.reviewRemark.set('');
@@ -1036,7 +1060,45 @@ export class AssignmentDetailsComponent implements OnInit {
       this.circularReferenceNo.set('');
       this.circularTitle.set('');
       this.authorityName.set('');
+      this.availableSubDepts.set([]);
     }
+  }
+
+  loadSubDepartments(branchName: string) {
+    this.api.getBranches().subscribe({
+      next: (branches) => {
+        const current = branches.find(b => (b.name || '').trim().toLowerCase() === (branchName || '').trim().toLowerCase());
+        if (current) {
+          const childDepts = branches.filter(b => b.parent_id === current.id);
+          if (childDepts.length > 0) {
+            const opts = [
+              { label: '🏢 Direct (Self-Compliance)', value: null },
+              ...childDepts.map(sd => ({ label: '👥 ' + sd.name, value: sd.id }))
+            ];
+            this.availableSubDepts.set(opts);
+            return;
+          }
+        }
+        this.availableSubDepts.set([]);
+      },
+      error: (err) => console.warn('Failed to load sub-departments for delegation:', err)
+    });
+  }
+
+  onTaskSubDeptChange(task: any, subDeptId: number | null) {
+    if (!this.assignmentId || !task.assignment_task_id) return;
+    this.api.delegateTaskToSubDept(this.assignmentId, task.assignment_task_id, subDeptId).subscribe({
+      next: () => {
+        task.sub_dept_id = subDeptId;
+        const subDeptOpt = this.availableSubDepts().find(o => o.value === subDeptId);
+        const name = subDeptOpt ? subDeptOpt.label : 'Self-Compliance';
+        this.notification.success(`Task assignment updated to: ${name}`);
+        this.loadTasks();
+      },
+      error: (err) => {
+        this.notification.error('Failed to delegate task: ' + (err.message || err.statusText));
+      }
+    });
   }
 
   groupTasks() {

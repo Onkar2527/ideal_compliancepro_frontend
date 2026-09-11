@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import * as XLSX from 'xlsx';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { TableComponent, TableColumn, TableAction } from '../../shared/components/table/table.component';
 import { PageComponent } from '../../shared/components/page/page.component';
 import { DialogModule } from 'primeng/dialog';
@@ -815,6 +816,8 @@ export class TaskSetsComponent implements OnInit {
   cameFromCirculars = signal<boolean>(false);
   cameFromTasks = signal<boolean>(false);
 
+  private auth = inject(AuthService);
+
   constructor(private api: ComplianceApiService, private messageService: MessageService, private confirmationService: ConfirmationService, private route: ActivatedRoute, private router: Router) {}
 
   private parseToDate(val: any): Date | null {
@@ -870,7 +873,7 @@ export class TaskSetsComponent implements OnInit {
     this.api.getApprovedTasks({ limit: 1000 }).subscribe(res => {
       this.rawTasks.set(res.data);
     });
-    this.api.getBranches().subscribe(data => this.branches.set(data));
+    this.loadBranches();
     this.loadAuthorities();
 
     // Auto-apply circular filter if navigated from Circular Master / Tasks
@@ -901,10 +904,47 @@ export class TaskSetsComponent implements OnInit {
     });
   }
 
+  loadBranches() {
+    this.api.getBranches().subscribe(data => {
+      const deptMap = new Map(data.map((b: any) => [b.id, b.name]));
+      const enriched = data.map((b: any) => {
+        const parentName = b.parent_id ? deptMap.get(b.parent_id) : null;
+        return {
+          ...b,
+          name: parentName ? `${parentName} → ${b.name}` : b.name,
+          raw_name: b.name
+        };
+      }).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+      const user = this.auth.currentUser();
+      let managed = enriched;
+      if (user && user.role === 'CO') {
+        const userMapped = enriched.filter((b: any) => String(b.co_user_id) === String(user.id));
+        if (userMapped.length > 0) {
+          managed = userMapped;
+        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+          const ids = new Set(user.managed_branch_ids);
+          const filtered = enriched.filter((b: any) => ids.has(b.id));
+          if (filtered.length > 0) managed = filtered;
+        }
+      } else if (user && user.role === 'CCO') {
+        const userMapped = enriched.filter((b: any) => String(b.cco_user_id) === String(user.id));
+        if (userMapped.length > 0) {
+          managed = userMapped;
+        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+          const ids = new Set(user.managed_branch_ids);
+          const filtered = enriched.filter((b: any) => ids.has(b.id));
+          if (filtered.length > 0) managed = filtered;
+        }
+      }
+      this.branches.set(managed);
+    });
+  }
+
   loadData(isRefresh = false) {
     if (isRefresh) {
       this.api.getApprovedTasks({ limit: 1000 }).subscribe(res => this.rawTasks.set(res.data));
-      this.api.getBranches().subscribe(data => this.branches.set(data));
+      this.loadBranches();
       this.loadAuthorities();
     }
 
@@ -1007,7 +1047,11 @@ export class TaskSetsComponent implements OnInit {
     this.newTaskSetFrequency.set('');
     this.resetInternalFields();
     this.targetTasks = [];
-    this.selectedBranches = [];
+    if (this.branches().length === 1) {
+      this.selectedBranches = [this.branches()[0]];
+    } else {
+      this.selectedBranches = [];
+    }
     this.proposedDate.set(null);
     this.showBranchAssignment.set(true);
 

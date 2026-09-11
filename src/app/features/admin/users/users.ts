@@ -215,7 +215,26 @@ export class Users implements OnInit {
       this.updateBranchOptions();
       this.apiService.getUsers().subscribe({
         next: (data) => {
-          this.users.set(data);
+          const deptMap = new Map(br.map((b: any) => [b.id, b.name]));
+          const branchMap = new Map(br.map((b: any) => {
+            const pName = b.parent_id ? deptMap.get(b.parent_id) : null;
+            return [b.id, pName ? `${pName} → ${b.name}` : b.name];
+          }));
+          const transformed = data.map((u: any) => {
+            if ((u.role === 'CO' || u.role === 'CCO') && (!u.branch_name || u.branch_name === '—')) {
+              if (u.managed_branch_ids && u.managed_branch_ids.length > 0) {
+                const names = u.managed_branch_ids.map((id: number) => branchMap.get(id)).filter(Boolean);
+                return { ...u, branch_name: names.length > 0 ? names.join(', ') : 'All Branches' };
+              } else {
+                return { ...u, branch_name: 'All Branches' };
+              }
+            }
+            if (u.branch_id && branchMap.has(u.branch_id)) {
+              return { ...u, branch_name: branchMap.get(u.branch_id) };
+            }
+            return u;
+          });
+          this.users.set(transformed);
           this.loading.set(false);
           if (isRefresh) {
             this.messageService.add({ severity: 'info', summary: 'Refreshed', detail: 'Users list refreshed', life: 2500 });
@@ -230,17 +249,15 @@ export class Users implements OnInit {
   }
 
   updateBranchOptions() {
-    // Map options. If the branch is assigned to a CO other than the one currently being edited, disable it ONLY if assigning a CO.
-    const currentUserId = this.userId();
-    const currentRole = this.role();
-    const options = this.rawBranches().map(b => {
-      const isAssignedToOther = (currentRole === 'CO' || currentRole === 'CCO') && b.co_user_id && b.co_user_id !== currentUserId;
+    const raw = this.rawBranches();
+    const deptMap = new Map(raw.map((b: any) => [b.id, b.name]));
+    const options = raw.map(b => {
+      const parentName = b.parent_id ? deptMap.get(b.parent_id) : null;
       return {
-        label: isAssignedToOther ? `${b.name} (Assigned)` : b.name,
-        value: b.id,
-        disabled: isAssignedToOther
+        label: parentName ? `${parentName} → ${b.name}` : b.name,
+        value: b.id
       };
-    });
+    }).sort((a, b) => a.label.localeCompare(b.label));
     this.branches.set(options);
   }
 
