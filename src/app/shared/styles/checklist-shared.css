@@ -45,9 +45,9 @@
 /* Spacing between p-tag chips inside the progress bar */
 .review-progress .progress-chip { font-size: 0.75rem !important; }
 
-.progress-complied { color: #16a34a; }
-.progress-not      { color: #dc2626; }
-.progress-approved { color: #15803d; }
+.progress-complied { color: #047857; }
+.progress-not      { color: #b91c1c; }
+.progress-approved { color: #047857; }
 .progress-redo     { color: #b45309; }
 .progress-total    { color: #0f2942; }
 
@@ -60,10 +60,30 @@
   border-radius: 999px; font-size: 0.7rem;
   font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
 }
-.status-review   { background: #fef3c7; color: #92400e; }
-.status-complete { background: #dcfce7; color: #15803d; }
-.status-rejected { background: #fee2e2; color: #b91c1c; }
-.status-progress { background: #e0e7ff; color: #0f2942; }
+.status-review   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.status-complete { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.status-rejected { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.status-progress { background: #e0e7ff; color: #0f2942; border: 1px solid #c7d2fe; }
+
+/* ── PrimeNG Success & Tag Overrides for Banking Theme ── */
+.p-button-success:not(.p-button-outlined):not(.p-button-text) {
+  background: #047857 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+}
+.p-button-success.p-button-outlined {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #a7f3d0 !important;
+}
+.p-button-success.p-button-outlined:hover {
+  background: #d1fae5 !important;
+}
+.p-tag-success {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+}
 
 /* ── Bulk Actions Bar (review pages) ── */
 .bulk-actions-bar {
@@ -80,54 +100,75 @@
   border: 1.5px solid; transition: all 0.15s;
 }
 .bulk-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.bulk-approve-all { background: #f0fdf4; color: #15803d; border-color: #86efac; }
-.bulk-approve-all:hover:not(:disabled) { background: #dcfce7; }
+.bulk-approve-all { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.bulk-approve-all:hover:not(:disabled) { background: #d1fae5; }
 .bulk-needs-redo  { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
 .bulk-needs-redo:hover:not(:disabled)  { background: #fef3c7; }
 
 /* ── Task Group Header ── */
 .task-group-wrapper { margin-bottom: 1rem; }
 .task-group-header {
-  display: flex; align-items: center; gap: 0.5rem;
-  font-size: 0.8rem; font-weight: 800; color: #374151;
-  text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 0.5rem 1rem; background: #f8fafc;
-  border: 1px solid #e5e7eb; border-radius: 8px 8px 0 0; border-bottom: none;
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.75rem; font-weight: 800; color: #ffffff;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 0.38rem 0.9rem; background: linear-gradient(90deg, #1e3a5f 0%, #2c4f7c 100%);
+  border: 1px solid #1e3a5f; border-radius: 8px 8px 0 0;
 }
 .group-count {
-  margin-left: auto; background: #f0f4f8; color: #0f2942;
-  font-size: 0.68rem; font-weight: 800;
-  padding: 0.15rem 0.6rem; border-radius: 999px;
-  border: 1px solid #cbd5e1;
+  margin-left: auto; background: rgba(255,255,255,0.18); color: #ffffff;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 0.1rem 0.55rem; border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
 }
 
 /* ── Question Card (the main checklist card) ── */
 .question-card {
   display: grid;
-  grid-template-columns: minmax(18rem, 1.25fr) minmax(22rem, 0.75fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
   background: white;
   border: 1px solid #e2e8f0;
-  border-left: 5px solid #d1d5db;
-  border-radius: 12px !important;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid #0f2942;
+  border-radius: 10px !important;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 3px rgba(15, 41, 66, 0.04);
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 .question-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 14px rgba(15, 41, 66, 0.08);
   border-color: #cbd5e1;
+}
+
+.question-card .p-select {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  border-radius: 6px !important;
+}
+
+.question-card .p-select .p-select-label {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 0.75rem !important;
+  padding: 0.2rem 0.5rem !important;
+  line-height: 1.3 !important;
+  font-weight: 600 !important;
+}
+
+.question-card .p-select .p-select-dropdown {
+  width: 1.6rem !important;
 }
 
 /* Left border status colours — shared by branch + review */
 .border-left-green,
-.card-complied    { border-left-color: #10b981 !important; }
+.card-complied,
+.card-approved       { border-left-color: #047857 !important; }
 .border-left-red,
-.card-not-complied { border-left-color: #ef4444 !important; }
-.border-left-yellow { border-left-color: #f59e0b !important; }
-.card-approved    { border-left-color: #22c55e !important; background: #f0fdf4 !important; }
-.card-needs-redo  { border-left-color: #f59e0b !important; background: #fffbeb !important; }
+.card-not-complied,
+.card-needs-redo     { border-left-color: #b91c1c !important; }
+.border-left-yellow,
+.border-left-pending { border-left-color: #0f2942 !important; }
 
 /* ── Left Column: Serial number + task description ── */
 .question-main {
@@ -139,21 +180,21 @@
 }
 
 .question-number {
-  min-width: 1.85rem; 
-  min-height: 1.85rem;
-  width: 1.85rem;
-  height: 1.85rem;
-  background: #f0f4f8; 
-  color: #0f2942;
-  border: 1px solid #cbd5e1;
+  min-width: 2rem; 
+  min-height: 2rem;
+  width: 2rem;
+  height: 2rem;
+  background: #0f2942; 
+  color: #ffffff;
+  border: 1px solid #0f2942;
   display: flex; 
   align-items: center; 
   justify-content: center;
-  border-radius: 50%; 
-  font-size: 0.78rem; 
-  font-weight: 700; 
+  border-radius: 8px; 
+  font-size: 0.8rem; 
+  font-weight: 800; 
   flex-shrink: 0;
-  border: 1px solid #e0e7ff;
+  box-shadow: 0 1px 3px rgba(15, 41, 66, 0.25);
 }
 
 .circular-ref-tag {
@@ -234,9 +275,9 @@
   padding: 0.3rem 0.75rem; border-radius: 6px;
   font-size: 0.78rem; font-weight: 800; letter-spacing: 0.03em;
 }
-.badge-complied    { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-.badge-not-complied { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-.badge-pending     { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+.badge-complied    { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-not-complied { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.badge-pending     { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
 
 /* ── Evidence Link ── */
 .evidence-link {
@@ -260,15 +301,15 @@
 
 /* ── Upload Button (branch fill view) ── */
 .upload-btn {
-  background: #f3f4f6; color: #374151;
-  border: 1px solid #b8c7d5; border-radius: 6px;
-  padding: 0.4rem 0.5rem; font-size: 0.85rem; font-weight: 600;
+  background: #f8fafc; color: #334155;
+  border: 1px solid #cbd5e1; border-radius: 6px;
+  padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 600;
   display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.2s; height: 2.15rem; box-sizing: border-box; width: 100%;
+  transition: all 0.2s; box-sizing: border-box; cursor: pointer;
 }
-.upload-btn:hover { background: #e5e7eb; }
-.upload-btn-attached { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
-.upload-btn-attached:hover { background: #bae6fd; }
+.upload-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+.upload-btn-attached { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+.upload-btn-attached:hover { background: #e0e7ff; }
 
 /* ── Submit Compliance Button (branch fill view) ── */
 .submit-compliance-btn {
@@ -300,11 +341,11 @@
 /* ── CO Remark Textarea (review pages) ── */
 .co-remark-input {
   width: 100%; box-sizing: border-box;
-  border: 1px solid #fcd34d; border-radius: 6px;
-  padding: 0.35rem 0.5rem; font-size: 0.8rem;
-  color: #374151; resize: none; outline: none; background: #fffbeb;
+  border: 1px solid #cbd5e1; border-radius: 6px;
+  padding: 0.4rem 0.55rem; font-size: 0.8rem;
+  color: #1e293b; resize: none; outline: none; background: #ffffff;
 }
-.co-remark-input:focus { border-color: #f59e0b; }
+.co-remark-input:focus { border-color: #0f2942; }
 
 /* ── Final Decision Panel (review pages) ── */
 .decision-panel {

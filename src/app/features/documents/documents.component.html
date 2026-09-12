@@ -1,0 +1,468 @@
+<div class="documents-page-container">
+  
+  <!-- Page Header & Summary Badges -->
+  <div class="page-header-card">
+    <div class="header-left">
+      <div class="header-icon-wrapper">
+        <i class="pi pi-folder-open text-primary text-2xl"></i>
+      </div>
+      <div>
+        <h2 class="page-title">Document Master</h2>
+        <p class="page-subtitle">Manage, store, and track organizational, regulatory, and policy documents with role-based access control</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" severity="secondary" size="small" (click)="loadDocuments(true)" />
+      <p-button label="Add Document" icon="pi pi-plus" severity="primary" size="small" (click)="openNew()" />
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+      <div class="kpi-content">
+        <span class="kpi-label">Total Documents</span>
+        <span class="kpi-value">{{ totalCount() }}</span>
+      </div>
+      <div class="kpi-icon-box">
+        <i class="pi pi-file text-indigo-600"></i>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-active">
+      <div class="kpi-content">
+        <span class="kpi-label">Active Documents</span>
+        <span class="kpi-value text-green-700">{{ activeCount() }}</span>
+      </div>
+      <div class="kpi-icon-box bg-green-50">
+        <i class="pi pi-check-circle text-green-600"></i>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-public">
+      <div class="kpi-content">
+        <span class="kpi-label">Public / Dept Docs</span>
+        <span class="kpi-value text-teal-700">{{ publicCount() }}</span>
+      </div>
+      <div class="kpi-icon-box bg-teal-50">
+        <i class="pi pi-globe text-teal-600"></i>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-private">
+      <div class="kpi-content">
+        <span class="kpi-label">Private / Restricted</span>
+        <span class="kpi-value text-purple-700">{{ privateCount() }}</span>
+      </div>
+      <div class="kpi-icon-box bg-purple-50">
+        <i class="pi pi-lock text-purple-600"></i>
+      </div>
+    </div>
+
+    <div class="kpi-card kpi-expiring">
+      <div class="kpi-content">
+        <span class="kpi-label">Expiring Soon (30d)</span>
+        <span class="kpi-value text-amber-700">{{ expiringSoonCount() }}</span>
+      </div>
+      <div class="kpi-icon-box bg-amber-50">
+        <i class="pi pi-clock text-amber-600"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="filter-toolbar-card">
+    <div class="search-box">
+      <i class="pi pi-search search-icon"></i>
+      <input type="text" pInputText placeholder="Search by name, ref no, department, owner..." 
+             [(ngModel)]="searchTerm" class="w-full search-input" />
+    </div>
+
+    <div class="filter-controls">
+      <!-- Department Filter -->
+      <p-select [options]="deptFilterOptions()" [(ngModel)]="selectedDeptFilter" 
+                placeholder="Department / Branch" styleClass="filter-dropdown" />
+
+      <!-- Access Level (Public/Private) Filter -->
+      <p-select [options]="accessFilterOptions" [(ngModel)]="selectedAccessFilter" 
+                placeholder="Visibility" styleClass="filter-dropdown" />
+
+      <!-- Status Filter -->
+      <p-select [options]="statusFilterOptions" [(ngModel)]="selectedStatusFilter" 
+                placeholder="Status" styleClass="filter-dropdown" />
+    </div>
+  </div>
+
+  <!-- Documents DataTable -->
+  <div class="table-wrapper-card">
+    <p-table [value]="filteredDocumentsList" [loading]="loading()" [paginator]="true" [rows]="10" 
+             [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" 
+             styleClass="p-datatable-sm p-datatable-striped">
+      
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 45px;">#</th>
+          <th style="min-width: 220px;">Document Details</th>
+          <th style="min-width: 125px;">Access Level</th>
+          <th style="min-width: 150px;">Department / Branch</th>
+          <th style="min-width: 140px;">Owner / User</th>
+          <th style="min-width: 105px;">Issue Date</th>
+          <th style="min-width: 150px;">Effective Period</th>
+          <th style="min-width: 105px;">Status</th>
+          <th style="min-width: 130px; text-align: right;">Actions</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-doc let-i="rowIndex">
+        <tr>
+          <!-- Row Number -->
+          <td style="font-weight: 700; color: #64748b; font-size: 0.78rem;">{{ i + 1 }}</td>
+
+          <!-- Document Details -->
+          <td>
+            <div class="doc-title-row">
+              <i class="pi pi-file-pdf text-red-500 doc-type-icon" *ngIf="doc.file_url"></i>
+              <i class="pi pi-file text-gray-400 doc-type-icon" *ngIf="!doc.file_url"></i>
+              <div class="doc-text-meta">
+                <span class="doc-name">{{ doc.document_name }}</span>
+                <div class="doc-sub-meta" *ngIf="doc.document_number || doc.description">
+                  <span class="doc-ref-badge" *ngIf="doc.document_number">Ref: {{ doc.document_number }}</span>
+                  <span class="doc-desc" *ngIf="doc.description" [title]="doc.description">{{ doc.description }}</span>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Access Level (Public vs Private) -->
+          <td>
+            <span *ngIf="doc.access_level === 'PRIVATE'" 
+                  class="access-tag access-private"
+                  pTooltip="Private: Visible ONLY to the creator / owner who created it">
+              <i class="pi pi-lock"></i> Private
+            </span>
+            <span *ngIf="doc.access_level !== 'PRIVATE'" 
+                  class="access-tag access-public"
+                  pTooltip="Public: Visible to CCO, CO, and department members">
+              <i class="pi pi-globe"></i> Public
+            </span>
+          </td>
+
+          <!-- Department / Branch -->
+          <td>
+            <span *ngIf="doc.department_id !== null && doc.department_name && doc.department_name !== 'All Branches'" class="dept-badge">
+              <i class="pi pi-building" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+              {{ doc.department_name }}
+            </span>
+            <span *ngIf="doc.department_id === null || !doc.department_name || doc.department_name === 'All Branches'" class="dept-badge-all">
+              <i class="pi pi-globe" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+              All Branches
+            </span>
+          </td>
+
+          <!-- Owner / User -->
+          <td>
+            <div class="user-meta-cell">
+              <span class="user-name">
+                <i class="pi pi-user" style="font-size: 0.72rem; color: #6366f1; margin-right: 0.25rem;"></i>
+                {{ doc.user_name || 'All Users' }}
+              </span>
+              <span class="user-id" *ngIf="doc.user_id">ID: #{{ doc.user_id }}</span>
+            </div>
+          </td>
+
+          <!-- Issue Date -->
+          <td>
+            <span class="date-text">
+              {{ doc.issue_date ? (doc.issue_date | date:'dd/MM/yyyy') : '—' }}
+            </span>
+          </td>
+
+          <!-- Effective Period (Start to End) -->
+          <td>
+            <div class="period-cell">
+              <span class="period-dates">
+                {{ doc.start_date ? (doc.start_date | date:'dd/MM/yyyy') : '—' }} &rarr; 
+                {{ doc.end_date ? (doc.end_date | date:'dd/MM/yyyy') : 'No Expiry' }}
+              </span>
+              <span class="created-at-sub" *ngIf="doc.created_at">
+                Created: {{ doc.created_at | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Status Tag -->
+          <td>
+            <p-tag [value]="getStatusLabel(getDocumentStatus(doc))" 
+                   [severity]="getStatusSeverity(getDocumentStatus(doc))" 
+                   [rounded]="true" />
+          </td>
+
+          <!-- Actions -->
+          <td style="text-align: right;">
+            <div class="action-buttons-cell">
+              <!-- View / Download PDF button -->
+              <p-button *ngIf="doc.file_url" icon="pi pi-eye" [text]="true" severity="info" size="small"
+                        (click)="previewFile(doc.file_url, doc.file_name || doc.document_name)"
+                        pTooltip="Preview Document" tooltipPosition="top" />
+
+              <p-button *ngIf="canEditDocument(doc)" icon="pi pi-pencil" [text]="true" severity="secondary" size="small"
+                        (click)="editDocument(doc)"
+                        pTooltip="Edit Document" tooltipPosition="top" />
+
+              <p-button *ngIf="canDeleteDocument(doc)" icon="pi pi-trash" [text]="true" severity="danger" size="small"
+                        (click)="deleteDocument(doc)"
+                        pTooltip="Delete Document" tooltipPosition="top" />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty State -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="9" class="empty-state-cell">
+            <div class="empty-state-content">
+              <i class="pi pi-folder-open empty-icon"></i>
+              <p class="empty-title">No documents found</p>
+              <p class="empty-subtitle">Click "Add Document" above to create and store your first document.</p>
+              <p-button label="Add First Document" icon="pi pi-plus" size="small" severity="primary" (click)="openNew()" />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Create / Edit Document Drawer -->
+  <p-drawer [visible]="displayDialog()" 
+            (visibleChange)="displayDialog.set($event)" 
+            position="right" 
+            [style]="{ width: '850px', maxWidth: '96vw' }" 
+            [modal]="true" 
+            [dismissible]="true" 
+            [showCloseIcon]="false" 
+            styleClass="drawer-layout circular-drawer" 
+            appendTo="body">
+
+    <ng-template pTemplate="header">
+      <div class="drawer-header-row">
+        <div class="drawer-title-wrap">
+          <span class="drawer-title-icon">
+            <i class="pi pi-folder-open"></i>
+          </span>
+          <div>
+            <div class="text-900 font-semibold text-xl">
+              {{ dialogMode() === 'create' ? 'Add New Document' : 'Edit Document Details' }}
+            </div>
+            <div class="text-600 text-sm mt-1">
+              {{ dialogMode() === 'create' ? 'Upload and register a new compliance or regulatory document' : 'Update document properties, assignment, or privacy' }}
+            </div>
+          </div>
+        </div>
+        <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded" (click)="hideDialog()"></button>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="content">
+      <div class="drawer-content-shell">
+        <div class="dialog-form-container">
+          
+          <!-- Section 1: Basic Information -->
+          <div class="section-heading mb-3">
+            <span class="section-kicker">Document Information</span>
+            <span class="section-line"></span>
+          </div>
+
+          <!-- Row 1: Document Name & Reference No -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">
+                Document Name <span class="required-star">*</span>
+              </label>
+              <input type="text" pInputText [(ngModel)]="docName" placeholder="e.g. Master Direction on KYC" class="w-full" />
+              <small *ngIf="submitted() && !docName.trim()" class="p-error">Document name is required.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Reference / Document #</label>
+              <input type="text" pInputText [(ngModel)]="docNumber" placeholder="e.g. RBI/2026-27/01" class="w-full" />
+            </div>
+          </div>
+
+          <!-- Section 2: Privacy & Access -->
+          <div class="section-heading mb-3 mt-4">
+            <span class="section-kicker">Access Level & Department Assignment</span>
+            <span class="section-line"></span>
+          </div>
+
+          <!-- Row 2: Access Level / Visibility Selector (Public vs Private) -->
+          <div class="form-group">
+            <label class="form-label">
+              Access Level / Privacy <span class="required-star">*</span>
+            </label>
+            
+            <div class="access-selector-grid">
+              <!-- Public Option -->
+              <div class="access-option-card" 
+                   [class.selected]="accessLevel === 'PUBLIC'" 
+                   (click)="accessLevel = 'PUBLIC'">
+                <div class="option-header">
+                  <i class="pi pi-globe text-teal-600"></i>
+                  <span class="option-title">Public Document</span>
+                  <i class="pi pi-check-circle check-icon" *ngIf="accessLevel === 'PUBLIC'"></i>
+                </div>
+                <p class="option-desc">
+                  Visible to <strong>CCO, CO</strong> and all members (Heads, Sub-Heads, Staff) of the assigned department / all branches.
+                </p>
+              </div>
+
+              <!-- Private Option -->
+              <div class="access-option-card" 
+                   [class.selected]="accessLevel === 'PRIVATE'" 
+                   (click)="accessLevel = 'PRIVATE'">
+                <div class="option-header">
+                  <i class="pi pi-lock text-purple-600"></i>
+                  <span class="option-title">Private / Confidential</span>
+                  <i class="pi pi-check-circle check-icon" *ngIf="accessLevel === 'PRIVATE'"></i>
+                </div>
+                <p class="option-desc">
+                  Confidential document: Visible <strong>ONLY</strong> to the creator / owner who created it.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: Department & User Assignment -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Department / Branch Target</label>
+              <p-select [options]="formDeptOptions()" [(ngModel)]="departmentId" 
+                        (onChange)="onDepartmentChange($event.value)"
+                        placeholder="Select Department / Branch" 
+                        [showClear]="true" appendTo="body" styleClass="w-full" />
+              <small class="form-hint" *ngIf="departmentId === null">
+                Selecting "All Branches" allows assigning to any user across the whole organization.
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">
+                {{ accessLevel === 'PRIVATE' ? 'Assigned Person (Private Access) *' : 'Owner / Created By (Employee)' }}
+              </label>
+              <p-select [options]="formUserOptions()" [(ngModel)]="userId" (onChange)="onUserChange($event.value)" 
+                        [filter]="true" filterBy="label" 
+                        placeholder="Select Employee / User" 
+                        [showClear]="true" appendTo="body" styleClass="w-full" />
+              <small class="form-hint" *ngIf="accessLevel === 'PRIVATE'" style="color: #9333ea; font-weight: 600;">
+                * In Private mode, this document is restricted exclusively to the person who created it.
+              </small>
+            </div>
+          </div>
+
+          <!-- Section 3: Timeline & Dates -->
+          <div class="section-heading mb-3 mt-4">
+            <span class="section-kicker">Validity & Timeline</span>
+            <span class="section-line"></span>
+          </div>
+
+          <!-- Row 4: Dates (Issue Date, Start Date, End/Expiry Date) -->
+          <div class="form-row-3">
+            <div class="form-group">
+              <label class="form-label">Issue Date</label>
+              <input type="date" pInputText [(ngModel)]="issueDate" class="w-full" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Effective Start Date</label>
+              <input type="date" pInputText [(ngModel)]="startDate" class="w-full" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">End / Expiry Date</label>
+              <input type="date" pInputText [(ngModel)]="endDate" class="w-full" />
+            </div>
+          </div>
+
+          <!-- Section 4: Document File & Details -->
+          <div class="section-heading mb-3 mt-4">
+            <span class="section-kicker">Attachment & Status</span>
+            <span class="section-line"></span>
+          </div>
+
+          <!-- Row 5: File Upload & Attachment -->
+          <div class="form-group">
+            <label class="form-label">Attach Document File (PDF / DOCX)</label>
+            
+            <div class="file-upload-zone" *ngIf="!fileUrl">
+              <input type="file" #fileInput (change)="onFileSelected($event)" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" style="display: none;" />
+              <div class="upload-placeholder" (click)="fileInput.click()">
+                <i class="pi pi-cloud-upload upload-icon"></i>
+                <span class="upload-text">Click to browse or drag and drop document file</span>
+                <span class="upload-hint">Supported formats: PDF, DOC, DOCX, XLSX (Max 25MB)</span>
+              </div>
+            </div>
+
+            <div class="attached-file-badge" *ngIf="fileUrl">
+              <div class="file-info-left">
+                <i class="pi pi-file-pdf text-red-500 text-xl"></i>
+                <div>
+                  <span class="attached-filename">{{ fileName || 'Document Attached' }}</span>
+                  <span class="attached-hint">Ready for storage and preview</span>
+                </div>
+              </div>
+              <div class="file-actions-right">
+                <p-button label="Preview" icon="pi pi-eye" size="small" [text]="true" (click)="previewFile(fileUrl, fileName)" />
+                <p-button icon="pi pi-times" size="small" [text]="true" severity="danger" (click)="removeFile()" pTooltip="Remove File" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 6: Description / Remarks -->
+          <div class="form-group">
+            <label class="form-label">Description / Remarks</label>
+            <textarea pTextarea [(ngModel)]="description" rows="2" placeholder="Add any background notes, compliance tags, or references..." class="w-full"></textarea>
+          </div>
+
+          <!-- Row 7: Status -->
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <p-select [options]="formStatusOptions" [(ngModel)]="status" appendTo="body" styleClass="w-full" />
+          </div>
+
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+      <div class="drawer-footer-row flex justify-content-end gap-2">
+        <button pButton pRipple label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="hideDialog()"></button>
+        <button pButton pRipple [label]="dialogMode() === 'create' ? 'Create Document' : 'Save Changes'" 
+                icon="pi pi-check" class="p-button-primary" [loading]="saving()" [disabled]="saving()" (click)="saveDocument()"></button>
+      </div>
+    </ng-template>
+  </p-drawer>
+
+  <!-- PDF / Document Preview Dialog -->
+  <p-dialog [(visible)]="previewDialog" 
+            [header]="previewFileName() || 'Document Preview'" 
+            [modal]="true" 
+            [style]="{ width: '850px', maxWidth: '96vw', height: '85vh' }" 
+            [draggable]="false" 
+            [resizable]="true" 
+            [maximizable]="true">
+    
+    <div class="preview-container" *ngIf="safePreviewUrl()">
+      <iframe [src]="safePreviewUrl()" style="width: 100%; height: 100%; border: none; min-height: 65vh;"></iframe>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <a *ngIf="previewFileUrl()" [href]="resolveFileUrl(previewFileUrl())!" target="_blank" class="p-button p-button-outlined p-button-sm p-button-secondary" style="text-decoration: none; margin-right: 0.5rem;">
+        <i class="pi pi-external-link" style="margin-right: 0.35rem;"></i> Open in New Tab
+      </a>
+      <p-button label="Close" icon="pi pi-times" severity="secondary" size="small" (click)="previewDialog.set(false)" />
+    </ng-template>
+  </p-dialog>
+
+  <!-- Confirmation Dialog -->
+  <p-confirmDialog [style]="{ width: '450px' }" />
+</div>

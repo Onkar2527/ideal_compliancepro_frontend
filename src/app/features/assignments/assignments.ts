@@ -337,24 +337,25 @@ export class AssignmentsComponent implements OnInit {
   ngOnInit() {
     this.loadTaskSets();
     this.api.getBranches().subscribe(data => {
+      const topLevelBranches = (data || []).filter((b: any) => !b.parent_id);
       const user = this.auth.currentUser();
-      let managedBranches = data;
+      let managedBranches = topLevelBranches;
       if (user && user.role === 'CO') {
-        const userMapped = data.filter((b: any) => String(b.co_user_id) === String(user.id));
+        const userMapped = topLevelBranches.filter((b: any) => String(b.co_user_id) === String(user.id));
         if (userMapped.length > 0) {
           managedBranches = userMapped;
         } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
           const ids = new Set(user.managed_branch_ids);
-          const filtered = data.filter((b: any) => ids.has(b.id));
+          const filtered = topLevelBranches.filter((b: any) => ids.has(b.id));
           if (filtered.length > 0) managedBranches = filtered;
         }
       } else if (user && user.role === 'CCO') {
-        const userMapped = data.filter((b: any) => String(b.cco_user_id) === String(user.id));
+        const userMapped = topLevelBranches.filter((b: any) => String(b.cco_user_id) === String(user.id));
         if (userMapped.length > 0) {
           managedBranches = userMapped;
         } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
           const ids = new Set(user.managed_branch_ids);
-          const filtered = data.filter((b: any) => ids.has(b.id));
+          const filtered = topLevelBranches.filter((b: any) => ids.has(b.id));
           if (filtered.length > 0) managedBranches = filtered;
         }
       }

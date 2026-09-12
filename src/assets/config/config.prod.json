@@ -1,5 +1,7 @@
 {
   "company_uuid4": "from_config",
   "apiUrl": "https://compliancepronxtbackend.kredpool.ai",
-  "bank_name": "KREDPOOL SOLUTIONS PVT LTD."
+  "bank_name": "KREDPOOL SOLUTIONS PVT LTD.",
+  "cco_task_set_access": 0,
+  "direct_subdept_assignment": 0
 }

@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 import { APP_CONFIG } from '../config/config.token';
 
 export interface PaginatedResponse<T> {
@@ -55,12 +57,61 @@ export interface ComplianceTask {
   audit_area_id?: number;
 }
 
+export interface ComplianceDocument {
+  id: number;
+  document_name: string;
+  document_number?: string | null;
+  issue_date?: string | null;
+  created_at?: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  department_id?: number | null;
+  department_name?: string | null;
+  user_id?: number | null;
+  user_name?: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  description?: string | null;
+  status?: string;
+  access_level?: 'PUBLIC' | 'PRIVATE' | string;
+  created_by_user_id?: number | null;
+  created_by_username?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ComplianceApiService {
   private config = inject(APP_CONFIG);
   public baseUrl = this.config.apiUrl;
 
   constructor(private http: HttpClient) {}
+
+  resolveFileUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+      return url;
+    }
+    const base = this.baseUrl || '';
+    if (!base) return url;
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${cleanBase}${cleanPath}`;
+  }
+
+  canCcoAccessTaskSets(): boolean {
+    const flag = this.config.cco_task_set_access;
+    if (flag === 1 || flag === true || Number(flag) === 1) {
+      return false;
+    }
+    return true;
+  }
+
+  isDirectSubDeptAssignment(): boolean {
+    const flag = this.config.direct_subdept_assignment;
+    if (flag === 1 || flag === true || Number(flag) === 1) {
+      return true;
+    }
+    return false;
+  }
 
   // Authorities
   getAuthorities() {
@@ -425,6 +476,118 @@ export class ComplianceApiService {
 
   deleteHoliday(id: number) {
     return this.http.delete<any>(`${this.baseUrl}/holidays/${id}`);
+  }
+
+  // Document Master
+  private getLocalDocuments(): ComplianceDocument[] {
+    try {
+      const data = localStorage.getItem('compliancepro_document_master');
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private saveLocalDocuments(docs: ComplianceDocument[]): void {
+    try {
+      localStorage.setItem('compliancepro_document_master', JSON.stringify(docs));
+    } catch (e) {
+      console.warn('Failed to save documents to local storage:', e);
+    }
+  }
+
+  getDocuments(): Observable<ComplianceDocument[]> {
+    return this.http.get<ComplianceDocument[]>(`${this.baseUrl}/documents`).pipe(
+      tap((docs) => {
+        if (Array.isArray(docs)) {
+          this.saveLocalDocuments(docs);
+        }
+      }),
+      catchError(() => {
+        return of(this.getLocalDocuments());
+      })
+    );
+  }
+
+  createDocument(payload: Partial<ComplianceDocument>): Observable<ComplianceDocument> {
+    return this.http.post<ComplianceDocument>(`${this.baseUrl}/documents`, payload).pipe(
+      tap((created) => {
+        const local = this.getLocalDocuments();
+        this.saveLocalDocuments([created, ...local]);
+      }),
+      catchError(() => {
+        const local = this.getLocalDocuments();
+        const newDoc: ComplianceDocument = {
+          id: Date.now(),
+          document_name: payload.document_name || '',
+          document_number: payload.document_number || null,
+          issue_date: payload.issue_date || null,
+          created_at: new Date().toISOString(),
+          start_date: payload.start_date || null,
+          end_date: payload.end_date || null,
+          department_id: payload.department_id || null,
+          department_name: payload.department_name || null,
+          user_id: payload.user_id || null,
+          user_name: payload.user_name || null,
+          file_url: payload.file_url || null,
+          file_name: payload.file_name || null,
+          description: payload.description || null,
+          status: payload.status || 'ACTIVE',
+          access_level: payload.access_level || 'PUBLIC'
+        };
+        this.saveLocalDocuments([newDoc, ...local]);
+        return of(newDoc);
+      })
+    );
+  }
+
+  updateDocument(id: number, payload: Partial<ComplianceDocument>): Observable<ComplianceDocument> {
+    return this.http.put<ComplianceDocument>(`${this.baseUrl}/documents/${id}`, payload).pipe(
+      tap((updated) => {
+        const local = this.getLocalDocuments();
+        const idx = local.findIndex(d => d.id === id);
+        if (idx !== -1) local[idx] = updated;
+        this.saveLocalDocuments(local);
+      }),
+      catchError(() => {
+        const local = this.getLocalDocuments();
+        const idx = local.findIndex(d => d.id === id);
+        if (idx !== -1) {
+          local[idx] = { ...local[idx], ...payload };
+          this.saveLocalDocuments(local);
+          return of(local[idx]);
+        }
+        return of({ ...payload, id } as ComplianceDocument);
+      })
+    );
+  }
+
+  deleteDocument(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.baseUrl}/documents/${id}`).pipe(
+      tap(() => {
+        const local = this.getLocalDocuments().filter(d => d.id !== id);
+        this.saveLocalDocuments(local);
+      }),
+      catchError(() => {
+        const local = this.getLocalDocuments().filter(d => d.id !== id);
+        this.saveLocalDocuments(local);
+        return of({ success: true });
+      })
+    );
+  }
+
+  uploadDocumentFile(file: File): Observable<{ file_url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('folder', 'compliance_documents');
+    formData.append('subfolder', 'compliance_documents');
+    formData.append('type', 'compliance_documents');
+    return this.http.post<{ file_url: string; filename: string }>(`${this.baseUrl}/tasks/upload?folder=compliance_documents`, formData).pipe(
+      catchError(() => {
+        const blobUrl = URL.createObjectURL(file);
+        return of({ file_url: blobUrl, filename: file.name });
+      })
+    );
   }
 }
 

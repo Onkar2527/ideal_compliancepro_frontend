@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, effect } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComplianceApiService, Circular, Authority } from '../../core/services/api/compliance-api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { HttpClient } from '@angular/common/http';
 import { APP_CONFIG } from '../../core/services/config/config.token';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -223,6 +224,8 @@ export class CircularsComponent implements OnInit, OnDestroy {
     { field: 'ai_processing_status', header: 'Status', width: '110px' }
   ];
 
+  private auth = inject(AuthService);
+
   tableActions: TableAction[] = [
     {
       label: 'View PDF',
@@ -247,6 +250,11 @@ export class CircularsComponent implements OnInit, OnDestroy {
       label: 'Task Set Master',
       icon: 'pi pi-list-check',
       styleClass: 'text-green-600',
+      visible: () => {
+        const user = this.auth.currentUser();
+        const role = String(user?.role || '').toLowerCase();
+        return role !== 'cco' || this.api.canCcoAccessTaskSets();
+      },
       command: (row) => this.router.navigate(['/task-sets'], { queryParams: { circular_id: row.id, parent_page: this.page, parent_limit: this.limit } })
     },
     {

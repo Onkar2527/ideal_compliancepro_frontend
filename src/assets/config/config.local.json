@@ -1,5 +1,7 @@
 {
   "company_uuid4": "from_config",
-  "apiUrl": "http://localhost:3580",
-  "bank_name": "KREDPOOL SOLUTIONS PVT LTD."
+  "apiUrl": "http://192.168.31.180:3580",
+  "bank_name": "KREDPOOL SOLUTIONS PVT LTD.",
+  "cco_task_set_access": 0,
+  "direct_subdept_assignment": 0
 }

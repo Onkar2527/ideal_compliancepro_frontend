@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
+import { ComplianceApiService } from '../../../core/services/api/compliance-api.service';
 
 @Component({
   selector: 'app-menu',
@@ -19,6 +20,8 @@ import { AppMenuitem } from './app.menuitem';
 })
 export class AppMenu implements OnInit {
   model: MenuItem[] = [];
+
+  constructor(private api: ComplianceApiService) {}
 
   ngOnInit(): void {
     let user: any = {};
@@ -59,8 +62,8 @@ export class AppMenu implements OnInit {
       // CO Review Queue
       complianceItems.push({ label: 'CO Review Queue (Internal)', icon: 'pi pi-fw pi-check-circle', routerLink: ['/co-review'], queryParams: { type: 'INTERNAL' }, routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' } });
       complianceItems.push({ label: 'CO Review Queue (Circular Based)', icon: 'pi pi-fw pi-check-circle', routerLink: ['/co-review'], queryParams: { type: 'REGULAR' }, routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' } });
-    } else if (['branch', 'branch_user', 'department'].includes(userRole)) {
-      complianceItems.push({ label: 'My Assignments', icon: 'pi pi-fw pi-briefcase', routerLink: ['/assignments'] });
+    } else if (['branch', 'branch_user', 'department', 'sub_department'].includes(userRole)) {
+      complianceItems.push({ label: 'My Assignments', icon: 'pi pi-fw pi-book', routerLink: ['/assignments'] });
     }
 
     if (complianceItems.length > 0) {
@@ -78,25 +81,39 @@ export class AppMenu implements OnInit {
     }
 
     if (['admin', 'cco', 'co'].includes(userRole)) {
+      const circularSubItems: MenuItem[] = [
+        { label: 'Circular List', icon: 'pi pi-fw pi-list', routerLink: ['/circulars'] },
+        {
+          label: 'Task Master',
+          icon: 'pi pi-fw pi-check-square',
+          routerLink: ['/tasks'],
+          routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+        },
+        { label: 'Task Header Master', icon: 'pi pi-fw pi-tags', routerLink: ['/admin/task-headers'] }
+      ];
+
+      // Flag check: CCO task set access (when cco_task_set_access is 1, CCO has Task Set Master; when 0, hidden)
+      const canAccessTaskSets = userRole !== 'cco' || this.api.canCcoAccessTaskSets();
+      if (canAccessTaskSets) {
+        circularSubItems.push({
+          label: 'Task Set Master',
+          icon: 'pi pi-fw pi-server',
+          routerLink: ['/task-sets'],
+          routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+        });
+      }
+
       masterItems.push({
         label: 'Circular Master',
         icon: 'pi pi-fw pi-file-pdf',
-        items: [
-          { label: 'Circular List', icon: 'pi pi-fw pi-list', routerLink: ['/circulars'] },
-          {
-            label: 'Task Master',
-            icon: 'pi pi-fw pi-check-square',
-            routerLink: ['/tasks'],
-            routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
-          },
-          { label: 'Task Header Master', icon: 'pi pi-fw pi-tags', routerLink: ['/admin/task-headers'] },
-          {
-            label: 'Task Set Master',
-            icon: 'pi pi-fw pi-server',
-            routerLink: ['/task-sets'],
-            routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
-          }
-        ]
+        items: circularSubItems
+      });
+
+      masterItems.push({
+        label: 'Document Master',
+        icon: 'pi pi-fw pi-folder-open',
+        routerLink: ['/admin/documents'],
+        routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
       });
     }
 

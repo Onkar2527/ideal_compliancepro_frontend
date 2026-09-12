@@ -58,7 +58,9 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
                   class="p-button-success p-button-sm" 
                   [loading]="approvingAll()"
                   (click)="approveAllPendingTasks()"></button>
-          <button pButton pRipple type="button" icon="pi pi-list-check" label="Go to Task Set Master" class="p-button-outlined p-button-success p-button-sm" (click)="goToTaskSets()"></button>
+          @if (canAccessTaskSets()) {
+            <button pButton pRipple type="button" icon="pi pi-list-check" label="Go to Task Set Master" class="p-button-outlined p-button-success p-button-sm" (click)="goToTaskSets()"></button>
+          }
           <button pButton pRipple type="button" icon="pi pi-arrow-left" label="Back to Circulars" class="p-button-outlined p-button-secondary p-button-sm" (click)="goBackToCirculars()"></button>
         </div>
       </div>
@@ -87,14 +89,16 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
                 (click)="goToAIChat()">
               </button>
             }
-            <button
-              pButton
-              type="button"
-              icon="pi pi-list-check"
-              label="Go to Task Set Master"
-              class="p-button-outlined p-button-success h-2.5rem flex align-items-center"
-              (click)="goToTaskSets()">
-            </button>
+            @if (canAccessTaskSets()) {
+              <button
+                pButton
+                type="button"
+                icon="pi pi-list-check"
+                label="Go to Task Set Master"
+                class="p-button-outlined p-button-success h-2.5rem flex align-items-center"
+                (click)="goToTaskSets()">
+              </button>
+            }
           }
         </div>
       </div>
@@ -843,6 +847,11 @@ export class TasksComponent implements OnInit {
   get isCcoOrAdmin(): boolean {
     const role = this.auth.currentUser()?.role;
     return role === 'CCO' || role === 'CO' || role === 'ADMIN';
+  }
+
+  canAccessTaskSets(): boolean {
+    const role = String(this.auth.currentUser()?.role || '').toLowerCase();
+    return role !== 'cco' || this.api.canCcoAccessTaskSets();
   }
 
   constructor(private api: ComplianceApiService, private route: ActivatedRoute, private auth: AuthService, private messageService: MessageService, private router: Router) { }

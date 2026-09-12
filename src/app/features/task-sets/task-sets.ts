@@ -20,6 +20,10 @@ import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { TableModule } from 'primeng/table';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { InputTextModule } from 'primeng/inputtext';
+import { TooltipModule } from 'primeng/tooltip';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 
 import { TextFieldComponent } from '../../shared/components/form/text-field/text-field.component';
 import { TextareaFieldComponent } from '../../shared/components/form/textarea-field/textarea-field.component';
@@ -49,6 +53,10 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     TagModule,
     TableModule,
     SelectButtonModule,
+    InputTextModule,
+    TooltipModule,
+    IconFieldModule,
+    InputIconModule,
   ],
   templateUrl: './task-sets.html',
   styles: [`
@@ -756,12 +764,88 @@ export class TaskSetsComponent implements OnInit {
 
   targetTasks: any[] = [];
   selectionTick = signal<number>(0);
+  availableSearchText = signal<string>('');
+  selectedSearchText = signal<string>('');
+  availableHeaderFilter = signal<string | null>(null);
+
   availableTasks = computed(() => {
     this.selectionTick();
     const all = this.allTasks();
     const selectedIds = new Set(this.targetTasks.map(t => t.id));
     return all.filter(t => !selectedIds.has(t.id));
   });
+
+  taskHeaderOptions = computed(() => {
+    const tasks = this.allTasks();
+    const headers = new Set<string>();
+    tasks.forEach(t => {
+      if (t.header_name && t.header_name.trim()) headers.add(t.header_name.trim());
+    });
+    return Array.from(headers).sort().map(h => ({ label: h, value: h }));
+  });
+
+  filteredAvailableTasks = computed(() => {
+    const list = this.availableTasks();
+    const search = (this.availableSearchText() || '').toLowerCase().trim();
+    const header = this.availableHeaderFilter();
+
+    return list.filter(t => {
+      if (header && t.header_name !== header) return false;
+      if (!search) return true;
+      const desc = (t.description || '').toLowerCase();
+      const hName = (t.header_name || '').toLowerCase();
+      const auth = (t.authority_name || '').toLowerCase();
+      const prio = (t.priority || '').toLowerCase();
+      return desc.includes(search) || hName.includes(search) || auth.includes(search) || prio.includes(search);
+    });
+  });
+
+  filteredSelectedTasks = computed(() => {
+    this.selectionTick();
+    const list = this.targetTasks;
+    const search = (this.selectedSearchText() || '').toLowerCase().trim();
+    if (!search) return list;
+
+    return list.filter(t => {
+      const desc = (t.description || '').toLowerCase();
+      const hName = (t.header_name || '').toLowerCase();
+      const auth = (t.authority_name || '').toLowerCase();
+      const prio = (t.priority || '').toLowerCase();
+      return desc.includes(search) || hName.includes(search) || auth.includes(search) || prio.includes(search);
+    });
+  });
+
+  addAllAvailableTasks(): void {
+    const toAdd = this.filteredAvailableTasks();
+    if (toAdd.length === 0) return;
+    this.targetTasks = [...toAdd, ...this.targetTasks];
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  removeAllSelectedTasks(): void {
+    this.targetTasks = [];
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  addSingleTask(task: any): void {
+    if (!task) return;
+    this.targetTasks = [task, ...this.targetTasks];
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  removeSingleTask(task: any): void {
+    if (!task) return;
+    this.targetTasks = this.targetTasks.filter(t => t.id !== task.id);
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  getPrioritySeverity(priority: string | undefined): 'danger' | 'warn' | 'info' | 'secondary' {
+    const p = (priority || '').toUpperCase();
+    if (p === 'HIGH' || p === 'CRITICAL') return 'danger';
+    if (p === 'MEDIUM' || p === 'MODERATE') return 'warn';
+    if (p === 'LOW') return 'info';
+    return 'secondary';
+  }
 
   availableTaskColumns = computed<TableColumn[]>(() => {
     const isInternal = this.newTaskSetType() === 'INTERNAL';
@@ -795,15 +879,13 @@ export class TaskSetsComponent implements OnInit {
 
   onAvailableTaskAction(event: { name: string, row: any }) {
     if (event.name === 'add') {
-      this.targetTasks = [event.row, ...this.targetTasks];
-      this.selectionTick.set(this.selectionTick() + 1);
+      this.addSingleTask(event.row);
     }
   }
 
   onSelectedTaskAction(event: { name: string, row: any }) {
     if (event.name === 'remove') {
-      this.targetTasks = this.targetTasks.filter(t => t.id !== event.row.id);
-      this.selectionTick.set(this.selectionTick() + 1);
+      this.removeSingleTask(event.row);
     }
   }
 
@@ -817,6 +899,11 @@ export class TaskSetsComponent implements OnInit {
   cameFromTasks = signal<boolean>(false);
 
   private auth = inject(AuthService);
+
+  canAccessTaskSets = computed(() => {
+    const role = String(this.auth.currentUser()?.role || '').toLowerCase();
+    return role !== 'cco' || this.api.canCcoAccessTaskSets();
+  });
 
   constructor(private api: ComplianceApiService, private messageService: MessageService, private confirmationService: ConfirmationService, private route: ActivatedRoute, private router: Router) {}
 
@@ -869,6 +956,17 @@ export class TaskSetsComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (!this.canAccessTaskSets()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Access Restricted',
+        detail: 'Task Set management is not enabled for CCO role in this institution configuration.',
+        life: 5000
+      });
+      this.router.navigate(['/home']);
+      return;
+    }
+
     this.loadData();
     this.api.getApprovedTasks({ limit: 1000 }).subscribe(res => {
       this.rawTasks.set(res.data);
@@ -906,15 +1004,13 @@ export class TaskSetsComponent implements OnInit {
 
   loadBranches() {
     this.api.getBranches().subscribe(data => {
-      const deptMap = new Map(data.map((b: any) => [b.id, b.name]));
-      const enriched = data.map((b: any) => {
-        const parentName = b.parent_id ? deptMap.get(b.parent_id) : null;
-        return {
-          ...b,
-          name: parentName ? `${parentName} → ${b.name}` : b.name,
-          raw_name: b.name
-        };
-      }).sort((a: any, b: any) => a.name.localeCompare(b.name));
+      // Filter out sub-departments: show only top-level departments and branches (parent_id is null/undefined)
+      const topLevelBranches = (data || []).filter((b: any) => !b.parent_id);
+      const enriched = topLevelBranches.map((b: any) => ({
+        ...b,
+        name: b.name,
+        raw_name: b.name
+      })).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
       const user = this.auth.currentUser();
       let managed = enriched;
@@ -1192,23 +1288,23 @@ export class TaskSetsComponent implements OnInit {
     if (freq !== '6') {
       if (freq === '0') {
         if (!this.newTaskSetAssignmentTime()?.trim()) missingFields.push('Assignment Time');
-        if (!this.newTaskSetReportingTime()?.trim()) missingFields.push('Reporting Time');
         if (!this.newTaskSetDueTime()?.trim()) missingFields.push('Due Time');
+        if (!this.newTaskSetReportingTime()?.trim()) missingFields.push('Reporting Time');
       }
       if (freq === '7') {
         if (!this.newTaskSetAssignmentDayOfWeek()) missingFields.push('Assignment Day of Week');
-        if (!this.newTaskSetReportingDayOfWeek()) missingFields.push('Reporting Day of Week');
         if (!this.newTaskSetDueDayOfWeek()) missingFields.push('Due Day of Week');
+        if (!this.newTaskSetReportingDayOfWeek()) missingFields.push('Reporting Day of Week');
       }
       if (freq === '1' || freq === '2') {
         if (!this.newTaskSetAssignmentDaysOfMonth()?.trim()) missingFields.push('Assignment Days of Month');
-        if (!this.newTaskSetReportingDaysOfMonth()?.trim()) missingFields.push('Reporting Days of Month');
         if (!this.newTaskSetDueDaysOfMonth()?.trim()) missingFields.push('Due Days of Month');
+        if (!this.newTaskSetReportingDaysOfMonth()?.trim()) missingFields.push('Reporting Days of Month');
       }
       if (['3','4','5'].includes(freq)) {
         if (!this.newTaskSetAssignmentSchedule()?.trim()) missingFields.push('Assignment Schedule');
-        if (!this.newTaskSetReportingSchedule()?.trim()) missingFields.push('Reporting Schedule');
         if (!this.newTaskSetDueSchedule()?.trim()) missingFields.push('Due Schedule');
+        if (!this.newTaskSetReportingSchedule()?.trim()) missingFields.push('Reporting Schedule');
       }
 
       const valError = this.scheduleValidationError();

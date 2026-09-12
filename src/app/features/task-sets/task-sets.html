@@ -58,9 +58,9 @@
         [loadingRowIds]="loadingRowIds()"
         (onRefresh)="loadData(true)"
         (onAdd)="openCreateModal()"
-        [showAddButton]="true"
+        [showAddButton]="canAccessTaskSets()"
         [showRefreshButton]="true"
-        [showBulkUploadButton]="true"
+        [showBulkUploadButton]="canAccessTaskSets()"
         bulkUploadButtonLabel="Bulk Upload (Internal)"
         (onBulkUpload)="openBulkUploadModal()"
         [paginator]="true"
@@ -254,7 +254,7 @@
 
 <!-- Task Set Form Drawer -->
 
-<p-drawer [(visible)]="showFormDrawer" position="right" [style]="{ width: '80vw', maxWidth: '98vw' }" appendTo="body" [modal]="true" [showCloseIcon]="false">
+<p-drawer [(visible)]="showFormDrawer" position="right" [style]="{ width: '88vw', maxWidth: '1440px' }" appendTo="body" [modal]="true" [showCloseIcon]="false">
   <ng-template pTemplate="header">
     <div class="drawer-header-row">
       <div class="drawer-title-wrap">
@@ -348,7 +348,7 @@
           <!-- ══ FREQUENCY-BASED SCHEDULE FIELDS (For ALL types except 1-Time Use) ══ -->
           @if (newTaskSetFrequency() && newTaskSetFrequency() !== '6') {
 
-            <!-- DAILY → Reporting Time + Due Time -->
+            <!-- DAILY → Assignment Time + Due Time + Reporting Time -->
             @if (newTaskSetFrequency() === '0') {
               <div class="field col-12 md:col-4">
                 <label class="font-medium text-sm text-700 mb-1 block">Assignment Time <span class="text-red-500">*</span></label>
@@ -356,18 +356,18 @@
                   [ngModel]="newTaskSetAssignmentTime()" (ngModelChange)="newTaskSetAssignmentTime.set($event)" />
               </div>
               <div class="field col-12 md:col-4">
-                <label class="font-medium text-sm text-700 mb-1 block">Reporting Time <span class="text-red-500">*</span></label>
-                <input type="time" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetReportingTime()" (ngModelChange)="newTaskSetReportingTime.set($event)" />
-              </div>
-              <div class="field col-12 md:col-4">
                 <label class="font-medium text-sm text-700 mb-1 block">Due Time <span class="text-red-500">*</span></label>
                 <input type="time" class="p-inputtext p-component w-full"
                   [ngModel]="newTaskSetDueTime()" (ngModelChange)="newTaskSetDueTime.set($event)" />
               </div>
+              <div class="field col-12 md:col-4">
+                <label class="font-medium text-sm text-700 mb-1 block">Reporting Time <span class="text-red-500">*</span></label>
+                <input type="time" class="p-inputtext p-component w-full"
+                  [ngModel]="newTaskSetReportingTime()" (ngModelChange)="newTaskSetReportingTime.set($event)" />
+              </div>
             }
 
-            <!-- WEEKLY → Assignment / Reporting / Due Day of Week Chips -->
+            <!-- WEEKLY → Assignment / Due / Reporting Day of Week Chips -->
             @if (newTaskSetFrequency() === '7') {
               <div class="field col-12">
                 <div class="grid formgrid">
@@ -385,19 +385,6 @@
                     </div>
                   </div>
                   <div class="field col-12 md:col-4">
-                    <label class="font-medium text-sm text-700 mb-2 block">Reporting Day <span class="text-red-500">*</span></label>
-                    <div class="flex flex-wrap gap-1">
-                      @for (day of dayOfWeekOptions; track day.value) {
-                        <div 
-                          class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
-                          [class]="newTaskSetReportingDayOfWeek() === day.value ? 'bg-blue-500 text-white border-1 border-blue-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
-                          (click)="newTaskSetReportingDayOfWeek.set(day.value)">
-                          {{ day.label.substring(0, 3) }}
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="field col-12 md:col-4">
                     <label class="font-medium text-sm text-700 mb-2 block">Due Day <span class="text-red-500">*</span></label>
                     <div class="flex flex-wrap gap-1">
                       @for (day of dayOfWeekOptions; track day.value) {
@@ -405,6 +392,19 @@
                           class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
                           [class]="newTaskSetDueDayOfWeek() === day.value ? 'bg-red-500 text-white border-1 border-red-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
                           (click)="newTaskSetDueDayOfWeek.set(day.value)">
+                          {{ day.label.substring(0, 3) }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                  <div class="field col-12 md:col-4">
+                    <label class="font-medium text-sm text-700 mb-2 block">Reporting Day <span class="text-red-500">*</span></label>
+                    <div class="flex flex-wrap gap-1">
+                      @for (day of dayOfWeekOptions; track day.value) {
+                        <div 
+                          class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
+                          [class]="newTaskSetReportingDayOfWeek() === day.value ? 'bg-blue-500 text-white border-1 border-blue-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
+                          (click)="newTaskSetReportingDayOfWeek.set(day.value)">
                           {{ day.label.substring(0, 3) }}
                         </div>
                       }
@@ -433,20 +433,6 @@
                     </div>
                   </div>
                   <div class="field col-12 xl:col-4">
-                    <label class="font-medium text-sm text-700 mb-2 block">Reporting Days <span class="text-red-500">*</span></label>
-                    <div class="flex flex-wrap gap-1 max-w-20rem">
-                      @for (day of daysArray; track day) {
-                        <div 
-                          class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
-                          style="width: 28px; height: 28px;"
-                          [class]="isDayOfMonthSelected(newTaskSetReportingDaysOfMonth, day) ? 'bg-blue-500 text-white border-1 border-blue-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-blue-50'"
-                          (click)="toggleDayOfMonth(newTaskSetReportingDaysOfMonth, day)">
-                          {{ day }}
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="field col-12 xl:col-4">
                     <label class="font-medium text-sm text-700 mb-2 block">Due Days <span class="text-red-500">*</span></label>
                     <div class="flex flex-wrap gap-1 max-w-20rem">
                       @for (day of daysArray; track day) {
@@ -460,11 +446,25 @@
                       }
                     </div>
                   </div>
+                  <div class="field col-12 xl:col-4">
+                    <label class="font-medium text-sm text-700 mb-2 block">Reporting Days <span class="text-red-500">*</span></label>
+                    <div class="flex flex-wrap gap-1 max-w-20rem">
+                      @for (day of daysArray; track day) {
+                        <div 
+                          class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
+                          style="width: 28px; height: 28px;"
+                          [class]="isDayOfMonthSelected(newTaskSetReportingDaysOfMonth, day) ? 'bg-blue-500 text-white border-1 border-blue-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-blue-50'"
+                          (click)="toggleDayOfMonth(newTaskSetReportingDaysOfMonth, day)">
+                          {{ day }}
+                        </div>
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             }
 
-            <!-- QUARTERLY / SEMI-ANNUAL / YEARLY → Reporting Schedule + Due Schedule -->
+            <!-- QUARTERLY / SEMI-ANNUAL / YEARLY → Assignment Schedule + Due Schedule + Reporting Schedule -->
             @if (newTaskSetFrequency() === '3' || newTaskSetFrequency() === '4' || newTaskSetFrequency() === '5') {
               <div class="field col-12 md:col-4">
                 <label class="font-medium text-sm text-700 mb-1 block">
@@ -476,18 +476,18 @@
               </div>
               <div class="field col-12 md:col-4">
                 <label class="font-medium text-sm text-700 mb-1 block">
-                  Reporting Schedule <span class="text-red-500">*</span>
-                </label>
-                <input type="text" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetReportingSchedule()" (ngModelChange)="newTaskSetReportingSchedule.set($event)"
-                  placeholder="e.g. 15 Jan" />
-              </div>
-              <div class="field col-12 md:col-4">
-                <label class="font-medium text-sm text-700 mb-1 block">
                   Due Schedule <span class="text-red-500">*</span>
                 </label>
                 <input type="text" class="p-inputtext p-component w-full"
                   [ngModel]="newTaskSetDueSchedule()" (ngModelChange)="newTaskSetDueSchedule.set($event)"
+                  placeholder="e.g. 15 Jan" />
+              </div>
+              <div class="field col-12 md:col-4">
+                <label class="font-medium text-sm text-700 mb-1 block">
+                  Reporting Schedule <span class="text-red-500">*</span>
+                </label>
+                <input type="text" class="p-inputtext p-component w-full"
+                  [ngModel]="newTaskSetReportingSchedule()" (ngModelChange)="newTaskSetReportingSchedule.set($event)"
                   placeholder="e.g. 28 Jan" />
               </div>
             }
@@ -507,81 +507,240 @@
       </section>
 
       <!-- Section: Map Tasks -->
-      <!-- Section: Map Tasks (Side-by-Side) -->
+      <!-- Section: Map Tasks (Side-by-Side Dual Transfer) -->
       <section class="drawer-section">
         <div class="section-heading">
           <span class="section-kicker">Map Tasks</span>
           <span class="section-line"></span>
-          <span class="text-sm font-bold text-primary flex-shrink-0"><i class="pi pi-check-circle mr-1"></i>{{ targetTasks.length }} Selected</span>
+          <span class="text-xs font-bold text-primary px-2.5 py-1 border-round bg-primary-50 border-1 border-primary-100 flex-shrink-0">
+            <i class="pi pi-check-circle mr-1"></i>{{ targetTasks.length }} Tasks Selected
+          </span>
         </div>
         
-        <div class="grid w-full m-0 p-0">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; width: 100%;">
           
-          <!-- Available Tasks Table -->
-          <div class="col-12 md:col-6 p-0 pr-2">
-            <div class="text-sm font-semibold text-600 mb-2">Available Tasks</div>
-            <div class="border-round border-1 border-300 w-full" style="height: 35rem; display: flex; flex-direction: column;">
-              <app-table
-                [data]="availableTasks()"
-                [columns]="availableTaskColumns()"
-                [globalFilterFields]="newTaskSetType() === 'INTERNAL' ? ['description', 'priority', 'authority_name'] : ['description', 'priority']"
-                [loading]="loadingFormDetails()"
-                [selectable]="false"
-                [paginator]="true"
-                [rows]="10"
-                [dataKey]="'id'"
-                [showAddButton]="newTaskSetType() === 'INTERNAL'"
-                [showRefreshButton]="false"
-                addButtonLabel="Add Task"
-                (onAdd)="openInlineTaskDialog()"
-                (onActionClick)="onAvailableTaskAction($event)"
-                style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"
-              >
-                <div toolbar-actions class="flex align-items-center ml-2">
-                  <p-select
-                    *ngIf="newTaskSetType() === 'REGULAR'"
-                    [options]="circularFilterOptions()"
-                    [ngModel]="formCircularFilter()"
-                    (ngModelChange)="formCircularFilter.set($event)"
-                    (onShow)="ensureCircularsLoaded()"
-                    placeholder="Filter by Circular"
-                    [showClear]="true"
-                    optionLabel="label"
-                    optionValue="value"
-                    [filter]="true"
-                    filterBy="label"
-                    [virtualScroll]="true"
-                    [virtualScrollItemSize]="38"
-                    class="w-20rem"
-                    styleClass="h-2.5rem flex align-items-center animate-fadein"
-                    panelStyleClass="circular-dropdown-panel"
-                    appendTo="body"
-                  ></p-select>
-                </div>
-              </app-table>
+          <!-- Available Tasks Panel -->
+          <div style="display: flex; flex-direction: column; min-width: 0; gap: 0.35rem;">
+            
+            <!-- Panel Header & Controls -->
+            <div class="flex align-items-center justify-content-between gap-2 flex-wrap" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0; padding: 0.5rem 0.75rem;">
+              <div class="flex align-items-center gap-2">
+                <span class="text-sm font-bold text-slate-800">Available Tasks</span>
+                <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-200 text-slate-700">
+                  {{ filteredAvailableTasks().length }}
+                </span>
+              </div>
+
+              <div class="flex align-items-center gap-2">
+                <button *ngIf="newTaskSetType() === 'INTERNAL'" 
+                        pButton label="Add Task" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true"
+                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                        (click)="openInlineTaskDialog()"></button>
+                <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="primary"
+                        [disabled]="filteredAvailableTasks().length === 0"
+                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                        (click)="addAllAvailableTasks()"
+                        pTooltip="Add all filtered available tasks to selection" tooltipPosition="top"></button>
+              </div>
             </div>
+
+            <!-- Search & Filter Sub-Bar -->
+            <div class="flex align-items-center gap-2 flex-wrap px-2 py-1.5 bg-slate-50 border-left-1 border-right-1 border-slate-200">
+              <p-iconfield iconPosition="left" class="flex-1" style="min-width: 150px;">
+                <p-inputicon styleClass="pi pi-search text-xs" />
+                <input pInputText type="text" [ngModel]="availableSearchText()" (ngModelChange)="availableSearchText.set($event)" 
+                       placeholder="Search available tasks..." 
+                       class="w-full h-2rem text-xs" />
+              </p-iconfield>
+
+              <p-select *ngIf="newTaskSetType() === 'REGULAR'"
+                        [options]="circularFilterOptions()"
+                        [ngModel]="formCircularFilter()"
+                        (ngModelChange)="formCircularFilter.set($event)"
+                        (onShow)="ensureCircularsLoaded()"
+                        placeholder="All Circulars"
+                        [showClear]="true"
+                        optionLabel="label"
+                        optionValue="value"
+                        [filter]="true"
+                        filterBy="label"
+                        class="w-13rem"
+                        styleClass="h-2rem text-xs flex align-items-center"
+                        panelStyleClass="circular-dropdown-panel"
+                        appendTo="body"></p-select>
+
+              <p-select *ngIf="newTaskSetType() === 'INTERNAL' && taskHeaderOptions().length > 0"
+                        [options]="taskHeaderOptions()"
+                        [ngModel]="availableHeaderFilter()"
+                        (ngModelChange)="availableHeaderFilter.set($event)"
+                        placeholder="All Headers"
+                        [showClear]="true"
+                        class="w-11rem"
+                        styleClass="h-2rem text-xs flex align-items-center"
+                        appendTo="body"></p-select>
+            </div>
+
+            <!-- Available Tasks Table -->
+            <div class="border-1 border-slate-200 border-top-none border-round-bottom overflow-hidden bg-white" style="height: 22.5rem; display: flex; flex-direction: column;">
+              <p-table [value]="filteredAvailableTasks()" 
+                       [paginator]="true" 
+                       [rows]="7" 
+                       [rowsPerPageOptions]="[7, 15, 30]"
+                       [loading]="loadingFormDetails()"
+                       styleClass="p-datatable-sm p-datatable-striped"
+                       [scrollable]="true"
+                       scrollHeight="flex">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 50px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Add</th>
+                    <th style="width: 38px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">#</th>
+                    <th style="min-width: 180px; white-space: nowrap; padding: 0.45rem 0.55rem;">Description</th>
+                    <th *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; white-space: nowrap; padding: 0.45rem 0.55rem;">Header</th>
+                    <th style="width: 80px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Priority</th>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-task let-i="rowIndex">
+                  <tr>
+                    <td style="text-align: center; width: 50px; padding: 0.3rem 0.25rem;">
+                      <button pButton icon="pi pi-plus" size="small" [rounded]="true" severity="primary" 
+                              styleClass="w-1.75rem h-1.75rem"
+                              pTooltip="Add Task" tooltipPosition="top"
+                              (click)="addSingleTask(task)"></button>
+                    </td>
+                    <td style="text-align: center; width: 38px; font-weight: 600; color: #64748b; font-size: 0.75rem; padding: 0.3rem 0.25rem;">
+                      {{ i + 1 }}
+                    </td>
+                    <td style="font-size: 0.78rem; color: #1e293b; line-height: 1.4; padding: 0.35rem 0.55rem;">
+                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" [title]="task.description">
+                        {{ task.description }}
+                      </div>
+                      <small *ngIf="task.authority_name" style="color: #64748b; font-size: 0.68rem; display: block; margin-top: 0.1rem;">
+                        <i class="pi pi-shield" style="font-size: 0.62rem;"></i> {{ task.authority_name }}
+                      </small>
+                    </td>
+                    <td *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; padding: 0.35rem 0.45rem;">
+                      <span *ngIf="task.header_name" style="background: #f1f5f9; color: #334155; padding: 0.12rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="task.header_name">
+                        {{ task.header_name }}
+                      </span>
+                    </td>
+                    <td style="text-align: center; width: 80px; padding: 0.3rem 0.25rem;">
+                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
+                    </td>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 5 : 4" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+                      <i class="pi pi-inbox text-2xl text-slate-300 block mb-1.5"></i>
+                      <span class="text-xs font-semibold text-slate-700 block">No available tasks</span>
+                      <small class="text-xs text-slate-400">Try adjusting your search query or circular filter</small>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+
           </div>
 
-          <!-- Selected Tasks Table -->
-          <div class="col-12 md:col-6 p-0 pl-2">
-            <div class="text-sm font-semibold text-primary mb-2">Selected Tasks</div>
-            <div class="border-round border-1 border-300 w-full" style="height: 35rem; display: flex; flex-direction: column;">
-              <app-table
-                [data]="targetTasks"
-                [columns]="selectedTaskColumns()"
-                [globalFilterFields]="newTaskSetType() === 'INTERNAL' ? ['description', 'priority', 'authority_name'] : ['description', 'priority']"
-                [loading]="loadingFormDetails()"
-                [selectable]="false"
-                [paginator]="true"
-                [rows]="10"
-                [dataKey]="'id'"
-                [showAddButton]="false"
-                [showRefreshButton]="false"
-                (onActionClick)="onSelectedTaskAction($event)"
-                style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"
-              >
-              </app-table>
+          <!-- Selected Tasks Panel -->
+          <div style="display: flex; flex-direction: column; min-width: 0; gap: 0.35rem;">
+            
+            <!-- Panel Header & Controls -->
+            <div class="flex align-items-center justify-content-between gap-2 flex-wrap" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px 8px 0 0; padding: 0.5rem 0.75rem;">
+              <div class="flex align-items-center gap-2">
+                <span class="text-sm font-bold text-emerald-900">Selected Tasks</span>
+                <span class="text-xs font-bold px-2 py-0.5 border-round bg-emerald-200 text-emerald-800">
+                  {{ targetTasks.length }}
+                </span>
+              </div>
+
+              <div class="flex align-items-center gap-2">
+                <button pButton label="Clear All" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
+                        [disabled]="targetTasks.length === 0"
+                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                        (click)="removeAllSelectedTasks()"
+                        pTooltip="Remove all selected tasks" tooltipPosition="top"></button>
+              </div>
             </div>
+
+            <!-- Search Sub-Bar for Selected Tasks -->
+            <div class="flex align-items-center gap-2 px-2 py-1.5 bg-emerald-50 border-left-1 border-right-1 border-emerald-200">
+              <p-iconfield iconPosition="left" class="w-full">
+                <p-inputicon styleClass="pi pi-search text-xs" />
+                <input pInputText type="text" [ngModel]="selectedSearchText()" (ngModelChange)="selectedSearchText.set($event)" 
+                       placeholder="Search selected tasks..." 
+                       class="w-full h-2rem text-xs" />
+              </p-iconfield>
+            </div>
+
+            <!-- Selected Tasks Table -->
+            <div class="border-1 border-slate-200 border-top-none border-round-bottom overflow-hidden bg-white" style="height: 22.5rem; display: flex; flex-direction: column;">
+              <p-table [value]="filteredSelectedTasks()" 
+                       [paginator]="true" 
+                       [rows]="7" 
+                       [rowsPerPageOptions]="[7, 15, 30]"
+                       [loading]="loadingFormDetails()"
+                       styleClass="p-datatable-sm p-datatable-striped"
+                       [scrollable]="true"
+                       scrollHeight="flex">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 48px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Remove</th>
+                    <th style="width: 38px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">#</th>
+                    <th style="min-width: 180px; white-space: nowrap; padding: 0.45rem 0.55rem;">Description</th>
+                    <th *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; white-space: nowrap; padding: 0.45rem 0.55rem;">Header</th>
+                    <th style="width: 80px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Priority</th>
+                    <th *ngIf="newTaskSetType() !== 'INTERNAL'" style="width: 130px; white-space: nowrap; padding: 0.45rem 0.55rem;">Due Date</th>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="body" let-task let-i="rowIndex">
+                  <tr>
+                    <td style="text-align: center; width: 48px; padding: 0.3rem 0.25rem;">
+                      <button pButton icon="pi pi-times" size="small" [rounded]="true" severity="danger" [text]="true"
+                              styleClass="w-1.75rem h-1.75rem"
+                              pTooltip="Remove from Set" tooltipPosition="top"
+                              (click)="removeSingleTask(task)"></button>
+                    </td>
+                    <td style="text-align: center; width: 38px; font-weight: 600; color: #64748b; font-size: 0.75rem; padding: 0.3rem 0.25rem;">
+                      {{ i + 1 }}
+                    </td>
+                    <td style="font-size: 0.78rem; color: #1e293b; line-height: 1.4; padding: 0.35rem 0.55rem;">
+                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" [title]="task.description">
+                        {{ task.description }}
+                      </div>
+                      <small *ngIf="task.authority_name" style="color: #64748b; font-size: 0.68rem; display: block; margin-top: 0.1rem;">
+                        <i class="pi pi-shield" style="font-size: 0.62rem;"></i> {{ task.authority_name }}
+                      </small>
+                    </td>
+                    <td *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; padding: 0.35rem 0.45rem;">
+                      <span *ngIf="task.header_name" style="background: #f1f5f9; color: #334155; padding: 0.12rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="task.header_name">
+                        {{ task.header_name }}
+                      </span>
+                    </td>
+                    <td style="text-align: center; width: 80px; padding: 0.3rem 0.25rem;">
+                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
+                    </td>
+                    <td *ngIf="newTaskSetType() !== 'INTERNAL'" style="width: 130px; padding: 0.35rem 0.45rem;">
+                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-2rem text-xs" />
+                    </td>
+                  </tr>
+                </ng-template>
+
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 5 : 6" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+                      <i class="pi pi-check-circle text-2xl text-emerald-300 block mb-1.5"></i>
+                      <span class="text-xs font-semibold text-slate-700 block">No tasks selected yet</span>
+                      <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> or <strong>"Add All"</strong> from the Available Tasks on the left</small>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+
           </div>
           
         </div>
