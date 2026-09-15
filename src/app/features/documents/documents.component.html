@@ -7,8 +7,8 @@
         <i class="pi pi-folder-open text-primary text-2xl"></i>
       </div>
       <div>
-        <h2 class="page-title">Document Master</h2>
-        <p class="page-subtitle">Manage, store, and track organizational, regulatory, and policy documents with role-based access control</p>
+        <h2 class="page-title">Asset Management</h2>
+        <p class="page-subtitle">Manage, store, and track organizational, regulatory, policy, and asset documents with role-based access control</p>
       </div>
     </div>
     <div class="header-actions">
@@ -96,7 +96,7 @@
   <!-- Documents DataTable -->
   <div class="table-wrapper-card">
     <p-table [value]="filteredDocumentsList" [loading]="loading()" [paginator]="true" [rows]="10" 
-             [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" 
+             [rowsPerPageOptions]="rowsPerPageOptions" responsiveLayout="scroll" 
              styleClass="p-datatable-sm p-datatable-striped">
       
       <ng-template pTemplate="header">

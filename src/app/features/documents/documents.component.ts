@@ -77,6 +77,9 @@ export class DocumentsComponent implements OnInit {
   selectedAccessFilter: string | null = null;
   selectedStatusFilter: string | null = null;
 
+  // Pagination
+  rowsPerPageOptions = [10, 25, 50, 100];
+
   // Dialog State
   displayDialog = signal<boolean>(false);
   dialogMode = signal<'create' | 'edit'>('create');
@@ -280,6 +283,11 @@ export class DocumentsComponent implements OnInit {
       return true;
     }
 
+    // Creator can always view their own documents
+    if (this.isOwner(doc)) {
+      return true;
+    }
+
     // Public document: visible if assigned to "All Branches" (null) or to the user's branch
     if (doc.department_id === null || doc.department_id === undefined) {
       return true; // Company-wide
@@ -448,7 +456,7 @@ export class DocumentsComponent implements OnInit {
         this.documents.set(data || []);
         this.loading.set(false);
         if (isRefresh) {
-          this.notification.info('Document Master list refreshed');
+          this.notification.info('Asset Management list refreshed');
         }
       },
       error: (err) => {

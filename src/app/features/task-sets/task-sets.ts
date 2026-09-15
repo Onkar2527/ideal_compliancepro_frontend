@@ -871,11 +871,32 @@ export class TaskSetsComponent implements OnInit {
     if (isInternal) {
       cols.splice(2, 0, { field: 'header_name', header: 'Task Header', type: 'text', width: '130px' });
       cols.push({ field: 'authority_name', header: 'Authority', type: 'text', width: '130px' });
+      cols.push({ field: 'due_date', header: 'Due Date', type: 'date_input', width: '160px' });
     } else {
-      cols.push({ field: 'due_date', header: 'Proposed Due Date', type: 'date_input', width: '160px' });
+      cols.push({ field: 'due_date', header: 'Due Date', type: 'date_input', width: '160px' });
     }
     return cols;
   });
+
+  activeDueDaysPreset = signal<number | null>(null);
+
+  applyDaysToAllSelectedTasks(days: number) {
+    this.activeDueDaysPreset.set(days);
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const dateStr = d.toISOString().split('T')[0];
+    this.targetTasks = this.targetTasks.map(t => ({
+      ...t,
+      due_date: dateStr
+    }));
+    this.selectionTick.set(this.selectionTick() + 1);
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Due Date Applied',
+      detail: `Applied +${days} days (${dateStr}) to all ${this.targetTasks.length} selected tasks.`,
+      life: 2500
+    });
+  }
 
   onAvailableTaskAction(event: { name: string, row: any }) {
     if (event.name === 'add') {
@@ -1004,36 +1025,56 @@ export class TaskSetsComponent implements OnInit {
 
   loadBranches() {
     this.api.getBranches().subscribe(data => {
-      // Filter out sub-departments: show only top-level departments and branches (parent_id is null/undefined)
-      const topLevelBranches = (data || []).filter((b: any) => !b.parent_id);
-      const enriched = topLevelBranches.map((b: any) => ({
+      const allBranches = data || [];
+      const user = this.auth.currentUser();
+      const userRole = String(user?.role || '').toUpperCase();
+      const userBranchId = user?.branch_id ?? user?.branchId;
+
+      let managed: any[] = [];
+
+      if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT'].includes(userRole)) {
+        // For branch users, show ONLY sub-departments belonging to their department/branch
+        const mySubDepts = allBranches.filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
+        if (mySubDepts.length > 0) {
+          managed = mySubDepts;
+        } else {
+          // Fallback if not directly matched by parent_id
+          const anySubDepts = allBranches.filter((b: any) => b.parent_id !== null && b.parent_id !== undefined);
+          managed = anySubDepts.length > 0 ? anySubDepts : allBranches.filter((b: any) => userBranchId && String(b.id) === String(userBranchId));
+        }
+      } else {
+        // Filter out sub-departments: show only top-level departments and branches for Admin/CO/CCO
+        const topLevelBranches = allBranches.filter((b: any) => !b.parent_id);
+        managed = topLevelBranches;
+
+        if (user && userRole === 'CO') {
+          const userMapped = topLevelBranches.filter((b: any) => String(b.co_user_id) === String(user.id));
+          if (userMapped.length > 0) {
+            managed = userMapped;
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const ids = new Set(user.managed_branch_ids);
+            const filtered = topLevelBranches.filter((b: any) => ids.has(b.id));
+            if (filtered.length > 0) managed = filtered;
+          }
+        } else if (user && userRole === 'CCO') {
+          const userMapped = topLevelBranches.filter((b: any) => String(b.cco_user_id) === String(user.id));
+          if (userMapped.length > 0) {
+            managed = userMapped;
+          } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
+            const ids = new Set(user.managed_branch_ids);
+            const filtered = topLevelBranches.filter((b: any) => ids.has(b.id));
+            if (filtered.length > 0) managed = filtered;
+          }
+        }
+      }
+
+      const enriched = managed.map((b: any) => ({
         ...b,
         name: b.name,
         raw_name: b.name
       })).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
-      const user = this.auth.currentUser();
-      let managed = enriched;
-      if (user && user.role === 'CO') {
-        const userMapped = enriched.filter((b: any) => String(b.co_user_id) === String(user.id));
-        if (userMapped.length > 0) {
-          managed = userMapped;
-        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
-          const ids = new Set(user.managed_branch_ids);
-          const filtered = enriched.filter((b: any) => ids.has(b.id));
-          if (filtered.length > 0) managed = filtered;
-        }
-      } else if (user && user.role === 'CCO') {
-        const userMapped = enriched.filter((b: any) => String(b.cco_user_id) === String(user.id));
-        if (userMapped.length > 0) {
-          managed = userMapped;
-        } else if (user.managed_branch_ids && user.managed_branch_ids.length > 0) {
-          const ids = new Set(user.managed_branch_ids);
-          const filtered = enriched.filter((b: any) => ids.has(b.id));
-          if (filtered.length > 0) managed = filtered;
-        }
-      }
-      this.branches.set(managed);
+      this.branches.set(enriched);
     });
   }
 
@@ -1133,6 +1174,7 @@ export class TaskSetsComponent implements OnInit {
   openCreateModal() { // Kept method name since html uses it, but it opens the form drawer
     this.isEditMode = false;
     this.selectedTaskSet = null;
+    this.activeDueDaysPreset.set(null);
     this.newTaskSetType.set('REGULAR');
     this.newTaskSetName.set('');
     this.newTaskSetAuthorityId.set(null);
@@ -1338,11 +1380,15 @@ export class TaskSetsComponent implements OnInit {
 
     this.saving.set(true);
 
+    const user = this.auth.currentUser();
     const payload: any = {
       name: this.newTaskSetName().trim(),
       type: this.newTaskSetType(),
       frequency: freq || undefined,
       start_date: this.formatDate(this.newTaskSetStartDate()),
+      created_by_role: user?.role || undefined,
+      created_by_name: user?.name || user?.username || undefined,
+      created_by_id: user?.id || undefined,
       // REGULAR-only fields
       circular_id: isRegular ? (this.newTaskSetCircularId() || undefined) : undefined,
       authority_id: undefined,
@@ -1371,9 +1417,14 @@ export class TaskSetsComponent implements OnInit {
       // Map tasks
       const taskIds = this.targetTasks.map(t => t.id);
       const branchIds = this.selectedBranches.map(b => b.id);
+      const d20 = new Date();
+      d20.setDate(d20.getDate() + 20);
+      const default20DaysStr = d20.toISOString().split('T')[0];
+      const fallbackDate = this.formatDate(this.newTaskSetEndDate()) || default20DaysStr;
+
       const taskTimelines = this.targetTasks.map(t => ({
         task_id: t.id,
-        due_date: (t.due_date ? this.formatDate(t.due_date) : null) ?? null
+        due_date: (t.due_date ? this.formatDate(t.due_date) : fallbackDate) || default20DaysStr
       }));
 
       this.api.updateTaskSetMapping(setId, taskIds, taskTimelines).subscribe({

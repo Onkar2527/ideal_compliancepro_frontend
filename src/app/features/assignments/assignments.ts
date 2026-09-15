@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { AuthService } from '../../core/services/auth/auth.service';
@@ -29,7 +29,7 @@ import { SelectModule } from 'primeng/select';
   template: `
     <div class="card">
       <div class="flex align-items-center justify-content-between mb-4">
-        <h5 class="m-0 text-xl font-semibold">Compliances & Task Sets</h5>
+        <h5 class="m-0 text-xl font-semibold">{{ pageTitle() }}</h5>
       </div>
         <!-- ASSIGNMENTS TAB -->
         <div *ngIf="activeTab() === 'ASSIGNMENTS'">
@@ -129,12 +129,20 @@ import { SelectModule } from 'primeng/select';
             </p-multiSelect>
           </div>
           
-          <app-date-field
-            label="Proposed Timeline (Due Date)"
-            [field]="proposedTimeline"
-            [required]="true"
-            dateFormat="yy-mm-dd">
-          </app-date-field>
+          <div class="flex flex-column gap-1">
+            <app-date-field
+              label="Proposed Timeline (Due Date)"
+              [field]="proposedTimeline"
+              [required]="true"
+              dateFormat="yy-mm-dd">
+            </app-date-field>
+            <div class="flex align-items-center gap-1 mt-1">
+              <span class="text-xs text-gray-500 mr-1">Quick Presets:</span>
+              <button pButton type="button" label="+10 Days" class="p-button-xs p-button-outlined p-button-secondary text-xs py-1 px-2" (click)="setTimelineDays(10)"></button>
+              <button pButton type="button" label="+20 Days" class="p-button-xs p-button-outlined p-button-secondary text-xs py-1 px-2" (click)="setTimelineDays(20)"></button>
+              <button pButton type="button" label="+30 Days" class="p-button-xs p-button-outlined p-button-secondary text-xs py-1 px-2" (click)="setTimelineDays(30)"></button>
+            </div>
+          </div>
         </div>
       </ng-template>
       <ng-template pTemplate="footer">
@@ -169,20 +177,24 @@ export class AssignmentsComponent implements OnInit {
 
   selectedFrequencyFilter = signal<string | null>(null);
   frequencyFilterOptions = [
-    { label: 'Daily',        value: '0' },
-    { label: 'Weekly',       value: '7' },
-    { label: 'Fortnightly',  value: '1' },
-    { label: 'Monthly',      value: '2' },
-    { label: 'Quarterly',    value: '3' },
-    { label: 'Semi-Annual',  value: '4' },
-    { label: 'Yearly',       value: '5' },
-    { label: '1-Time',       value: '6' }
+    { label: 'Daily', value: '0' },
+    { label: 'Weekly', value: '7' },
+    { label: 'Fortnightly', value: '1' },
+    { label: 'Monthly', value: '2' },
+    { label: 'Quarterly', value: '3' },
+    { label: 'Semi-Annual', value: '4' },
+    { label: 'Yearly', value: '5' },
+    { label: '1-Time', value: '6' }
   ];
+
+  pageTitle = signal<string>('Compliances & Task Sets');
+  activeView = signal<'my_assignments' | 'dept_tasks' | null>(null);
+  allBranches = signal<any[]>([]);
 
   selectedTaskSetTypeFilter = signal<string | null>(null);
   taskSetTypeFilterOptions = [
     { label: 'Internal', value: 'INTERNAL' },
-    { label: 'Circular Based', value: 'CIRCULAR_BASED' }
+    { label: 'Circular Based', value: 'REGULAR' }
   ];
 
   readonly frequencyLabelMap: Record<string, string> = {
@@ -210,6 +222,12 @@ export class AssignmentsComponent implements OnInit {
   selectedBranchIds: number[] = [];
   proposedTimeline = signal<Date | null>(null);
 
+  setTimelineDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    this.proposedTimeline.set(d);
+  }
+
   private auth = inject(AuthService);
 
   get userRole(): string {
@@ -225,13 +243,13 @@ export class AssignmentsComponent implements OnInit {
   }
 
   assignmentColumns: TableColumn[] = [
-    { field: 'task_set_name',     header: 'Task Set',       type: 'text',   width: '26%' },
-    { field: 'task_set_type',     header: 'Type',           type: 'badge',  width: '90px' },
-    { field: 'frequency_label',   header: 'Frequency',      type: 'text',   width: '110px' },
-    { field: 'branch_name',       header: 'Dept / Branch',  type: 'text',   width: '14%' },
-    { field: 'progress_text',     header: 'Progress',       type: 'text',   width: '90px', align: 'center' },
-    { field: 'due_schedule_text', header: 'Due Schedule',   type: 'text',   width: '140px' },
-    { field: 'status',            header: 'Status',         type: 'status', width: '160px' }
+    { field: 'task_set_name', header: 'Task Set', type: 'text', width: '26%' },
+    { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
+    { field: 'frequency_label', header: 'Frequency', type: 'text', width: '110px' },
+    { field: 'branch_name', header: 'Dept / Branch', type: 'text', width: '18%' },
+    { field: 'progress_text', header: 'Progress', type: 'text', width: '100px' },
+    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '140px' },
+    { field: 'status', header: 'Status', type: 'badge', width: '110px' }
   ];
 
   taskSetColumns: TableColumn[] = [
@@ -241,67 +259,44 @@ export class AssignmentsComponent implements OnInit {
 
   assignmentActions: TableAction[] = [
     {
+      label: 'View',
+      icon: 'pi pi-eye',
+      command: (row) => this.goToDetails(row)
+    },
+    {
       label: 'Propose Timeline',
-      icon: 'pi pi-calendar',
+      icon: 'pi pi-clock',
       visible: (row) => this.isPendingTimeline(row.status) && this.isBranchUser && !this.isRowInternal(row),
-      command: (row) => {
-        if (this.isPendingTimeline(row.status)) {
-          this.openProposeModal(row);
-        }
-      }
+      command: (row) => this.openProposeModal(row)
     },
     {
-      label: 'Setup Timeline',
-      icon: 'pi pi-calendar-plus',
+      label: 'Timeline Review',
+      icon: 'pi pi-pencil',
       visible: (row) => this.isPendingTimeline(row.status) && this.isBranchUser && !this.isRowInternal(row),
-      command: (row) => {
-        this.goToTasks(row.id);
-      }
+      command: (row) => this.goToDetails(row)
     },
     {
-      label: 'Review Timeline',
-      icon: 'pi pi-calendar-minus',
+      label: 'Timeline Review',
+      icon: 'pi pi-pencil',
       visible: (row) => this.isTimelineReview(row.status) && this.isReviewerUser && !this.isRowInternal(row),
-      command: (row) => {
-        this.goToTasks(row.id);
-      }
+      command: (row) => this.goToDetails(row)
     },
     {
-      label: 'Accept Timeline',
+      label: 'Review Submission',
       icon: 'pi pi-check',
-      styleClass: 'text-green-600',
       visible: (row) => !this.isRowInternal(row) && ((this.isPendingTimeline(row.status) && this.isBranchUser) || (this.isTimelineReview(row.status) && this.isReviewerUser)),
-      command: (row) => {
-        if (this.isPendingTimeline(row.status) || this.isTimelineReview(row.status)) {
-          this.acceptTimeline(row);
-        }
-      }
+      command: (row) => this.goToDetails(row)
     },
     {
-      label: 'Do Compliance',
+      label: 'Timeline Details',
       icon: 'pi pi-list',
       visible: (row) => {
-        const s = row.status?.toUpperCase();
         if (this.isRowInternal(row) && this.isBranchUser) {
-          return s === 'PENDING_TIMELINE' || s === 'IN_PROGRESS' || s === 'REJECTED' || s === 'PENDING_RECOMPLIANCE' || s === 'OVERDUE';
+          return true;
         }
-        return (s === 'IN_PROGRESS' || s === 'REJECTED' || s === 'PENDING_RECOMPLIANCE' || s === 'OVERDUE') && this.isBranchUser;
+        return row.status !== 'Pending_Timeline' && row.status !== 'Timeline_Review';
       },
-      command: (row) => {
-        this.goToTasks(row.id);
-      }
-    },
-    {
-      label: 'View Compliance',
-      icon: 'pi pi-eye',
-      visible: (row) => {
-        const s = row.status?.toUpperCase();
-        return (s === 'REVIEW_PENDING' || s === 'COMPLETED' || s === 'ESCALATED_TO_CCO') ||
-          (this.isReviewerUser && (s === 'IN_PROGRESS' || s === 'PENDING_RECOMPLIANCE' || s === 'REJECTED' || s === 'OVERDUE'));
-      },
-      command: (row) => {
-        this.goToTasks(row.id);
-      }
+      command: (row) => this.goToDetails(row)
     }
   ];
 
@@ -332,11 +327,48 @@ export class AssignmentsComponent implements OnInit {
     }
   ];
 
-  constructor(private api: ComplianceApiService, private router: Router) { }
+  constructor(private api: ComplianceApiService, private router: Router, private route: ActivatedRoute) { }
 
   ngOnInit() {
+    const cached = this.api.getCachedBranches();
+    if (cached && cached.length > 0) {
+      this.allBranches.set(cached);
+    }
+
     this.loadTaskSets();
+
+    this.route.queryParams.subscribe(params => {
+      const view = params['view'];
+      const type = params['type'];
+
+      if (view === 'dept_tasks') {
+        this.activeView.set('dept_tasks');
+        this.pageTitle.set('Department Tasks');
+        this.selectedTaskSetTypeFilter.set(null);
+      } else if (view === 'my_assignments') {
+        this.activeView.set('my_assignments');
+        this.pageTitle.set('My Assignments');
+        this.selectedTaskSetTypeFilter.set(null);
+      } else if (type === 'INTERNAL') {
+        this.activeView.set(null);
+        this.selectedTaskSetTypeFilter.set('INTERNAL');
+        this.pageTitle.set('Internal Compliances');
+      } else if (type === 'REGULAR' || type === 'CIRCULAR_BASED') {
+        this.activeView.set(null);
+        this.selectedTaskSetTypeFilter.set('REGULAR');
+        this.pageTitle.set('Circular Compliances');
+      } else {
+        this.activeView.set(null);
+        this.selectedTaskSetTypeFilter.set(null);
+        this.pageTitle.set('Compliances & Task Sets');
+      }
+
+      this.page = 1;
+      this.loadAssignments();
+    });
+
     this.api.getBranches().subscribe(data => {
+      this.allBranches.set(data || []);
       const topLevelBranches = (data || []).filter((b: any) => !b.parent_id);
       const user = this.auth.currentUser();
       let managedBranches = topLevelBranches;
@@ -366,8 +398,7 @@ export class AssignmentsComponent implements OnInit {
 
   loadAssignments() {
     const params: any = {
-      page: this.page,
-      limit: this.limit,
+      limit: 1000,
     };
     if (this.searchQuery) params.search = this.searchQuery;
     const status = this.selectedStatusFilter();
@@ -404,16 +435,134 @@ export class AssignmentsComponent implements OnInit {
         const allowedSet = new Set(allowedBranchNames);
         data = data.filter((r: any) => r.branch_name && allowedSet.has(r.branch_name.trim().toLowerCase()));
       }
-      this.assignments.set(this.transformAssignments(data));
-      this.totalRecords.set(res.total);
+
+      const user = this.auth.currentUser();
+      const userBranchId = user?.branch_id ?? user?.branchId;
+      const userBranchName = (user?.branch_name || user?.branchName || '').trim().toLowerCase();
+      const allBranchesList = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+
+      // Sub-departments belonging to this user's branch/department
+      const mySubDepts = allBranchesList.filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
+      const subDeptIds = new Set(mySubDepts.map((b: any) => b.id));
+      const subDeptNames = new Set(mySubDepts.map((b: any) => (b.name || '').trim().toLowerCase()));
+
+      const view = this.activeView();
+      if (view === 'dept_tasks') {
+        const filteredAssignments = data.filter((r: any) => {
+          const rBranchName = (r.branch_name || '').trim().toLowerCase();
+          const isForMySubDept = (r.branch_id && subDeptIds.has(r.branch_id)) ||
+            (rBranchName && subDeptNames.has(rBranchName));
+          return isForMySubDept;
+        });
+
+        const subDeptTaskSets: any[] = [];
+        const syntheticAssignments: any[] = [];
+
+        (this.taskSets() || []).forEach((ts: any) => {
+          const bNamesList = (ts.branch_names || '')
+            .split(',')
+            .map((b: string) => b.trim().toLowerCase())
+            .filter(Boolean);
+
+          const matchingBranches = mySubDepts.filter((sub: any) => {
+            const sName = (sub.name || '').trim().toLowerCase();
+            return bNamesList.includes(sName) || (ts.branch_id && sub.id === ts.branch_id);
+          });
+
+          if (matchingBranches.length === 0) return;
+
+          subDeptTaskSets.push(ts);
+
+          const totalT = parseInt(ts.task_count || (ts.tasks ? ts.tasks.length : 1), 10) || 1;
+          let dateStr = '—';
+          if (ts.start_date) {
+            const d = new Date(ts.start_date);
+            if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          } else if (ts.default_due_date) {
+            const d = new Date(ts.default_due_date);
+            if (!isNaN(d.getTime())) dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+          }
+
+          matchingBranches.forEach((branch: any) => {
+            const alreadyExists = filteredAssignments.some((r: any) =>
+              String(r.task_set_id) === String(ts.id) &&
+              (String(r.branch_id) === String(branch.id) || (r.branch_name || '').trim().toLowerCase() === branch.name.trim().toLowerCase())
+            );
+
+            if (!alreadyExists) {
+              syntheticAssignments.push({
+                id: ts.id,
+                task_set_id: ts.id,
+                task_set_name: ts.name,
+                task_set_type: ts.type || 'INTERNAL',
+                type: ts.type || 'INTERNAL',
+                frequency: ts.frequency || 'Weekly',
+                frequency_label: this.frequencyLabelMap[String(ts.frequency)] || ts.frequency || 'Weekly',
+                branch_id: branch.id,
+                branch_name: branch.name,
+                progress_text: `0 / ${totalT} (0%)`,
+                total_tasks: totalT,
+                completed_tasks: 0,
+                due_schedule_text: dateStr,
+                status: 'In_Progress',
+                is_task_set_item: true
+              });
+            }
+          });
+        });
+
+        data = [...filteredAssignments, ...syntheticAssignments];
+      } else if (view === 'my_assignments') {
+        // Show assignments assigned directly to this department (excludes sub-department assignments)
+        data = data.filter((r: any) => {
+          const rBranchName = (r.branch_name || '').trim().toLowerCase();
+          const isSubDept = (r.branch_id && subDeptIds.has(r.branch_id)) ||
+            (rBranchName && subDeptNames.has(rBranchName));
+          return !isSubDept;
+        });
+      }
+
+      // Filter by type if selected in dropdown
+      const activeType = this.selectedTaskSetTypeFilter();
+      if (activeType === 'INTERNAL') {
+        data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() === 'INTERNAL');
+      } else if (activeType === 'REGULAR' || activeType === 'CIRCULAR_BASED') {
+        data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() !== 'INTERNAL');
+      }
+
+      const totalCount = data.length;
+      this.totalRecords.set(totalCount);
+
+      // Client-side paginate
+      const startIndex = (this.page - 1) * this.limit;
+      const paginatedData = data.slice(startIndex, startIndex + this.limit);
+
+      this.assignments.set(this.transformAssignments(paginatedData));
     });
   }
 
   private transformAssignments(rows: any[]): any[] {
     return rows.map(row => {
-      const total     = parseInt(row.total_tasks, 10) || 0;
+      const total = parseInt(row.total_tasks, 10) || 0;
       const completed = parseInt(row.completed_tasks, 10) || 0;
-      const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const typeStr = (row.task_set_type || row.type || row.task_set?.type || '').toUpperCase();
+      const isInternal = typeStr === 'INTERNAL' || (!row.circular_id && !row.circular_name && !row.circular_no);
+
+      let rowStatus = row.status || (isInternal ? 'In_Progress' : 'Pending_Timeline');
+
+      // Internal tasks do not require timeline proposals:
+      if (isInternal) {
+        const uStatus = String(rowStatus).toUpperCase();
+        if (uStatus === 'PENDING_TIMELINE' || uStatus === 'PENDING TIMELINE' || uStatus === 'PENDING') {
+          rowStatus = (total > 0 && completed === total) ? 'REVIEW_PENDING' : 'In_Progress';
+        }
+      }
+
+      // If sub-department has completed all tasks and awaiting review
+      if (total > 0 && completed === total && String(rowStatus).toUpperCase() !== 'COMPLETED') {
+        rowStatus = 'REVIEW_PENDING';
+      }
 
       // Format standard Date string dd/MM/yyyy
       let dateStr = '';
@@ -423,7 +572,7 @@ export class AssignmentsComponent implements OnInit {
           dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         }
       }
-      
+
       // Combine Date with Time if available
       let dueScheduleText = dateStr || 'N/A';
       if (row.due_time) {
@@ -432,8 +581,10 @@ export class AssignmentsComponent implements OnInit {
 
       return {
         ...row,
+        status: rowStatus,
+        task_set_type: isInternal ? 'INTERNAL' : (row.task_set_type || row.type || 'REGULAR'),
         frequency_label: this.frequencyLabelMap[String(row.frequency)?.trim()] ?? row.frequency ?? '—',
-        progress_text:   total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
+        progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
         due_schedule_text: dueScheduleText
       };
     });
@@ -474,12 +625,24 @@ export class AssignmentsComponent implements OnInit {
 
   onTaskSetTypeFilterChange(value: string | null) {
     this.selectedTaskSetTypeFilter.set(value);
+    if (value === 'INTERNAL') {
+      this.pageTitle.set('Department Tasks (Internal Compliances)');
+    } else if (value === 'REGULAR' || value === 'CIRCULAR_BASED') {
+      this.pageTitle.set('My Assignments (Circular Compliances)');
+    } else {
+      this.pageTitle.set('Compliances & Task Sets');
+    }
     this.page = 1;
     this.loadAssignments();
   }
 
   loadTaskSets() {
-    this.api.getTaskSets().subscribe(data => this.taskSets.set(data));
+    this.api.getTaskSets().subscribe(data => {
+      this.taskSets.set(data || []);
+      if (this.activeView()) {
+        this.loadAssignments();
+      }
+    });
   }
 
   openProposeModal(assignment: any) {
@@ -516,6 +679,16 @@ export class AssignmentsComponent implements OnInit {
     });
   }
 
+  goToDetails(row: any) {
+    const id = row?.id ?? row;
+    if (id) {
+      const queryParams: any = {};
+      if (row?.branch_id) queryParams.branch_id = row.branch_id;
+      if (row?.branch_name) queryParams.branch_name = row.branch_name;
+      this.router.navigate(['/assignments', id], { queryParams: Object.keys(queryParams).length ? queryParams : undefined });
+    }
+  }
+
   goToTasks(assignmentId: number) {
     this.router.navigate(['/assignments', assignmentId]);
   }
@@ -526,7 +699,9 @@ export class AssignmentsComponent implements OnInit {
     if (ts.default_due_date) {
       this.proposedTimeline.set(new Date(ts.default_due_date));
     } else {
-      this.proposedTimeline.set(null);
+      const d20 = new Date();
+      d20.setDate(d20.getDate() + 20);
+      this.proposedTimeline.set(d20);
     }
     this.showAssignModal.set(true);
   }

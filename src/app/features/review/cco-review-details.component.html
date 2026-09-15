@@ -89,6 +89,20 @@
     </div>
   </div>
 
+  <!-- Branch User Created Banner (View-Only Mode) -->
+  <div *ngIf="isBranchCreated()" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1.5px solid #86efac; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <i class="pi pi-info-circle" style="color: #16a34a; font-size: 1.25rem;"></i>
+      <div>
+        <span style="font-size: 0.85rem; font-weight: 700; color: #14532d; display: block;">Branch / Department Task Set — View-Only Mode</span>
+        <span style="font-size: 0.75rem; color: #166534;">Created by Branch / Department. Review actions are disabled as compliance is managed directly by the department.</span>
+      </div>
+    </div>
+    <span style="font-size: 0.72rem; font-weight: 700; color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
+      <i class="pi pi-eye"></i> View Only
+    </span>
+  </div>
+
   <!-- Bulk Actions Bar -->
   <div class="bulk-actions-bar" *ngIf="isReviewActive()">
     <span class="bulk-label">Quick Actions:</span>

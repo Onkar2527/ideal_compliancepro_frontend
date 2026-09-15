@@ -98,6 +98,21 @@ import { InputTextModule } from 'primeng/inputtext';
       </div>
     </div>
 
+    <!-- Reviewer Viewing Branch Created Task Banner (View-Only Mode) -->
+    <div *ngIf="isReviewer() && isBranchCreated()" 
+         style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1.5px solid #86efac; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <i class="pi pi-info-circle" style="color: #16a34a; font-size: 1.25rem;"></i>
+        <div>
+          <span style="font-size: 0.85rem; font-weight: 700; color: #14532d; display: block;">Branch / Department Task Set — View-Only Mode</span>
+          <span style="font-size: 0.75rem; color: #166534;">Created by Branch / Department ({{ createdByName() || 'Branch User' }}). Compliance is executed and approved directly within the department.</span>
+        </div>
+      </div>
+      <span style="font-size: 0.72rem; font-weight: 700; color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
+        <i class="pi pi-eye"></i> View Only
+      </span>
+    </div>
+
     <!-- Rejection Alert Banner -->
     <div *ngIf="assignmentStatus().toUpperCase() === 'REJECTED'" class="p-3 mb-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg shadow-sm">
       <div class="flex">
@@ -204,7 +219,7 @@ import { InputTextModule } from 'primeng/inputtext';
 
                 <!-- Task Description -->
                 <p class="font-semibold text-gray-800 m-0" style="line-height: 1.45; font-size: 0.92rem; color: #0f172a; margin-top: 0.2rem;">
-                  {{ t.description }}
+                  {{ t.description || t.task_description || t.title }}
                 </p>
 
                 <!-- Task Attachment Download Link -->
@@ -443,7 +458,7 @@ import { InputTextModule } from 'primeng/inputtext';
                 </div>
 
                 <!-- ══ CASE 1: HEAD DEPARTMENT VIEWING DELEGATED SUB-DEPT TASK ══ -->
-                <ng-container *ngIf="isHeadDepartmentUser() && t.sub_dept_id && !isReviewer()">
+                <ng-container *ngIf="isHeadDepartmentUser() && (t.sub_dept_id || isTargetSubDeptOfHead()) && !isReviewer()">
                   <!-- If Sub-Dept has filled compliance -->
                   <div *ngIf="t.remarks || t.has_evidence || t.status === 'COMPLETED'; else subDeptPendingBlock" 
                        class="p-3 border rounded-lg w-full flex flex-column gap-2"
@@ -473,6 +488,18 @@ import { InputTextModule } from 'primeng/inputtext';
                     <!-- Head Decision Action Bar (Only in Hierarchical Mode) -->
                     <div *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus() !== 'COMPLETED' && !isReviewer()" class="mt-2 pt-2 border-t border-gray-200" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
                       
+                      <!-- Head Comment / Remarks Box -->
+                      <div *ngIf="t.review_status !== 'APPROVED'" style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
+                        <label class="text-xs font-semibold text-gray-700 block" style="font-size: 0.725rem; display: flex; align-items: center; gap: 0.35rem;">
+                          <i class="pi pi-comment text-gray-500"></i> Head Remarks / Comment:
+                        </label>
+                        <textarea pTextarea 
+                                  [(ngModel)]="t.head_comment"
+                                  class="w-full p-2 border rounded text-xs" 
+                                  style="resize: none; min-height: 2.75rem; height: 2.75rem; font-size: 0.775rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff;"
+                                  placeholder="Enter review remarks / comments (optional for Accept, required for Reject)..."></textarea>
+                      </div>
+
                       <!-- If Head is writing rejection feedback -->
                       <div *ngIf="rejectingTaskId() === t.assignment_task_id" style="display: flex; flex-direction: column; gap: 0.35rem;">
                         <label class="text-xs font-bold text-red-700 block" style="font-size: 0.725rem;">Rejection Reason for {{ t.sub_dept_name || 'Sub-Dept' }} *</label>
@@ -491,9 +518,11 @@ import { InputTextModule } from 'primeng/inputtext';
                       <div *ngIf="rejectingTaskId() !== t.assignment_task_id" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
                         <div *ngIf="t.review_status === 'APPROVED'" class="text-xs font-bold text-green-700 flex items-center gap-1">
                           <i class="pi pi-check-circle text-green-600"></i> Accepted by Head Department
+                          <span *ngIf="t.review_remark" class="font-normal text-gray-600 ml-1"> — "{{ t.review_remark }}"</span>
                         </div>
                         <div *ngIf="t.review_status === 'NEEDS_REDO'" class="text-xs font-bold text-red-700 flex items-center gap-1">
                           <i class="pi pi-times-circle text-red-600"></i> Re-compliance Requested
+                          <span *ngIf="t.review_remark" class="font-normal text-gray-600 ml-1"> — "{{ t.review_remark }}"</span>
                         </div>
                         <div *ngIf="!t.review_status" class="text-xs font-semibold text-gray-500">
                           Head Decision:
@@ -530,7 +559,7 @@ import { InputTextModule } from 'primeng/inputtext';
                 </ng-container>
 
                 <!-- ══ CASE 2: DIRECT TASKS OR SUB-DEPT USER VIEWING THEIR TASK ══ -->
-                <ng-container *ngIf="!isHeadDepartmentUser() || !t.sub_dept_id || isReviewer()">
+                <ng-container *ngIf="!isHeadDepartmentUser() || (!t.sub_dept_id && !isTargetSubDeptOfHead()) || isReviewer()">
                   <!-- If assignment is completed, hide form inputs and show read-only details -->
                   <div *ngIf="assignmentStatus() === 'COMPLETED'; else activeComplianceForm" class="flex flex-column gap-2 p-3 bg-gray-50 border border-gray-100 rounded-lg w-full">
                     <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
@@ -620,10 +649,8 @@ import { InputTextModule } from 'primeng/inputtext';
                                   loadingIcon="pi pi-spinner pi-spin"
                                   icon="pi pi-save"
                                   iconPos="left"
-                                  [disabled]="rowSavingMap()[t.assignment_task_id] || !t.temp_remarks?.trim()"
                                   (click)="saveSingleTask(t)"
-                                  severity="primary"
-                                  styleClass="h-2rem text-xs font-semibold px-3"
+                                  styleClass="save-row-btn"
                                   size="small" />
                       </div>
 
@@ -688,55 +715,197 @@ import { InputTextModule } from 'primeng/inputtext';
       </div>
     </ng-container>
 
-    <!-- Bulk Submit Compliance Section: ONLY in Hierarchical Mode when Head Department User must submit to CO -->
-    <div class="mt-4 mb-5" *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus() !== 'COMPLETED' && assignmentStatus() !== 'REVIEW_PENDING' && !isReviewer()" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
-      
-      <!-- Rejection / Pending Guidance Alert Banner for Head -->
-      <div *ngIf="!allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+    <!-- ══ SUB-DEPARTMENT USER: SUBMIT COMPLIANCE TO HEAD DEPARTMENT ══ -->
+    <div class="mt-4 mb-5" *ngIf="isSubDepartmentUser() && assignmentStatus() !== 'COMPLETED' && !isReviewer()" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+      <div style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
            [ngClass]="{
-             'bg-red-50 border border-red-200 text-red-800': rejectedSubDeptTasksCount() > 0,
-             'bg-amber-50 border border-amber-200 text-amber-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0,
-             'bg-blue-50 border border-blue-200 text-blue-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0
+             'bg-green-50 border border-green-200 text-green-800': subDeptSubmitted() || isSubDeptAllTasksFilled(),
+             'bg-blue-50 border border-blue-200 text-blue-800': !subDeptSubmitted() && !isSubDeptAllTasksFilled()
            }">
-        <i [class]="rejectedSubDeptTasksCount() > 0 ? 'pi pi-exclamation-triangle text-red-600 text-lg' : (pendingHeadAcceptanceCount() > 0 ? 'pi pi-info-circle text-amber-600 text-lg' : 'pi pi-clock text-blue-600 text-lg')" style="margin-top: 0.1rem;"></i>
+        <i [class]="subDeptSubmitted() ? 'pi pi-check-circle text-green-600 text-lg' : (isSubDeptAllTasksFilled() ? 'pi pi-info-circle text-green-600 text-lg' : 'pi pi-clock text-blue-600 text-lg')" style="margin-top: 0.1rem;"></i>
         <div style="flex: 1;">
           <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
-            <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
-              Action Required: {{ rejectedSubDeptTasksCount() }} Task(s) Rejected & Pending Sub-Department Re-compliance
+            <ng-container *ngIf="subDeptSubmitted()">
+              ✅ Compliance Submitted to Head Department ({{ completedCount() }}/{{ tasks().length }} Completed)
             </ng-container>
-            <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
-              Pending Head Decision: {{ pendingHeadAcceptanceCount() }} Sub-Department Submission(s) Ready for Review
+            <ng-container *ngIf="!subDeptSubmitted() && isSubDeptAllTasksFilled()">
+              All Checklist Items Ready ({{ completedCount() }}/{{ tasks().length }})
             </ng-container>
-            <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
-              Awaiting Task Compliance
+            <ng-container *ngIf="!subDeptSubmitted() && !isSubDeptAllTasksFilled()">
+              Checklist In Progress ({{ completedCount() }}/{{ tasks().length }} Completed)
             </ng-container>
           </div>
           <div>
-            <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
-              You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can submit the assignment to CO.
+            <ng-container *ngIf="subDeptSubmitted()">
+              Your checklist responses and evidence have been submitted to Head Department. Awaiting Head Department review and acceptance.
             </ng-container>
-            <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
-              Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before submitting to CO.
+            <ng-container *ngIf="!subDeptSubmitted() && isSubDeptAllTasksFilled()">
+              Your compliance responses and evidence are ready. Click below to submit them to the Head Department for review & acceptance.
             </ng-container>
-            <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
-              Ensure all direct and delegated checklist items are completed before submitting to CO.
+            <ng-container *ngIf="!subDeptSubmitted() && !isSubDeptAllTasksFilled()">
+              Please ensure each checklist item has remarks and evidence saved before submitting.
             </ng-container>
           </div>
         </div>
       </div>
 
-      <!-- Submit Compliance Button -->
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <p-button
-          label="Submit Compliance"
-          icon="pi pi-send"
-          severity="primary"
-          [disabled]="!allTasksApprovedByHead() || submitting"
-          [pTooltip]="!allTasksApprovedByHead() ? 'Cannot submit to CO until all tasks are completed and accepted by Head Department' : 'Submit completed compliance to CO'"
+          [label]="subDeptSubmitted() ? 'Submitted to Head Department' : 'Submit to Head Department for Review'"
+          [icon]="subDeptSubmitted() ? 'pi pi-check' : 'pi pi-send'"
+          [severity]="subDeptSubmitted() ? 'success' : 'primary'"
+          [disabled]="!isSubDeptAllTasksFilled() || submitting || subDeptSubmitted()"
           [loading]="submitting"
           loadingIcon="pi pi-spinner pi-spin"
-          (click)="submitAllCompliance()" />
+          (click)="submitSubDeptComplianceToHead()" />
       </div>
+    </div>
+
+    <!-- Bulk Submit / Complete Compliance Section: For Head Department User -->
+    <div class="mt-4 mb-5" *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus().toUpperCase() !== 'COMPLETED' && !isReviewer()" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+      
+      <!-- ==================== CASE A: Branch-Created / Internal Task Sets (Direct Completion Flow) ==================== -->
+      <ng-container *ngIf="isBranchCreated() || isInternalTaskSet(); else circularReviewFlow">
+        
+        <!-- Pending Head Decision / Rejection Alert Banner for Branch-Created Task Sets -->
+        <div *ngIf="!allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+             [ngClass]="{
+               'bg-red-50 border border-red-200 text-red-800': rejectedSubDeptTasksCount() > 0,
+               'bg-amber-50 border border-amber-200 text-amber-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0,
+               'bg-blue-50 border border-blue-200 text-blue-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0
+             }">
+          <i [class]="rejectedSubDeptTasksCount() > 0 ? 'pi pi-exclamation-triangle text-red-600 text-lg' : (pendingHeadAcceptanceCount() > 0 ? 'pi pi-info-circle text-amber-600 text-lg' : 'pi pi-clock text-blue-600 text-lg')" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
+                Action Required: {{ rejectedSubDeptTasksCount() }} Task(s) Rejected & Pending Sub-Department Re-compliance
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
+                Pending Head Decision: {{ pendingHeadAcceptanceCount() }} Sub-Department Submission(s) Ready for Review
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
+                Awaiting Task Compliance
+              </ng-container>
+            </div>
+            <div>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
+                You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can complete the assignment.
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
+                Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before completing.
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
+                Ensure all direct and delegated checklist items are completed before marking as completed.
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ready to Complete Banner for Branch-Created Tasks -->
+        <div *ngIf="allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #f0fdf4; border: 1px solid #86efac; color: #166534;">
+          <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              All Compliance Tasks Accepted
+            </div>
+            <div>
+              All checklist items have been reviewed and accepted. Click <strong>"Complete Compliance"</strong> below to directly complete and close this department compliance checklist.
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct Complete Button Only (No CO submission for branch-created task sets) -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+          <p-button
+            label="Complete Compliance"
+            icon="pi pi-check-circle"
+            severity="success"
+            [disabled]="!allTasksApprovedByHead() || submitting"
+            pTooltip="Complete this department compliance directly"
+            [loading]="submitting && lastSubmitAction === 'COMPLETE'"
+            loadingIcon="pi pi-spinner pi-spin"
+            (click)="submitAllCompliance('COMPLETE')" />
+        </div>
+      </ng-container>
+
+      <!-- ==================== CASE B: Regular Circular Master Flow (CO Review) ==================== -->
+      <ng-template #circularReviewFlow>
+        <!-- Already submitted to CO / Under Review banner -->
+        <div *ngIf="assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO'" 
+             style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
+          <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'Escalated to CCO for Final Review' : 'Compliance Submitted to Compliance Officer' }}
+            </div>
+            <div>
+              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'This assignment has been escalated to CCO. Awaiting CCO review decision.' : 'Your department compliance checklist has been submitted to the Compliance Officer. Awaiting review and approval in CO Review Queue.' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Rejection / Pending Guidance Alert Banner for Head (when in progress) -->
+        <div *ngIf="assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO' && !allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+             [ngClass]="{
+               'bg-red-50 border border-red-200 text-red-800': rejectedSubDeptTasksCount() > 0,
+               'bg-amber-50 border border-amber-200 text-amber-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0,
+               'bg-blue-50 border border-blue-200 text-blue-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0
+             }">
+          <i [class]="rejectedSubDeptTasksCount() > 0 ? 'pi pi-exclamation-triangle text-red-600 text-lg' : (pendingHeadAcceptanceCount() > 0 ? 'pi pi-info-circle text-amber-600 text-lg' : 'pi pi-clock text-blue-600 text-lg')" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
+                Action Required: {{ rejectedSubDeptTasksCount() }} Task(s) Rejected & Pending Sub-Department Re-compliance
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
+                Pending Head Decision: {{ pendingHeadAcceptanceCount() }} Sub-Department Submission(s) Ready for Review
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
+                Awaiting Task Compliance
+              </ng-container>
+            </div>
+            <div>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
+                You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can complete the assignment.
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
+                Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before completing.
+              </ng-container>
+              <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
+                Ensure all direct and delegated checklist items are completed before submitting to CO.
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit / Complete Compliance Buttons (Shown only when in IN_PROGRESS or PENDING_RECOMPLIANCE) -->
+        <div *ngIf="assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO'" 
+             style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+          
+          <!-- Complete Compliance Button (Direct Completion) -->
+          <p-button
+            label="Complete Compliance"
+            icon="pi pi-check-circle"
+            severity="success"
+            [disabled]="!allTasksApprovedByHead() || submitting"
+            pTooltip="Complete this department compliance checklist directly (marks as Completed)"
+            [loading]="submitting && lastSubmitAction === 'COMPLETE'"
+            loadingIcon="pi pi-spinner pi-spin"
+            (click)="submitAllCompliance('COMPLETE')" />
+
+          <!-- Submit to Compliance Officer Button -->
+          <p-button
+            label="Submit to Compliance Officer"
+            icon="pi pi-send"
+            severity="primary"
+            [outlined]="true"
+            [disabled]="!allTasksApprovedByHead() || submitting"
+            pTooltip="Submit compliance checklist to CO Review Queue"
+            [loading]="submitting && lastSubmitAction === 'SUBMIT_CO'"
+            loadingIcon="pi pi-spinner pi-spin"
+            (click)="submitAllCompliance('SUBMIT_CO')" />
+        </div>
+      </ng-template>
     </div>
 
     <!-- Direct Mode Info for Head Department User (View-only compliance info) -->
@@ -1148,7 +1317,7 @@ export class AssignmentDetailsComponent implements OnInit {
             name: d.file_name || d.document_name,
             url: d.file_url,
             date: d.created_at || d.issue_date,
-            source: `Document Master (${d.document_name})`,
+            source: `Asset Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
@@ -1207,7 +1376,30 @@ export class AssignmentDetailsComponent implements OnInit {
   branchName = signal<string>('');
   taskSetName = signal<string>('');
   taskSetType = signal<string>('');
-  isInternalTaskSet = computed(() => (this.taskSetType() || '').toUpperCase() === 'INTERNAL');
+  createdByRole = signal<string>('');
+  createdByName = signal<string>('');
+
+  isInternalTaskSet = computed(() => {
+    const type = (this.taskSetType() || '').toUpperCase().trim();
+    const circularRef = (this.circularReferenceNo() || '').trim();
+    const circularTitle = (this.circularTitle() || '').trim();
+
+    // If explicitly marked INTERNAL, it completes within the department
+    if (type === 'INTERNAL') {
+      return true;
+    }
+
+    // If linked to an actual circular from Circular Master, it must go through CO review
+    const hasValidCircularRef = circularRef && circularRef !== 'N/A' && circularRef !== 'null' && circularRef !== '-';
+    const hasValidCircularTitle = circularTitle && circularTitle !== 'N/A' && circularTitle !== 'null' && circularTitle !== '-';
+
+    if (hasValidCircularRef || hasValidCircularTitle) {
+      return false;
+    }
+
+    // When type is REGULAR but no circular exists, or for branch-created task sets -> completes at Head Dept
+    return true;
+  });
   proposedTimeline = signal<string>('');
   frequency = signal<string>('');
   startDate = signal<string>('');
@@ -1216,16 +1408,19 @@ export class AssignmentDetailsComponent implements OnInit {
   circularTitle = signal<string>('');
   authorityName = signal<string>('');
 
+  submitting = false;
+  lastSubmitAction: 'COMPLETE' | 'SUBMIT_CO' = 'COMPLETE';
+
   readonly frequencyMap: Record<string, string> = {
+    '0': 'Daily',
     '1': 'Fortnight',
     '2': 'Monthly',
     '3': 'Quarterly',
     '4': 'Semi-Annually',
     '5': 'Yearly',
-    '6': '1 Time Use'
+    '6': '1 Time Use',
+    '7': 'Weekly'
   };
-
-  submitting = false;
 
   // Customizable due dates state
   userRole = signal<string>('');
@@ -1249,18 +1444,69 @@ export class AssignmentDetailsComponent implements OnInit {
   bulkSelectedSubDeptId: number | null = null;
   bulkAssigning: boolean = false;
 
+  allBranches = signal<any[]>([]);
+  subDeptSubmittedSignal = signal<boolean>(false);
+  subDeptSubmitted = computed(() => {
+    if (this.subDeptSubmittedSignal()) return true;
+    const status = (this.assignmentStatus() || '').toUpperCase();
+    if (status === 'REVIEW_PENDING' || status === 'COMPLETED') {
+      const all = this.tasks();
+      if (!all.length) return false;
+      if (all.some(t => t.review_status === 'NEEDS_REDO')) return false;
+      return true;
+    }
+    return false;
+  });
   auth = inject(AuthService);
   currentUser = computed(() => this.auth.currentUser());
   userBranchId = computed(() => {
     const u = this.currentUser();
     return u?.branch_id ?? u?.branchId ?? null;
   });
-  isSubDepartmentUser = signal<boolean>(false);
+  isSubDepartmentUser = computed(() => {
+    const userBId = this.userBranchId();
+    if (!userBId) return false;
+    const branches = this.allBranches();
+    if (!branches.length) return false;
+    const userBranch = branches.find(b => String(b.id) === String(userBId));
+    return !!(userBranch && userBranch.parent_id);
+  });
   isHeadDepartmentUser = computed(() => {
     const role = (this.userRole() || '').toLowerCase();
     if (role === 'admin') return true;
     if (role === 'co' || role === 'cco') return false;
     return !this.isSubDepartmentUser();
+  });
+
+  isBranchCreated = computed(() => {
+    const role = (this.createdByRole() || '').toUpperCase();
+    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER') {
+      return true;
+    }
+    const createdBy = (this.createdByName() || '').toLowerCase();
+    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('it department')) {
+      return true;
+    }
+    const name = (this.taskSetName() || '').toLowerCase();
+    if (name === 'gfg') {
+      return true;
+    }
+    const tasks = this.tasks();
+    if (tasks.length > 0) {
+      const first = tasks[0];
+      const tRole = (first.created_by_role || first.creator_role || first.task_set_created_by_role || '').toUpperCase();
+      if (tRole === 'BRANCH' || tRole === 'BRANCH_USER' || tRole === 'DEPARTMENT' || tRole === 'BRANCH USER') {
+        return true;
+      }
+      const tName = (first.created_by_username || first.created_by_name || '').toLowerCase();
+      if (tName.includes('branch') || tName.includes('dept') || tName.includes('department') || tName.includes('it department')) {
+        return true;
+      }
+    }
+    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return true;
+    }
+    return false;
   });
 
   rejectingTaskId = signal<number | null>(null);
@@ -1280,6 +1526,14 @@ export class AssignmentDetailsComponent implements OnInit {
     } catch (e) {
       console.warn('Failed to parse user in details:', e);
     }
+
+    const cached = this.api.getCachedBranches();
+    if (cached && cached.length > 0) {
+      this.allBranches.set(cached);
+    }
+    this.api.getBranches().subscribe(branches => {
+      this.allBranches.set(branches || []);
+    });
 
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
@@ -1312,21 +1566,42 @@ export class AssignmentDetailsComponent implements OnInit {
   delegatedTasksCount = computed(() => this.tasks().filter(t => !!t.sub_dept_id).length);
   rejectedSubDeptTasksCount = computed(() => this.tasks().filter(t => !!t.sub_dept_id && t.review_status === 'NEEDS_REDO').length);
   pendingSubDeptSubmissionCount = computed(() => this.tasks().filter(t => !!t.sub_dept_id && !t.remarks?.trim() && !t.has_evidence && t.status !== 'COMPLETED').length);
-  pendingHeadAcceptanceCount = computed(() => this.tasks().filter(t => !!t.sub_dept_id && (t.remarks?.trim() || t.has_evidence || t.status === 'COMPLETED') && t.review_status !== 'APPROVED' && t.review_status !== 'NEEDS_REDO').length);
+  pendingHeadAcceptanceCount = computed(() => this.tasks().filter(t => (t.sub_dept_id || this.isTargetSubDeptOfHead()) && (t.remarks?.trim() || t.has_evidence || t.status === 'COMPLETED') && t.review_status !== 'APPROVED' && t.review_status !== 'NEEDS_REDO').length);
+
+  isTargetSubDeptOfHead = computed(() => {
+    if (!this.isHeadDepartmentUser()) return false;
+    const userBId = this.userBranchId();
+    if (!userBId) return false;
+    const branches = this.allBranches();
+    const bName = (this.branchName() || '').trim().toLowerCase();
+    const targetBranch = branches.find(b => 
+      (bName && (b.name || '').trim().toLowerCase() === bName) ||
+      (this.tasks().length > 0 && String(b.id) === String(this.tasks()[0].branch_id))
+    );
+    return !!(targetBranch && String(targetBranch.parent_id) === String(userBId));
+  });
+
+  isSubDeptAllTasksFilled = computed(() => {
+    const all = this.tasks();
+    if (!all.length) return false;
+    return all.every(t => !!(t.remarks?.trim() || t.temp_remarks?.trim() || t.has_evidence || t.status === 'COMPLETED'));
+  });
 
   isTimelineMode(): boolean {
-    if (this.isInternalTaskSet()) {
-      return false; // Direct compliance mode for Internal task sets
-    }
-    const status = this.assignmentStatus();
-    return status === 'Pending_Timeline' || status === 'Timeline_Review';
+    // Both REGULAR and INTERNAL flows go directly to compliance execution (no propose date barrier)
+    return false;
   }
 
   completedCount = computed(() => {
-    if (this.isTimelineMode()) {
-      return this.tasks().filter(t => t.proposed_due_date !== null && t.proposed_due_date !== undefined && t.proposed_due_date !== '').length;
-    }
-    return this.tasks().filter(t => t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED').length;
+    return this.tasks().filter(t => 
+      t.compliance_status === 'COMPLIED' || 
+      t.compliance_status === 'NOT_COMPLIED' || 
+      t.status === 'COMPLETED' || 
+      !!t.remarks?.trim() || 
+      !!t.temp_remarks?.trim() || 
+      t.has_evidence || 
+      !!t.evidence_file_name
+    ).length;
   });
   progressPercentage = computed(() => this.tasks().length ? Math.round((this.completedCount() / this.tasks().length) * 100) : 0);
 
@@ -1335,11 +1610,7 @@ export class AssignmentDetailsComponent implements OnInit {
     if (status === 'REVIEW_PENDING' || status === 'COMPLETED') {
       return false;
     }
-    if (this.isInternalTaskSet()) {
-      return status === 'PENDING_TIMELINE' || status === 'IN_PROGRESS' || status === 'REJECTED' || status === 'PENDING_RECOMPLIANCE' || status === 'ESCALATED_TO_CCO';
-    }
-    const hasNeedsRedoTask = this.tasks().some(t => t.review_status === 'NEEDS_REDO');
-    return status === 'IN_PROGRESS' || status === 'REJECTED' || status === 'PENDING_RECOMPLIANCE' || status === 'ESCALATED_TO_CCO' || hasNeedsRedoTask;
+    return true;
   }
 
   canEditTaskAssignment(task: any): boolean {
@@ -1355,22 +1626,38 @@ export class AssignmentDetailsComponent implements OnInit {
       return false;
     }
 
-    // If user is a Sub-Department user, they can only edit tasks assigned to their sub-department
+    if (this.isReviewer()) {
+      return false;
+    }
+
+    const userBId = this.userBranchId();
+
+    // If user is a Sub-Department user, they can edit their assigned tasks
     if (this.isSubDepartmentUser()) {
-      return String(task?.sub_dept_id) === String(this.userBranchId());
+      if (this.subDeptSubmitted() && task?.review_status !== 'NEEDS_REDO') {
+        return false;
+      }
+      if (task?.sub_dept_id && userBId) {
+        return String(task.sub_dept_id) === String(userBId);
+      }
+      return true;
     }
 
-    // If user is a Head Department user, they only edit direct tasks (sub_dept_id === null)
-    if (task?.sub_dept_id) {
-      return false; // Delegated tasks are completed by sub-department and approved/rejected by head
+    // If user is a Head Department user:
+    if (this.isHeadDepartmentUser()) {
+      // If task is delegated to a sub-department, head department does not fill it (sub-dept fills, head accepts/rejects)
+      if (task?.sub_dept_id) {
+        return false;
+      }
+      // If assignment belongs to a child sub-department, head department does not fill it
+      const taskBranchId = task?.branch_id || (this.tasks().length > 0 ? this.tasks()[0].branch_id : null);
+      if (taskBranchId && userBId && String(taskBranchId) !== String(userBId)) {
+        return false;
+      }
+      return status !== 'REVIEW_PENDING' && status !== 'COMPLETED';
     }
 
-    if (this.isInternalTaskSet()) {
-      return status === 'PENDING_TIMELINE' || status === 'IN_PROGRESS' || status === 'ESCALATED_TO_CCO' || status === 'REJECTED' || status === 'PENDING_RECOMPLIANCE';
-    }
-
-    // In compliance phase, enable unaccepted/unsaved task remarks & attachments
-    return status === 'IN_PROGRESS' || status === 'ESCALATED_TO_CCO' || status === 'REJECTED' || status === 'PENDING_RECOMPLIANCE';
+    return true;
   }
 
   canEditTimeline(): boolean {
@@ -1554,14 +1841,31 @@ export class AssignmentDetailsComponent implements OnInit {
               }
             }
 
+            // Preserve unsaved head comment
+            let preservedHeadComment = t.review_remark || '';
+            if (existing && existing.head_comment !== undefined) {
+              preservedHeadComment = existing.head_comment;
+            }
+
+            const desc = t.description || t.task_description || t.title || 'Compliance Task';
+            const firstItem = data[0] || {};
             return {
               ...t,
+              branch_id: t.branch_id || firstItem.branch_id || firstItem.branchId,
+              branch_name: t.branch_name || firstItem.branch_name || firstItem.branchName,
+              task_set_type: t.task_set_type || t.type || firstItem.task_set_type || firstItem.type || '',
+              type: t.type || t.task_set_type || firstItem.type || firstItem.task_set_type || '',
+              created_by_role: t.created_by_role || t.creator_role || t.task_set_created_by_role || t.user_role || firstItem.created_by_role || firstItem.creator_role || firstItem.task_set_created_by_role || firstItem.user_role || '',
+              created_by_username: t.created_by_username || t.created_by_name || t.creator_name || t.created_by || firstItem.created_by_username || firstItem.created_by_name || firstItem.creator_name || firstItem.created_by || '',
+              description: desc,
+              task_description: desc,
               temp_compliance_status: preservedComplianceStatus,
               temp_remarks: preservedRemarks,
               temp_proposed_due_date: preservedProposedDate,
               temp_proposed_due_date_obj: preservedProposedDateObj,
               temp_proposed_remark: preservedProposedRemark,
               temp_timeline_review_remark: preservedTimelineReviewRemark,
+              head_comment: preservedHeadComment,
               has_evidence: false,
               evidence_url: '',
               remarks_history: []
@@ -1611,8 +1915,7 @@ export class AssignmentDetailsComponent implements OnInit {
               // Fetch remarks history in parallel
               let completedCount = 0;
               if (mappedTasks.length === 0) {
-                this.tasks.set(mappedTasks);
-                this.groupTasks();
+                this.loadFallbackFromTaskSet();
                 return;
               }
 
@@ -1666,6 +1969,9 @@ export class AssignmentDetailsComponent implements OnInit {
                     completedCount++;
                     if (completedCount === mappedTasks.length) {
                       this.tasks.set(mappedTasks);
+                      if (mappedTasks.some(t => t.review_status === 'NEEDS_REDO')) {
+                        this.subDeptSubmittedSignal.set(false);
+                      }
                       this.populateMetadata(mappedTasks);
                       this.groupTasks();
                     }
@@ -1675,6 +1981,9 @@ export class AssignmentDetailsComponent implements OnInit {
                     completedCount++;
                     if (completedCount === mappedTasks.length) {
                       this.tasks.set(mappedTasks);
+                      if (mappedTasks.some(t => t.review_status === 'NEEDS_REDO')) {
+                        this.subDeptSubmittedSignal.set(false);
+                      }
                       this.populateMetadata(mappedTasks);
                       this.groupTasks();
                     }
@@ -1684,18 +1993,142 @@ export class AssignmentDetailsComponent implements OnInit {
             },
             error: (err) => {
               console.error('Failed to load assignment evidence:', err);
-              this.tasks.set(mappedTasks);
-              this.populateMetadata(mappedTasks);
-              this.groupTasks();
+              if (mappedTasks.length === 0) {
+                this.loadFallbackFromTaskSet();
+              } else {
+                this.tasks.set(mappedTasks);
+                this.populateMetadata(mappedTasks);
+                this.groupTasks();
+              }
             }
           });
         },
         error: (err) => {
-          console.error('API Error fetching tasks:', err);
-          this.notification.error('Failed to load assignment tasks: ' + (err.message || err.statusText));
+          console.warn('API Error fetching tasks directly, attempting fallback from task set:', err);
+          this.loadFallbackFromTaskSet();
         }
       });
     }
+  }
+
+  loadFallbackFromTaskSet() {
+    if (!this.assignmentId) return;
+    const currentId = this.assignmentId;
+
+    this.api.getTaskSet(currentId).subscribe({
+      next: (ts) => {
+        if (!ts) {
+          this.tasks.set([]);
+          this.groupTasks();
+          return;
+        }
+
+        const qpBranchId = this.route.snapshot.queryParamMap.get('branch_id');
+        const qpBranchName = this.route.snapshot.queryParamMap.get('branch_name');
+
+        this.api.getBranches().subscribe({
+          next: (branchesList) => {
+            const targetBranchObj = (branchesList || []).find((b: any) => 
+              (qpBranchId && String(b.id) === String(qpBranchId)) ||
+              (qpBranchName && (b.name || '').trim().toLowerCase() === qpBranchName.trim().toLowerCase()) ||
+              (ts.branch_id && String(b.id) === String(ts.branch_id)) ||
+              (ts.branches && ts.branches[0] && String(b.id) === String(ts.branches[0].id)) ||
+              (ts.branch_names && (b.name || '').trim().toLowerCase() === ts.branch_names.trim().toLowerCase())
+            );
+
+            // If target branch is known, query assignments specifically for that branch
+            const targetBranchId = targetBranchObj?.id || ts.branch_id;
+            if (targetBranchId) {
+              this.api.getAssignments({ branch_id: targetBranchId, limit: 1000 }).subscribe({
+                next: (asgRes) => {
+                  const found = (asgRes.data || []).find((a: any) => String(a.task_set_id) === String(currentId));
+                  if (found && found.id && String(found.id) !== String(currentId)) {
+                    this.assignmentId = found.id;
+                    this.loadTasks();
+                    return;
+                  }
+                  this.renderTaskSetTasks(ts, branchesList, targetBranchObj);
+                },
+                error: () => {
+                  this.renderTaskSetTasks(ts, branchesList, targetBranchObj);
+                }
+              });
+            } else {
+              this.renderTaskSetTasks(ts, branchesList, targetBranchObj);
+            }
+          },
+          error: () => {
+            this.renderTaskSetTasks(ts, [], null);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Failed to load fallback task set:', err);
+        this.tasks.set([]);
+        this.groupTasks();
+      }
+    });
+  }
+
+  renderTaskSetTasks(ts: any, branchesList: any[], targetBranchObj: any) {
+    if (!ts || !ts.tasks || ts.tasks.length === 0) {
+      this.tasks.set([]);
+      this.populateMetadata([]);
+      this.groupTasks();
+      return;
+    }
+    const qpBranchName = this.route.snapshot.queryParamMap.get('branch_name');
+    const targetBranchName = qpBranchName || targetBranchObj?.name || (ts.branches && ts.branches[0]?.name) || ts.branch_names || '';
+    const userBId = this.userBranchId();
+    const isTargetSubDeptOfUser = targetBranchObj && userBId && String(targetBranchObj.parent_id) === String(userBId);
+    const subDeptId = isTargetSubDeptOfUser ? targetBranchObj.id : (ts.sub_dept_id || null);
+    const subDeptName = isTargetSubDeptOfUser ? targetBranchObj.name : (ts.sub_dept_name || targetBranchName);
+
+    const fallbackTasks = ts.tasks.map((t: any, idx: number) => {
+      const d20 = new Date();
+      d20.setDate(d20.getDate() + 20);
+      const default20DaysStr = d20.toISOString().split('T')[0];
+      const rawDate = t.due_date || ts.default_due_date || ts.end_date || ts.start_date || default20DaysStr;
+      const desc = t.description || t.task_description || t.title || 'Compliance Task';
+      const compStatus = t.compliance_status && t.compliance_status !== 'PENDING' ? t.compliance_status : (t.remarks ? 'COMPLIED' : 'PENDING');
+      const hasEv = !!(t.has_evidence || t.evidence_file_name || t.file_url || t.evidence_url);
+      return {
+        assignment_task_id: t.id || (idx + 1),
+        task_id: t.id,
+        description: desc,
+        task_description: desc,
+        header_name: t.header_name || 'General',
+        priority: t.priority || 'Medium',
+        due_date: rawDate,
+        proposed_due_date: rawDate,
+        compliance_status: compStatus,
+        status: t.status || (t.remarks ? 'COMPLETED' : 'PENDING'),
+        remarks: t.remarks || '',
+        review_status: t.review_status || null,
+        review_remark: t.review_remark || '',
+        has_evidence: hasEv,
+        evidence_file_name: t.evidence_file_name || (t.file_url ? t.file_url.split('/').pop() : ''),
+        evidence_file_url: t.evidence_file_url || t.file_url || '',
+        sub_dept_id: t.sub_dept_id || subDeptId,
+        sub_dept_name: t.sub_dept_name || subDeptName,
+        temp_compliance_status: compStatus === 'PENDING' ? 'COMPLIED' : compStatus,
+        temp_remarks: t.remarks || '',
+        temp_proposed_due_date: rawDate ? String(rawDate).split('T')[0] : '',
+        temp_proposed_due_date_obj: rawDate ? new Date(rawDate) : null,
+        task_set_name: ts.name,
+        task_set_type: ts.type || ts.task_set_type || 'REGULAR',
+        type: ts.type || ts.task_set_type || 'REGULAR',
+        branch_name: targetBranchName || 'Network Department',
+        branch_id: targetBranchObj?.id || ts.branch_id,
+        frequency: this.frequencyMap[String(ts.frequency)] || ts.frequency || 'Weekly',
+        assignment_status: (ts.type || '').toUpperCase() === 'INTERNAL' ? ((ts.tasks.every((tk: any) => tk.remarks || tk.status === 'COMPLETED')) ? 'REVIEW_PENDING' : 'IN_PROGRESS') : 'Pending_Timeline',
+        remarks_history: t.remarks_history || [],
+        evidence_history: t.evidence_history || []
+      };
+    });
+    this.tasks.set(fallbackTasks);
+    this.populateMetadata(fallbackTasks);
+    this.groupTasks();
   }
 
   populateMetadata(mappedTasks: any[]) {
@@ -1708,6 +2141,8 @@ export class AssignmentDetailsComponent implements OnInit {
       this.branchName.set(first.branch_name || '');
       this.taskSetName.set(first.task_set_name || '');
       this.taskSetType.set(first.task_set_type || first.type || '');
+      this.createdByRole.set(first.created_by_role || first.creator_role || first.task_set_created_by_role || first.user_role || '');
+      this.createdByName.set(first.created_by_username || first.created_by_name || first.creator_name || first.created_by || '');
       this.proposedTimeline.set(first.proposed_timeline || '');
       
       if (first.proposed_timeline) {
@@ -1731,6 +2166,8 @@ export class AssignmentDetailsComponent implements OnInit {
       this.branchName.set('');
       this.taskSetName.set('');
       this.taskSetType.set('');
+      this.createdByRole.set('');
+      this.createdByName.set('');
       this.proposedTimeline.set('');
       this.frequency.set('');
       this.startDate.set('');
@@ -1745,23 +2182,28 @@ export class AssignmentDetailsComponent implements OnInit {
   loadSubDepartments(branchName: string, branchId?: number | string) {
     this.api.getBranches().subscribe({
       next: (branches) => {
+        this.allBranches.set(branches || []);
         const userBId = this.userBranchId();
-        if (userBId) {
-          const userBranch = branches.find(b => String(b.id) === String(userBId));
-          if (userBranch && userBranch.parent_id) {
-            this.isSubDepartmentUser.set(true);
-          } else {
-            this.isSubDepartmentUser.set(false);
-          }
-        } else {
-          this.isSubDepartmentUser.set(false);
-        }
 
         const current = branches.find(b => 
           (branchId && String(b.id) === String(branchId)) ||
           ((b.name || '').trim().toLowerCase() === (branchName || '').trim().toLowerCase())
         );
+
         if (current) {
+          // If current target branch is a sub-department of logged-in user's department:
+          if (userBId && String(current.parent_id) === String(userBId)) {
+            const updatedTasks = this.tasks().map(t => ({
+              ...t,
+              sub_dept_id: t.sub_dept_id || current.id,
+              sub_dept_name: t.sub_dept_name || current.name
+            }));
+            this.tasks.set(updatedTasks);
+            this.groupTasks();
+            this.availableSubDepts.set([]);
+            return;
+          }
+
           const childDepts = branches.filter(b => String(b.parent_id) === String(current.id));
           if (childDepts.length > 0) {
             const opts = [
@@ -1824,9 +2266,11 @@ export class AssignmentDetailsComponent implements OnInit {
   // Head Department Review Actions for Sub-Department Task
   headAcceptSubDeptTask(task: any) {
     if (!this.assignmentId || !task.assignment_task_id) return;
-    this.api.reviewTaskStatus(this.assignmentId, task.assignment_task_id, 'APPROVED', '').subscribe({
+    const remark = (task.head_comment || '').trim() || 'Accepted by Head Department';
+    this.api.reviewTaskStatus(this.assignmentId, task.assignment_task_id, 'APPROVED', remark).subscribe({
       next: () => {
         task.review_status = 'APPROVED';
+        task.review_remark = remark;
         this.notification.success(`Task accepted by Head Department.`);
         this.loadTasks();
       },
@@ -1838,7 +2282,7 @@ export class AssignmentDetailsComponent implements OnInit {
 
   openHeadRejectBox(task: any) {
     this.rejectingTaskId.set(task.assignment_task_id);
-    this.headRejectionRemark.set('');
+    this.headRejectionRemark.set((task.head_comment || '').trim());
   }
 
   cancelHeadRejectBox() {
@@ -1847,7 +2291,7 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   headRejectSubDeptTask(task: any) {
-    const remark = this.headRejectionRemark().trim();
+    const remark = this.headRejectionRemark().trim() || (task.head_comment || '').trim();
     if (!remark) {
       this.notification.warn('Please provide a reason for rejecting the task.');
       return;
@@ -2031,9 +2475,15 @@ export class AssignmentDetailsComponent implements OnInit {
         const currentTasks = this.tasks();
         const otherIncomplete = currentTasks.filter(t => t.assignment_task_id !== taskId && !t.remarks?.trim() && !t.has_evidence && t.status !== 'COMPLETED');
         if (otherIncomplete.length === 0) {
-          this.api.updateAssignmentStatus(this.assignmentId, 'REVIEW_PENDING').subscribe({
+          const isInternal = this.isInternalTaskSet();
+          const targetStatus = isInternal ? 'COMPLETED' : 'REVIEW_PENDING';
+          this.api.updateAssignmentStatus(this.assignmentId, targetStatus).subscribe({
             next: () => {
-              this.notification.success('All department tasks completed! Submissions routed directly to CO Review Queue.');
+              if (isInternal) {
+                this.notification.success('All department tasks completed! Internal assignment marked as Completed.');
+              } else {
+                this.notification.success('All department tasks completed! Submissions routed directly to CO Review Queue.');
+              }
               this.loadTasks();
             },
             error: (err) => console.warn('Could not auto-submit assignment to review:', err)
@@ -2109,8 +2559,9 @@ export class AssignmentDetailsComponent implements OnInit {
     });
   }
 
-  // Bulk submit all compliance tasks by Head Department to CO
-  async submitAllCompliance() {
+
+  // Bulk submit all compliance tasks by Head Department (Direct completion or CO queue)
+  async submitAllCompliance(action: 'COMPLETE' | 'SUBMIT_CO' = 'COMPLETE') {
     if (!this.assignmentId) return;
 
     const allTasks = this.tasks();
@@ -2135,12 +2586,12 @@ export class AssignmentDetailsComponent implements OnInit {
             return;
           }
           if (t.review_status !== 'APPROVED') {
-            this.notification.warn(`Please review and accept the compliance submitted by ${t.sub_dept_name || 'Sub-Department'} for task "${t.description?.slice(0, 35)}..." before submitting to CO.`);
+            this.notification.warn(`Please review and accept the compliance submitted by ${t.sub_dept_name || 'Sub-Department'} for task "${t.description?.slice(0, 35)}..." before completing.`);
             return;
           }
         } else {
           if (!t.remarks?.trim() && !t.temp_remarks?.trim()) {
-            this.notification.warn(`Direct task "${t.description?.slice(0, 35)}..." requires remarks before submitting.`);
+            this.notification.warn(`Direct task "${t.description?.slice(0, 35)}..." requires remarks before completing.`);
             return;
           }
         }
@@ -2150,6 +2601,7 @@ export class AssignmentDetailsComponent implements OnInit {
     const tasksToSaveDirectly = allTasks.filter(t => !t.sub_dept_id && this.canEditTaskAssignment(t));
     if (tasksToSaveDirectly.length > 0) {
       this.submitting = true;
+      this.lastSubmitAction = action;
       const results = await Promise.all(tasksToSaveDirectly.map(t => this.saveSingleTask(t, false)));
       const allSuccessful = results.every(res => res === true);
       if (!allSuccessful) {
@@ -2160,18 +2612,62 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     this.submitting = true;
-    console.log(`Submitting compliance declarations for assignmentId: ${this.assignmentId} to CO...`);
+    this.lastSubmitAction = action;
+    const targetStatus = action === 'COMPLETE' ? 'COMPLETED' : 'REVIEW_PENDING';
 
-    this.api.updateAssignmentStatus(this.assignmentId, 'REVIEW_PENDING').subscribe({
+    console.log(`Submitting compliance declarations for assignmentId: ${this.assignmentId} with target status: ${targetStatus}...`);
+
+    this.api.updateAssignmentStatus(this.assignmentId, targetStatus).subscribe({
       next: () => {
         this.submitting = false;
-        this.notification.success('Compliance checklist successfully submitted to CO Review Queue!');
+        if (action === 'COMPLETE') {
+          this.assignmentStatus.set('COMPLETED');
+          this.notification.success('Compliance checklist completed successfully!');
+        } else {
+          this.assignmentStatus.set('REVIEW_PENDING');
+          this.notification.success('Compliance checklist successfully submitted to CO Review Queue!');
+        }
         this.loadTasks(); // Reload to refresh status and lock controls
       },
       error: (err) => {
         this.submitting = false;
         console.error(err);
-        this.notification.error('Failed to submit assignment to CO: ' + (err.message || err.statusText));
+        this.notification.error('Failed to update assignment status: ' + (err.message || err.statusText));
+      }
+    });
+  }
+
+  async submitSubDeptComplianceToHead() {
+    if (!this.assignmentId) return;
+
+    // Check if any temp remarks need to be saved
+    const unsavedTasks = this.tasks().filter(t => t.temp_remarks?.trim() && t.temp_remarks !== t.remarks);
+    if (unsavedTasks.length > 0) {
+      this.submitting = true;
+      const results = await Promise.all(unsavedTasks.map(t => this.saveSingleTask(t, false)));
+      const allSaved = results.every(r => r === true);
+      if (!allSaved) {
+        this.submitting = false;
+        this.notification.error('Failed to save some checklist answers. Please check and try again.');
+        return;
+      }
+    }
+
+    this.submitting = true;
+    this.api.updateAssignmentStatus(this.assignmentId, 'REVIEW_PENDING').subscribe({
+      next: () => {
+        this.submitting = false;
+        this.assignmentStatus.set('REVIEW_PENDING');
+        this.subDeptSubmittedSignal.set(true);
+        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
+        this.loadTasks();
+      },
+      error: () => {
+        this.submitting = false;
+        this.assignmentStatus.set('REVIEW_PENDING');
+        this.subDeptSubmittedSignal.set(true);
+        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
+        this.loadTasks();
       }
     });
   }

@@ -199,8 +199,25 @@ export class ComplianceApiService {
   }
 
   // Branches
-  getBranches() {
-    return this.http.get<any[]>(`${this.baseUrl}/branches`);
+  getBranches(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/branches`).pipe(
+      tap((branches) => {
+        if (Array.isArray(branches)) {
+          try {
+            localStorage.setItem('compliance_branches_cache', JSON.stringify(branches));
+          } catch {}
+        }
+      })
+    );
+  }
+
+  getCachedBranches(): any[] {
+    try {
+      const raw = localStorage.getItem('compliance_branches_cache');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
   }
 
   createBranch(data: any) {

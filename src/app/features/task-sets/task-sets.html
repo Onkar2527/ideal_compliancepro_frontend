@@ -67,7 +67,7 @@
         [rows]="10"
     >
       <ng-container toolbar-actions>
-        <div class="flex align-items-center gap-2">
+        <div class="flex align-items-center gap-2 flex-wrap">
           <p-select
             [options]="circularFilterOptions()"
             [ngModel]="selectedCircularFilter()"
@@ -79,7 +79,7 @@
             filterPlaceholder="Search circular..."
             [virtualScroll]="true"
             [virtualScrollItemSize]="38"
-            styleClass="w-16rem h-2.5rem flex align-items-center"
+            styleClass="w-13rem max-w-full h-2.5rem flex align-items-center"
             panelStyleClass="circular-dropdown-panel"
           ></p-select>
 
@@ -91,7 +91,7 @@
             [showClear]="true"
             optionLabel="label"
             optionValue="value"
-            styleClass="w-14rem h-2.5rem flex align-items-center"
+            styleClass="w-11rem max-w-full h-2.5rem flex align-items-center"
           ></p-select>
 
           <p-select
@@ -104,7 +104,7 @@
             filterPlaceholder="Search department..."
             optionLabel="label"
             optionValue="value"
-            styleClass="w-14rem h-2.5rem flex align-items-center"
+            styleClass="w-12rem max-w-full h-2.5rem flex align-items-center"
           ></p-select>
         </div>
       </ng-container>
@@ -656,6 +656,46 @@
                 </span>
               </div>
 
+              <!-- Quick Due Date Flag Buttons (10, 20, 30 days) -->
+              <div class="flex align-items-center gap-1.5" *ngIf="targetTasks.length > 0">
+                <span class="text-xs font-bold text-emerald-900 flex align-items-center gap-1">
+                  <i class="pi pi-calendar-plus text-emerald-600 font-bold"></i> Due Date:
+                </span>
+                
+                <button type="button"
+                        (click)="applyDaysToAllSelectedTasks(10)"
+                        [style.background]="activeDueDaysPreset() === 10 ? '#047857' : '#ffffff'"
+                        [style.color]="activeDueDaysPreset() === 10 ? '#ffffff' : '#047857'"
+                        [style.borderColor]="activeDueDaysPreset() === 10 ? '#047857' : '#10b981'"
+                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
+                        pTooltip="Apply +10 days to all selected tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 10" style="font-size: 0.65rem;"></i>
+                  +10 Days
+                </button>
+
+                <button type="button"
+                        (click)="applyDaysToAllSelectedTasks(20)"
+                        [style.background]="activeDueDaysPreset() === 20 ? '#047857' : '#ffffff'"
+                        [style.color]="activeDueDaysPreset() === 20 ? '#ffffff' : '#047857'"
+                        [style.borderColor]="activeDueDaysPreset() === 20 ? '#047857' : '#10b981'"
+                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
+                        pTooltip="Apply +20 days to all selected tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 20" style="font-size: 0.65rem;"></i>
+                  +20 Days
+                </button>
+
+                <button type="button"
+                        (click)="applyDaysToAllSelectedTasks(30)"
+                        [style.background]="activeDueDaysPreset() === 30 ? '#047857' : '#ffffff'"
+                        [style.color]="activeDueDaysPreset() === 30 ? '#ffffff' : '#047857'"
+                        [style.borderColor]="activeDueDaysPreset() === 30 ? '#047857' : '#10b981'"
+                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
+                        pTooltip="Apply +30 days to all selected tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 30" style="font-size: 0.65rem;"></i>
+                  +30 Days
+                </button>
+              </div>
+
               <div class="flex align-items-center gap-2">
                 <button pButton label="Clear All" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
                         [disabled]="targetTasks.length === 0"
@@ -692,7 +732,7 @@
                     <th style="min-width: 180px; white-space: nowrap; padding: 0.45rem 0.55rem;">Description</th>
                     <th *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; white-space: nowrap; padding: 0.45rem 0.55rem;">Header</th>
                     <th style="width: 80px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Priority</th>
-                    <th *ngIf="newTaskSetType() !== 'INTERNAL'" style="width: 130px; white-space: nowrap; padding: 0.45rem 0.55rem;">Due Date</th>
+                    <th style="width: 140px; white-space: nowrap; padding: 0.45rem 0.55rem;">Due Date</th>
                   </tr>
                 </ng-template>
 
@@ -723,7 +763,7 @@
                     <td style="text-align: center; width: 80px; padding: 0.3rem 0.25rem;">
                       <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
-                    <td *ngIf="newTaskSetType() !== 'INTERNAL'" style="width: 130px; padding: 0.35rem 0.45rem;">
+                    <td style="width: 140px; padding: 0.35rem 0.45rem;">
                       <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-2rem text-xs" />
                     </td>
                   </tr>
@@ -731,7 +771,7 @@
 
                 <ng-template pTemplate="emptymessage">
                   <tr>
-                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 5 : 6" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
+                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 6 : 5" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
                       <i class="pi pi-check-circle text-2xl text-emerald-300 block mb-1.5"></i>
                       <span class="text-xs font-semibold text-slate-700 block">No tasks selected yet</span>
                       <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> or <strong>"Add All"</strong> from the Available Tasks on the left</small>

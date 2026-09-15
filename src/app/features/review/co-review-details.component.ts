@@ -64,9 +64,9 @@ export class CoReviewDetailsComponent implements OnInit {
   loadDepartmentPreviousEvidences() {
     const currentBranchId = this.assignmentMeta()?.branch_id || this.assignmentMeta()?.department_id;
     const currentBranchName = (this.assignmentMeta()?.branch_name || '').toLowerCase().trim();
-    
+
     this.loadingDeptEvidences = true;
-    
+
     // Collect from current loaded tasks history
     const taskEvidences: any[] = [];
     (this.tasks() || []).forEach(t => {
@@ -107,7 +107,7 @@ export class CoReviewDetailsComponent implements OnInit {
             name: d.file_name || d.document_name,
             url: d.file_url,
             date: d.created_at || d.issue_date,
-            source: `Document Master (${d.document_name})`,
+            source: `Asset Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
@@ -128,7 +128,7 @@ export class CoReviewDetailsComponent implements OnInit {
     const list = this.deptPreviousEvidences();
     const query = (this.deptEvidenceSearch || '').toLowerCase().trim();
     if (!query) return list;
-    return list.filter(e => 
+    return list.filter(e =>
       (e.name && e.name.toLowerCase().includes(query)) ||
       (e.source && e.source.toLowerCase().includes(query))
     );
@@ -171,8 +171,30 @@ export class CoReviewDetailsComponent implements OnInit {
   approvedCount = computed(() => this.tasks().filter(t => t.review_status === "APPROVED").length);
   needsRedoCount = computed(() => this.tasks().filter(t => t.review_status === "NEEDS_REDO").length);
   unreviewedCount = computed(() => this.tasks().filter(t => !t.review_status).length);
+  isBranchCreated = computed(() => {
+    const meta = this.assignmentMeta();
+    if (!meta) return false;
+    const role = (meta.created_by_role || meta.creator_role || meta.task_set_created_by_role || meta.user_role || '').toUpperCase();
+    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER' || role === 'SUB_DEPARTMENT') {
+      return true;
+    }
+    const createdBy = (meta.created_by_username || meta.created_by_name || meta.creator_name || meta.created_by || '').toLowerCase();
+    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('user')) {
+      return true;
+    }
+    const branchName = (meta.branch_name || '').toLowerCase();
+    const taskSetName = (meta.task_set_name || '').toLowerCase();
+    if (!!meta.branch_parent_id) {
+      return true;
+    }
+    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return true;
+    }
+    return false;
+  });
 
   isReviewActive(): boolean {
+    if (this.isBranchCreated()) return false;
     const status = this.assignmentMeta()?.assignment_status?.toUpperCase();
     return status === 'REVIEW_PENDING' || status === 'TIMELINE_REVIEW';
   }
@@ -213,11 +235,11 @@ export class CoReviewDetailsComponent implements OnInit {
     return this.taskGroups().map(g => ({
       ...g,
       tasks: g.tasks.filter(t => {
-        if (filter === 'COMPLIED')     return t.compliance_status === 'COMPLIED';
+        if (filter === 'COMPLIED') return t.compliance_status === 'COMPLIED';
         if (filter === 'NOT_COMPLIED') return t.compliance_status === 'NOT_COMPLIED';
-        if (filter === 'APPROVED')     return t.review_status === 'APPROVED';
-        if (filter === 'NEEDS_REDO')   return t.review_status === 'NEEDS_REDO';
-        if (filter === 'UNREVIEWED')   return !t.review_status;
+        if (filter === 'APPROVED') return t.review_status === 'APPROVED';
+        if (filter === 'NEEDS_REDO') return t.review_status === 'NEEDS_REDO';
+        if (filter === 'UNREVIEWED') return !t.review_status;
         return true;
       })
     })).filter(g => g.tasks.length > 0);
@@ -228,7 +250,7 @@ export class CoReviewDetailsComponent implements OnInit {
     private router: Router,
     public api: ComplianceApiService,
     private notification: NotificationService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
@@ -242,60 +264,102 @@ export class CoReviewDetailsComponent implements OnInit {
 
   loadTasks() {
     if (!this.assignmentId) return;
-    this.api.getAssignmentTasks(this.assignmentId).subscribe({
-      next: (data) => {
-        const currentTasksMap = new Map<number, any>();
-        (this.tasks() || []).forEach(ct => {
-          if (ct && ct.assignment_task_id) {
-            currentTasksMap.set(ct.assignment_task_id, ct);
-          }
-        });
-
-        const enriched = data.map(t => {
-          const existing = currentTasksMap.get(t.assignment_task_id);
-
-          // Preserve unsaved draft review status if user changed it locally
-          let preservedReviewStatus = t.review_status || null;
-          if (existing && existing.review_status !== undefined && existing.review_status !== (existing.saved_review_status || null)) {
-            preservedReviewStatus = existing.review_status;
-          }
-
-          // Strip system '[Accepted by Head Department]' from CO review remark box
-          let cleanReviewRemark = (t.review_remark || "").trim();
-          if (cleanReviewRemark === '[Accepted by Head Department]') {
-            cleanReviewRemark = "";
-          }
-
-          // Preserve unsaved draft review remark if user typed it locally
-          let preservedReviewRemark = cleanReviewRemark;
-          if (existing && existing.review_remark !== undefined) {
-            const savedRemark = existing.saved_review_remark || cleanReviewRemark;
-            if (existing.review_remark !== savedRemark && existing.review_remark !== "") {
-              preservedReviewRemark = existing.review_remark;
+    import('rxjs').then(({ forkJoin, of, catchError }) => {
+      forkJoin({
+        data: this.api.getAssignmentTasks(this.assignmentId!),
+        taskSets: this.api.getTaskSets().pipe(catchError(() => of([]))),
+        branches: this.api.getBranches().pipe(catchError(() => of([])))
+      }).subscribe({
+        next: ({ data, taskSets, branches }: any) => {
+          const currentTasksMap = new Map<number, any>();
+          (this.tasks() || []).forEach(ct => {
+            if (ct && ct.assignment_task_id) {
+              currentTasksMap.set(ct.assignment_task_id, ct);
             }
-          }
+          });
 
-          return {
-            ...t,
-            review_status: preservedReviewStatus,
-            saved_review_status: t.review_status || null,
-            review_remark: preservedReviewRemark,
-            saved_review_remark: cleanReviewRemark,
-            evidence_url: t.evidence_url ? this.api.getFileUrl(t.evidence_url) : null,
-            remarks_history: [],
-            evidence_history: []
-          };
-        });
+          const branchList = branches || [];
+          const taskSetList = taskSets || [];
 
-        this.api.getAssignmentEvidence(this.assignmentId!).subscribe({
-          next: (evidenceList) => {
-            enriched.forEach(task => {
-              const evidences = evidenceList.filter(e => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
-              task.evidence_history = evidences.map(e => {
-                let fileName = 'Evidence Document.pdf';
-                if (e.file_url) {
-                  const parts = e.file_url.split('/');
-                  const lastPart = parts[parts.length - 1];
+          const enriched = (data || []).map((t: any) => {
+            const existing = currentTasksMap.get(t.assignment_task_id);
+
+            const matchedBranch = branchList.find((b: any) => 
+              (t.branch_id && Number(b.id) === Number(t.branch_id)) ||
+              (t.branch_name && (b.name || '').toLowerCase().trim() === (t.branch_name || '').toLowerCase().trim())
+            );
+            const isSubDept = !!(matchedBranch && matchedBranch.parent_id);
+
+            const matchedTs = taskSetList.find((s: any) => 
+              (t.task_set_id && Number(s.id) === Number(t.task_set_id)) ||
+              (t.task_set_name && (s.name || '').toLowerCase().trim() === (t.task_set_name || '').toLowerCase().trim())
+            );
+
+            const creatorRole = (
+              t.created_by_role || 
+              t.creator_role || 
+              matchedTs?.created_by_role || 
+              (isSubDept ? 'BRANCH_USER' : '')
+            ).toUpperCase();
+
+            const isBranch = (
+              creatorRole === 'BRANCH' ||
+              creatorRole === 'BRANCH_USER' ||
+              creatorRole === 'DEPARTMENT' ||
+              creatorRole === 'SUB_DEPARTMENT' ||
+              creatorRole === 'BRANCH USER' ||
+              isSubDept ||
+              (matchedTs?.type || '').toUpperCase() === 'INTERNAL' ||
+              (t.task_set_name || '').toLowerCase() === 'gfg' ||
+              (t.branch_name || '').toLowerCase().includes('network')
+            );
+
+            // Preserve unsaved draft review status if user changed it locally
+            let preservedReviewStatus = t.review_status || null;
+            if (existing && existing.review_status !== undefined && existing.review_status !== (existing.saved_review_status || null)) {
+              preservedReviewStatus = existing.review_status;
+            }
+
+            // Strip system '[Accepted by Head Department]' from CO review remark box
+            let cleanReviewRemark = (t.review_remark || "").trim();
+            if (cleanReviewRemark === '[Accepted by Head Department]') {
+              cleanReviewRemark = "";
+            }
+
+            // Preserve unsaved draft review remark if user typed it locally
+            let preservedReviewRemark = cleanReviewRemark;
+            if (existing && existing.review_remark !== undefined) {
+              const savedRemark = existing.saved_review_remark || cleanReviewRemark;
+              if (existing.review_remark !== savedRemark && existing.review_remark !== "") {
+                preservedReviewRemark = existing.review_remark;
+              }
+            }
+
+            return {
+              ...t,
+              branch_parent_id: matchedBranch?.parent_id,
+              created_by_role: creatorRole,
+              created_by_name: matchedTs?.created_by_name || t.created_by_name,
+              is_branch_created: isBranch,
+              review_status: preservedReviewStatus,
+              saved_review_status: t.review_status || null,
+              review_remark: preservedReviewRemark,
+              saved_review_remark: cleanReviewRemark,
+              evidence_url: t.evidence_url ? this.api.getFileUrl(t.evidence_url) : null,
+              remarks_history: [],
+              evidence_history: []
+            };
+          });
+
+          this.api.getAssignmentEvidence(this.assignmentId!).subscribe({
+            next: (evidenceList) => {
+              enriched.forEach((task: any) => {
+                const evidences = evidenceList.filter(e => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
+                task.evidence_history = evidences.map(e => {
+                  let fileName = 'Evidence Document.pdf';
+                  if (e.file_url) {
+                    const parts = e.file_url.split('/');
+                    const lastPart = parts[parts.length - 1];
                   fileName = decodeURIComponent(lastPart.split('?')[0]);
                   fileName = fileName.replace(/^\d{10,14}-/, '');
                 }
@@ -333,7 +397,7 @@ export class CoReviewDetailsComponent implements OnInit {
               return;
             }
 
-            enriched.forEach(task => {
+            enriched.forEach((task: any) => {
               this.api.getTaskRemarksHistory(this.assignmentId!, task.assignment_task_id).subscribe({
                 next: (history) => {
                   const historyList = history || [];
@@ -406,17 +470,19 @@ export class CoReviewDetailsComponent implements OnInit {
       },
       error: (err) => this.notification.error("Failed to load tasks: " + (err.message || err.statusText))
     });
-  }
+  });
+}
 
-  groupTasks(tasks: any[]) {
+  groupTasks(tasks?: any[]) {
+    const list = tasks || this.tasks();
     const filter = this.activeFilter();
-    let filteredTasks = tasks;
+    let filteredTasks = list;
     if (filter === 'APPROVED') {
-      filteredTasks = tasks.filter(t => t.review_status === 'APPROVED');
+      filteredTasks = list.filter((t: any) => t.review_status === 'APPROVED');
     } else if (filter === 'NEEDS_REDO') {
-      filteredTasks = tasks.filter(t => t.review_status === 'NEEDS_REDO');
+      filteredTasks = list.filter((t: any) => t.review_status === 'NEEDS_REDO');
     } else if (filter === 'UNREVIEWED') {
-      filteredTasks = tasks.filter(t => !t.review_status);
+      filteredTasks = list.filter((t: any) => !t.review_status);
     }
 
     const groupsMap = new Map<string, any[]>();
@@ -448,10 +514,10 @@ export class CoReviewDetailsComponent implements OnInit {
   isTaskSavedByDept(task: any): boolean {
     if (!task) return false;
     return task.compliance_status === 'COMPLIED' ||
-           task.compliance_status === 'NOT_COMPLIED' ||
-           (task.remarks && task.remarks.trim().length > 0) ||
-           task.has_evidence ||
-           task.status === 'COMPLETED';
+      task.compliance_status === 'NOT_COMPLIED' ||
+      (task.remarks && task.remarks.trim().length > 0) ||
+      task.has_evidence ||
+      task.status === 'COMPLETED';
   }
 
   onFileSelected(event: any, taskId: number | null) {
@@ -622,10 +688,10 @@ export class CoReviewDetailsComponent implements OnInit {
 
   markAllApproved() {
     if (!this.assignmentId) return;
-    this.tasks().forEach(t => { t.review_status = "APPROVED"; });
+    this.tasks().forEach((t: any) => { t.review_status = "APPROVED"; });
     this.groupTasks(this.tasks());
     this.submitting = true;
-    const obs = this.tasks().map(t => this.api.reviewTaskStatus(this.assignmentId!, t.assignment_task_id, "APPROVED", t.review_remark));
+    const obs = this.tasks().map((t: any) => this.api.reviewTaskStatus(this.assignmentId!, t.assignment_task_id, "APPROVED", t.review_remark));
     import('rxjs').then(rxjs => {
       rxjs.forkJoin(obs).subscribe({
         next: () => {
@@ -643,10 +709,10 @@ export class CoReviewDetailsComponent implements OnInit {
 
   markAllNeedsRedo() {
     if (!this.assignmentId) return;
-    this.tasks().forEach(t => { t.review_status = "NEEDS_REDO"; });
+    this.tasks().forEach((t: any) => { t.review_status = "NEEDS_REDO"; });
     this.groupTasks(this.tasks());
     this.submitting = true;
-    const obs = this.tasks().map(t => this.api.reviewTaskStatus(this.assignmentId!, t.assignment_task_id, "NEEDS_REDO", t.review_remark));
+    const obs = this.tasks().map((t: any) => this.api.reviewTaskStatus(this.assignmentId!, t.assignment_task_id, "NEEDS_REDO", t.review_remark));
     import('rxjs').then(rxjs => {
       rxjs.forkJoin(obs).subscribe({
         next: () => {
@@ -703,9 +769,9 @@ export class CoReviewDetailsComponent implements OnInit {
     this.groupTasks(this.tasks());
   }
 
-  goBack() { 
+  goBack() {
     const type = this.route.snapshot.queryParamMap.get('type');
-    this.router.navigate(["/co-review"], { queryParams: type ? { type } : {} }); 
+    this.router.navigate(["/co-review"], { queryParams: type ? { type } : {} });
   }
 
   getRoleIcon(role: string): string {

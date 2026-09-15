@@ -109,13 +109,13 @@ export class CcoReviewComponent implements OnInit {
   };
 
   tableColumns: TableColumn[] = [
-    { field: 'task_set_name',     header: 'Task Set',       type: 'text',   width: '26%' },
-    { field: 'task_set_type',     header: 'Type',           type: 'badge',  width: '90px' },
-    { field: 'branch_name',       header: 'Dept / Branch',  type: 'text',   width: '14%' },
-    { field: 'frequency',         header: 'Frequency',      type: 'text',   width: '110px' },
-    { field: 'progress_text',     header: 'Progress',       type: 'text',   width: '90px', align: 'center' },
-    { field: 'due_schedule_text', header: 'Due Schedule',   type: 'text',   width: '140px' },
-    { field: 'status',            header: 'Status',         type: 'status', width: '160px' }
+    { field: 'task_set_name', header: 'Task Set', type: 'text', width: '26%' },
+    { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
+    { field: 'branch_name', header: 'Dept / Branch', type: 'text', width: '14%' },
+    { field: 'frequency', header: 'Frequency', type: 'text', width: '110px' },
+    { field: 'progress_text', header: 'Progress', type: 'text', width: '90px', align: 'center' },
+    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '140px' },
+    { field: 'status', header: 'Status', type: 'status', width: '160px' }
   ];
 
   statusFilterOptions = [
@@ -172,23 +172,47 @@ export class CcoReviewComponent implements OnInit {
     return list;
   });
 
+  isBranchCreated(row: any): boolean {
+    if (!row) return false;
+    if (row.is_branch_created !== undefined && row.is_branch_created !== null) {
+      return !!row.is_branch_created;
+    }
+    const role = (row.created_by_role || row.creator_role || row.task_set_created_by_role || row.user_role || '').toUpperCase();
+    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER' || role === 'SUB_DEPARTMENT') {
+      return true;
+    }
+    const createdBy = (row.created_by_username || row.created_by_name || row.creator_name || row.created_by || '').toLowerCase();
+    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('user')) {
+      return true;
+    }
+    const branchName = (row.branch_name || '').toLowerCase();
+    const taskSetName = (row.task_set_name || '').toLowerCase();
+    if (!row.branch_parent_id) {
+      return true;
+    }
+    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return true;
+    }
+    return false;
+  }
+
   tableActions: TableAction[] = [
     {
       label: "Review Timeline",
       icon: "pi pi-calendar-plus",
-      visible: (row: any) => row.status?.toUpperCase() === 'TIMELINE_REVIEW',
+      visible: (row: any) => !this.isBranchCreated(row) && row.status?.toUpperCase() === 'TIMELINE_REVIEW',
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "Review Compliance",
       icon: "pi pi-shield",
-      visible: (row: any) => ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => !this.isBranchCreated(row) && ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "View Compliance",
       icon: "pi pi-eye",
-      visible: (row: any) => ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => this.isBranchCreated(row) || ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
@@ -256,44 +280,103 @@ export class CcoReviewComponent implements OnInit {
         const type = this.taskSetType();
         if (type) url += `&task_set_type=${type}`;
 
-        this.http.get<any>(url).subscribe({
-          next: (res) => {
-            let data = res.data || res;
-            if (allowedBranchNames.length > 0) {
-              const allowedSet = new Set(allowedBranchNames);
-              data = data.filter((a: any) => a.branch_name && allowedSet.has(a.branch_name.trim().toLowerCase()));
-            }
+        import('rxjs').then(({ forkJoin, of, catchError }) => {
+          forkJoin({
+            assignments: this.http.get<any>(url),
+            taskSets: this.api.getTaskSets().pipe(catchError(() => of([]))),
+            users: this.api.getUsers().pipe(catchError(() => of([])))
+          }).subscribe({
+            next: ({ assignments: res, taskSets, users }: any) => {
+              let data = res.data || res;
+              if (!Array.isArray(data)) data = [];
 
-            const mappedData = data.map((a: any) => {
-              const total     = parseInt(a.total_tasks, 10) || 0;
-              const completed = parseInt(a.completed_tasks, 10) || 0;
-              const pct       = total > 0 ? Math.round((completed / total) * 100) : 0;
-              
-              // Format standard Date string dd/MM/yyyy
-              let dateStr = '';
-              if (a.proposed_timeline) {
-                const d = new Date(a.proposed_timeline);
-                if (!isNaN(d.getTime())) {
-                  dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+              const taskSetMap = new Map<number, any>();
+              (taskSets || []).forEach((ts: any) => taskSetMap.set(Number(ts.id), ts));
+
+              const userMap = new Map<number, any>();
+              (users || []).forEach((u: any) => userMap.set(Number(u.id), u));
+
+              if (allowedBranchNames.length > 0) {
+                const allowedSet = new Set(allowedBranchNames);
+                data = data.filter((a: any) => a.branch_name && allowedSet.has(a.branch_name.trim().toLowerCase()));
+              }
+
+              const mappedData = data.map((a: any) => {
+                const total = parseInt(a.total_tasks, 10) || 0;
+                const completed = parseInt(a.completed_tasks, 10) || 0;
+                const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                const ts = taskSetMap.get(Number(a.task_set_id));
+                const creatorUserId = ts?.created_by_id || ts?.created_by || a.created_by_user_id || a.created_by;
+                const creatorUser = creatorUserId ? userMap.get(Number(creatorUserId)) : null;
+
+                const role = (
+                  a.created_by_role ||
+                  a.creator_role ||
+                  ts?.created_by_role ||
+                  ts?.creator_role ||
+                  creatorUser?.role ||
+                  ''
+                ).toUpperCase();
+
+                const username = (
+                  a.created_by_username ||
+                  a.created_by_name ||
+                  ts?.created_by_name ||
+                  ts?.created_by_username ||
+                  creatorUser?.username ||
+                  creatorUser?.name ||
+                  ''
+                ).toLowerCase();
+
+                const bName = (a.branch_name || '').toLowerCase();
+                const tsName = (a.task_set_name || '').toLowerCase();
+
+                const isBranch = (
+                  role === 'BRANCH' ||
+                  role === 'BRANCH_USER' ||
+                  role === 'DEPARTMENT' ||
+                  role === 'BRANCH USER' ||
+                  role === 'SUB_DEPARTMENT' ||
+                  username.includes('branch') ||
+                  username.includes('dept') ||
+                  username.includes('department') ||
+                  username.includes('user') ||
+                  tsName === 'gfg' ||
+                  bName.includes('network') ||
+                  !!a.branch_parent_id ||
+                  (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role))
+                );
+
+                // Format standard Date string dd/MM/yyyy
+                let dateStr = '';
+                if (a.proposed_timeline) {
+                  const d = new Date(a.proposed_timeline);
+                  if (!isNaN(d.getTime())) {
+                    dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                  }
                 }
-              }
-              
-              // Combine Date with Time if available
-              let dueScheduleText = dateStr || 'N/A';
-              if (a.due_time) {
-                dueScheduleText += ` ${a.due_time}`;
-              }
 
-              return {
-                ...a,
-                frequency:     this.frequencyMap[a.frequency] || a.frequency,
-                progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
-                due_schedule_text: dueScheduleText
-              };
-            });
-            this.rawAssignments.set(mappedData);
-          },
-          error: (err) => this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText))
+                // Combine Date with Time if available
+                let dueScheduleText = dateStr || 'N/A';
+                if (a.due_time) {
+                  dueScheduleText += ` ${a.due_time}`;
+                }
+
+                return {
+                  ...a,
+                  created_by_role: role,
+                  created_by_username: username,
+                  is_branch_created: isBranch,
+                  frequency: this.frequencyMap[a.frequency] || a.frequency,
+                  progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
+                  due_schedule_text: dueScheduleText
+                };
+              });
+              this.rawAssignments.set(mappedData);
+            },
+            error: (err: any) => this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText))
+          });
         });
       },
       error: (err) => this.notification.error("Failed to load branch data: " + (err.message || err.statusText))
@@ -311,12 +394,12 @@ export class CcoReviewComponent implements OnInit {
   branchFilterOptions = computed(() => {
     const list = this.rawAssignments();
     const branches = new Set(list.map((a: any) => a.branch_name).filter((b: any) => !!b));
-    
+
     const selected = this.selectedBranchFilter();
     if (selected) {
       branches.add(selected);
     }
-    
+
     return Array.from(branches).sort().map(b => ({ label: b, value: b }));
   });
 
