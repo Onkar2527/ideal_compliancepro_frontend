@@ -24,6 +24,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TooltipModule } from 'primeng/tooltip';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
+import { FileUploadModule } from 'primeng/fileupload';
 
 import { TextFieldComponent } from '../../shared/components/form/text-field/text-field.component';
 import { TextareaFieldComponent } from '../../shared/components/form/textarea-field/textarea-field.component';
@@ -57,6 +58,7 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     TooltipModule,
     IconFieldModule,
     InputIconModule,
+    FileUploadModule,
   ],
   templateUrl: './task-sets.html',
   styles: [`
@@ -687,13 +689,30 @@ export class TaskSetsComponent implements OnInit {
   // Form & details loading states
   loadingFormDetails = signal<boolean>(false);
 
-  // Inline Task Creation Signals
+  // Inline Task Creation Signals (Full Task Master parity)
   showInlineTaskDrawer = signal<boolean>(false);
   showInlineTaskDialog = this.showInlineTaskDrawer; // alias for template compatibility
   inlineTaskDescription = signal<string>('');
-  inlineTaskPriority = signal<string>('');
+  inlineTaskHeaderId = signal<number | null>(null);
+  inlineTaskPriority = signal<string | null>(null);
+  inlineTaskRiskCategory = signal<string | null>(null);
+  inlineTaskBusinessRisk = signal<string | null>(null);
+  inlineTaskControlRisk = signal<string | null>(null);
+  inlineTaskAuditAreaId = signal<number | null>(null);
   inlineTaskAuthorityId = signal<number | null>(null);
+  inlineTaskCircularId = signal<number | null>(null);
+  inlineTaskFileUrl = signal<string | null>(null);
+  inlineTaskFileName = signal<string>('');
+  uploadingInlineTaskFile = signal<boolean>(false);
   savingInlineTask = signal<boolean>(false);
+
+  // Quick Add Header in Task Set Modal
+  showAddHeaderModal = false;
+  newHeaderName = '';
+
+  taskHeaders = signal<any[]>([]);
+  auditAreas = signal<any[]>([]);
+  loadingPreviousTasks = signal<boolean>(false);
 
   priorityOptions = [
     { label: 'Critical', value: 'Critical' },
@@ -702,13 +721,34 @@ export class TaskSetsComponent implements OnInit {
     { label: 'Low', value: 'Low' }
   ];
 
+  riskCategoryOptions = [
+    { label: 'CREDIT RISK', value: 'CREDIT RISK' },
+    { label: 'MARKET RISK', value: 'MARKET RISK' },
+    { label: 'FINANCIAL RISK', value: 'FINANCIAL RISK' },
+    { label: 'LIQUIDITY RISK', value: 'LIQUIDITY RISK' },
+    { label: 'OPERATIONAL RISK', value: 'OPERATIONAL RISK' },
+    { label: 'REGULATORY AND LEGAL RISK', value: 'REGULATORY AND LEGAL RISK' },
+    { label: 'REPUTATIONAL RISK', value: 'REPUTATIONAL RISK' },
+    { label: 'INFORMATION TECHNOLOGY RISK', value: 'INFORMATION TECHNOLOGY RISK' },
+    { label: 'OTHER RESIDUAL RISK', value: 'OTHER RESIDUAL RISK' },
+    { label: 'NOT APPLICABLE', value: 'NOT APPLICABLE' }
+  ];
+
+  businessRiskOptions = [
+    { label: 'High', value: 'High' },
+    { label: 'Medium', value: 'Medium' },
+    { label: 'Low', value: 'Low' }
+  ];
+
+  controlRiskOptions = [
+    { label: 'High', value: 'High' },
+    { label: 'Medium', value: 'Medium' },
+    { label: 'Low', value: 'Low' }
+  ];
+
   // Inline task form validation signal
   isInlineTaskValid = computed(() => {
-    const desc = this.inlineTaskDescription()?.trim();
-    const priority = this.inlineTaskPriority();
-    const authorityId = this.inlineTaskAuthorityId();
-
-    return !!(desc && priority && authorityId);
+    return !!this.inlineTaskDescription()?.trim();
   });
 
   // Form validation signal
@@ -808,34 +848,108 @@ export class TaskSetsComponent implements OnInit {
 
   openInlineTaskDialog() {
     this.ensureAuthoritiesLoaded();
+    this.api.getTaskHeaders().subscribe(data => this.taskHeaders.set(data || []));
+    this.api.getAuditAreas().subscribe(data => this.auditAreas.set(data || []));
+
     this.inlineTaskDescription.set('');
-    this.inlineTaskPriority.set('');
+    this.inlineTaskHeaderId.set(null);
+    this.inlineTaskPriority.set('Medium');
+    this.inlineTaskRiskCategory.set(null);
+    this.inlineTaskBusinessRisk.set(null);
+    this.inlineTaskControlRisk.set(null);
+    this.inlineTaskAuditAreaId.set(null);
     this.inlineTaskAuthorityId.set(this.newTaskSetAuthorityId() || null);
+    this.inlineTaskCircularId.set(this.newTaskSetCircularId() || null);
+    this.inlineTaskFileUrl.set(null);
+    this.inlineTaskFileName.set('');
     this.showInlineTaskDrawer.set(true);
+  }
+
+  onInlineTaskFileSelected(event: any) {
+    const files = event.currentFiles || event.files || (event.target?.files ? Array.from(event.target.files) : []);
+    const file = files[0];
+    if (!file) return;
+
+    this.uploadingInlineTaskFile.set(true);
+    this.api.uploadTaskFile(file).subscribe({
+      next: (res) => {
+        this.inlineTaskFileUrl.set(res.file_url);
+        this.inlineTaskFileName.set(res.filename);
+        this.uploadingInlineTaskFile.set(false);
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'File uploaded successfully' });
+      },
+      error: (err) => {
+        this.uploadingInlineTaskFile.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Upload Error', detail: err.error?.message || 'Failed to upload file' });
+      }
+    });
+  }
+
+  removeInlineTaskFile() {
+    this.inlineTaskFileUrl.set(null);
+    this.inlineTaskFileName.set('');
+  }
+
+  quickAddHeader() {
+    if (!this.newHeaderName.trim()) return;
+    this.api.createTaskHeader(this.newHeaderName).subscribe({
+      next: (newHeader: any) => {
+        this.api.getTaskHeaders().subscribe(data => {
+          this.taskHeaders.set(data || []);
+          if (newHeader?.id) {
+            this.inlineTaskHeaderId.set(newHeader.id);
+          }
+        });
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Header added successfully' });
+        this.showAddHeaderModal = false;
+        this.newHeaderName = '';
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create header' });
+      }
+    });
+  }
+
+  loadPreviousTasks() {
+    this.loadingPreviousTasks.set(true);
+    const circularId = this.newTaskSetCircularId() || this.formCircularFilter();
+    const params: any = { limit: 1000 };
+    if (this.newTaskSetType() === 'REGULAR' && circularId) {
+      params.circular_id = circularId;
+    }
+    this.api.getApprovedTasks(params).subscribe({
+      next: (res: any) => {
+        this.loadingPreviousTasks.set(false);
+        const tasks = res?.data || [];
+        this.rawTasks.set(tasks);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Tasks Loaded',
+          detail: `Loaded ${tasks.length} task(s) into Available Tasks.`,
+          life: 3000
+        });
+      },
+      error: () => {
+        this.loadingPreviousTasks.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load tasks.' });
+      }
+    });
   }
 
   saveInlineTask() {
     const desc = this.inlineTaskDescription()?.trim();
-    const priority = this.inlineTaskPriority();
-    const authorityId = this.inlineTaskAuthorityId();
-
-    if (!desc || !priority || !authorityId) {
-      const missing: string[] = [];
-      if (!desc) missing.push('Task Description');
-      if (!priority) missing.push('Priority');
-      if (!authorityId) missing.push('Authority');
-
+    if (!desc) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Required Fields Missing',
-        detail: `Please fill in all required fields for Add Task: ${missing.join(', ')}.`,
+        summary: 'Required Field Missing',
+        detail: 'Please enter a task description.',
         life: 4000
       });
       return;
     }
 
     this.savingInlineTask.set(true);
-    const circularId = this.newTaskSetType() === 'REGULAR' ? (this.newTaskSetCircularId() || undefined) : undefined;
+    const circularId = this.inlineTaskCircularId() || (this.newTaskSetType() === 'REGULAR' ? (this.newTaskSetCircularId() || undefined) : undefined);
     const meta = this.api.getCurrentUserMetadata();
     const userId = meta.userId;
     const userName = meta.userName;
@@ -843,9 +957,15 @@ export class TaskSetsComponent implements OnInit {
 
     const payload: any = {
       description: desc,
-      circular_id: circularId,
-      priority: priority,
-      authority_id: authorityId,
+      circular_id: circularId || undefined,
+      header_id: this.inlineTaskHeaderId() || undefined,
+      priority: this.inlineTaskPriority() || 'Medium',
+      risk_category: this.inlineTaskRiskCategory() || undefined,
+      business_risk: this.inlineTaskBusinessRisk() || undefined,
+      control_risk: this.inlineTaskControlRisk() || undefined,
+      audit_area_id: this.inlineTaskAuditAreaId() || undefined,
+      authority_id: this.inlineTaskAuthorityId() || undefined,
+      file_url: this.inlineTaskFileUrl() || null,
       created_by: userId || undefined,
       created_by_id: userId || undefined,
       created_by_user_id: userId || undefined,
@@ -862,22 +982,28 @@ export class TaskSetsComponent implements OnInit {
         this.savingInlineTask.set(false);
         this.showInlineTaskDrawer.set(false);
 
+        if (this.inlineTaskHeaderId() && !createdTask.header_name) {
+          const found = this.taskHeaders().find(h => h.id === this.inlineTaskHeaderId());
+          if (found) createdTask.header_name = found.name;
+        }
+
         createdTask.due_date = null;
 
         const currentRaw = this.rawTasks();
         this.rawTasks.set([createdTask, ...currentRaw]);
         this.targetTasks = [createdTask, ...this.targetTasks];
+        this.selectionTick.set(this.selectionTick() + 1);
 
         this.messageService.add({
           severity: 'success',
-          summary: 'Task Created',
+          summary: 'Task Created & Added',
           detail: 'New task created and automatically added to this task set.',
           life: 3000
         });
       },
-      error: () => {
+      error: (err: any) => {
         this.savingInlineTask.set(false);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create task' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Failed to create task' });
       }
     });
   }
@@ -1220,6 +1346,8 @@ export class TaskSetsComponent implements OnInit {
     });
     this.loadBranches();
     this.loadAuthorities();
+    this.api.getTaskHeaders().subscribe(data => this.taskHeaders.set(data || []));
+    this.api.getAuditAreas().subscribe(data => this.auditAreas.set(data || []));
 
     // Auto-apply circular filter if navigated from Circular Master / Tasks
     this.route.queryParamMap.subscribe(params => {

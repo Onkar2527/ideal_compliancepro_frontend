@@ -153,7 +153,7 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
             [loading]="loading()"
             [columns]="tableColumns"
             [actions]="tableActions"
-            [showAddButton]="isCcoOrAdmin"
+            [showAddButton]="canCreateTask"
             (onAdd)="openCreateManualTaskModal()"
             [showRefreshButton]="true"
             [paginator]="true"
@@ -192,7 +192,7 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
                   (click)="approveAllPendingTasks()"
                 ></button>
                 <button
-                  *ngIf="isCcoOrAdmin"
+                  *ngIf="canCreateTask"
                   pButton
                   type="button"
                   icon="pi pi-upload"
@@ -390,15 +390,15 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
                 @if (!selectedCircularId) {
                   <div class="field col-12">
                     <app-select-field
-                      label="Select Circular"
+                      label="Select Circular (Optional)"
                       [field]="manualTaskCircularId"
                       [options]="circulars()"
                       optionLabel="title"
                       optionValue="id"
                       filterBy="title"
-                      [required]="true"
-                      [virtualScroll]="true"
-                      placeholder="Select a Circular">
+                      [filter]="true"
+                      [showClear]="true"
+                      placeholder="Select a Circular (Optional)">
                     </app-select-field>
                   </div>
                 }
@@ -488,7 +488,7 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
         <ng-template pTemplate="footer">
           <div class="drawer-footer-row">
             <button pButton pRipple type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="showManualTaskModal.set(false)"></button>
-            <button pButton pRipple type="button" label="Create Task" icon="pi pi-check" [loading]="savingManual()" [disabled]="!manualTaskDescription().trim() || (!manualTaskCircularId() && !selectedCircularId) || savingManual()" (click)="createManualTask()"></button>
+            <button pButton pRipple type="button" label="Create Task" icon="pi pi-check" [loading]="savingManual()" [disabled]="!manualTaskDescription().trim() || savingManual()" (click)="createManualTask()"></button>
           </div>
         </ng-template>
       </p-drawer>
@@ -846,8 +846,13 @@ export class TasksComponent implements OnInit {
   cameFromChat = signal<boolean>(false);
 
   get isCcoOrAdmin(): boolean {
-    const role = this.auth.currentUser()?.role;
-    return role === 'CCO' || role === 'CO' || role === 'ADMIN';
+    const role = String(this.auth.currentUser()?.role || '').toUpperCase();
+    return role === 'CCO' || role === 'CO' || role === 'ADMIN' || role === 'SUPERADMIN';
+  }
+
+  get canCreateTask(): boolean {
+    const role = String(this.auth.currentUser()?.role || '').toUpperCase();
+    return !['VIEWER', 'AUDITOR'].includes(role);
   }
 
   canAccessTaskSets(): boolean {
@@ -896,7 +901,7 @@ export class TasksComponent implements OnInit {
 
   ngOnInit() {
     this.api.getTaskHeaders().subscribe(data => this.taskHeaders.set(data));
-    this.api.getCirculars({ limit: 1000, has_tasks: true }).subscribe(res => this.circulars.set(res.data));
+    this.api.getCirculars({ limit: 1000 }).subscribe(res => this.circulars.set(res?.data || []));
     this.api.getAuditAreas().subscribe(data => this.auditAreas.set(data));
 
     this.route.queryParamMap.subscribe(params => {
@@ -1082,8 +1087,7 @@ export class TasksComponent implements OnInit {
 
   createManualTask() {
     if (!this.manualTaskDescription().trim()) return;
-    const circularId = this.manualTaskCircularId() || this.selectedCircularId;
-    if (!circularId) return;
+    const circularId = this.manualTaskCircularId() || this.selectedCircularId || null;
 
     this.savingManual.set(true);
     const user = this.auth.currentUser();
@@ -1094,7 +1098,7 @@ export class TasksComponent implements OnInit {
 
     const payload = {
       description: this.manualTaskDescription(),
-      circular_id: circularId,
+      circular_id: circularId || undefined,
       header_id: this.manualTaskHeaderId() || undefined,
       priority: this.manualTaskPriority() || undefined,
       risk_category: this.manualTaskRiskCategory() || undefined,

@@ -1411,6 +1411,14 @@ export class AssignmentDetailsComponent implements OnInit {
 
   loadDepartmentPreviousEvidences() {
     const currentBranchName = (this.branchName() || '').toLowerCase().trim();
+    const taskBranchId = this.tasks()[0]?.branch_id ? Number(this.tasks()[0].branch_id) : null;
+    const userBranchId = this.userBranchId() ? Number(this.userBranchId()) : null;
+    const targetBranchId = taskBranchId || userBranchId;
+
+    const branches = this.allBranches();
+    const targetBranchObj = targetBranchId ? branches.find((b: any) => Number(b.id) === targetBranchId) : null;
+    const parentId = targetBranchObj?.parent_id ? Number(targetBranchObj.parent_id) : null;
+    const subDeptIds = targetBranchId ? branches.filter((b: any) => Number(b.parent_id) === targetBranchId).map((b: any) => Number(b.id)) : [];
 
     this.loadingDeptEvidences = true;
 
@@ -1480,13 +1488,27 @@ export class AssignmentDetailsComponent implements OnInit {
       }
     });
 
-    // Also fetch from Document Master for this department
+    // Also fetch from Document Master for this department & company-wide assets
     this.api.getDocuments().subscribe({
       next: (docs) => {
         const deptDocs = (docs || [])
           .filter(d => {
             if (!d.file_url || this.isEvidenceDeleted(d)) return false;
+            // 1. Company-wide / All Branches public documents
+            if (d.department_id === null || d.department_id === undefined) return true;
+
+            const docDeptId = Number(d.department_id);
+            // 2. Department ID match
+            if (targetBranchId && docDeptId === targetBranchId) return true;
+            if (userBranchId && docDeptId === userBranchId) return true;
+
+            // 3. Parent / Sub-department hierarchy match
+            if (parentId && docDeptId === parentId) return true;
+            if (subDeptIds.includes(docDeptId)) return true;
+
+            // 4. Exact department name match
             if (currentBranchName && d.department_name && d.department_name.toLowerCase().trim() === currentBranchName) return true;
+
             return false;
           })
           .map(d => ({
@@ -2254,6 +2276,48 @@ export class AssignmentDetailsComponent implements OnInit {
                   task.evidence_url = task.evidence_history[0].file_url;
                 }
               });
+
+              // Save mapped evidence items into shared repository
+              const asgName = this.taskSetName();
+              const asgStartDate = this.startDate();
+              const asgBranchId = this.tasks()[0]?.branch_id || this.userBranchId();
+              const asgBranchName = this.branchName() || this.userBranchName();
+
+              const evDocsToSave: any[] = [];
+              mappedTasks.forEach((task: any) => {
+                if (Array.isArray(task.evidence_history)) {
+                  task.evidence_history.forEach((eh: any) => {
+                    if (!eh.file_url) return;
+                    const deptId = task.sub_dept_id || task.branch_id || asgBranchId;
+                    const deptName = task.sub_dept_name || task.branch_name || asgBranchName;
+                    const fname = this.cleanFileName(eh.file_name || eh.filename || (eh.file_url ? eh.file_url.split('/').pop()?.split('?')[0] : 'Task Evidence'));
+
+                    evDocsToSave.push({
+                      id: 9000000 + Number(eh.id || Math.floor(Math.random() * 1000000)),
+                      document_name: fname,
+                      document_number: asgName ? `TASK: ${asgName}` : (task.assignment_task_id ? `TASK-#${task.assignment_task_id}` : 'TASK-EVIDENCE'),
+                      issue_date: eh.created_at || eh.uploaded_at || null,
+                      created_at: eh.created_at || eh.uploaded_at || new Date().toISOString(),
+                      start_date: asgStartDate || null,
+                      end_date: null,
+                      department_id: deptId ? Number(deptId) : null,
+                      department_name: deptName || null,
+                      user_id: eh.uploaded_by ? Number(eh.uploaded_by) : null,
+                      user_name: eh.uploader_name || 'Branch Member',
+                      file_url: eh.file_url,
+                      file_name: fname,
+                      description: `Evidence for "${task.task_title || task.description || asgName || 'Task Assignment'}"`,
+                      status: 'ACTIVE',
+                      access_level: 'PUBLIC',
+                      is_evidence: true,
+                      source_type: 'TASK_EVIDENCE'
+                    });
+                  });
+                }
+              });
+              if (evDocsToSave.length > 0) {
+                this.api.saveEvidenceDocuments(evDocsToSave);
+              }
 
               // Fetch remarks history in parallel
               let completedCount = 0;

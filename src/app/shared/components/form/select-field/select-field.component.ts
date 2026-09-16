@@ -48,7 +48,7 @@ import { TooltipModule } from 'primeng/tooltip';
             [virtualScrollItemSize]="virtualScrollItemSize()"
             [scrollHeight]="scrollHeight()"
             [placeholder]="placeholder()"
-            appendTo="body"
+            [appendTo]="appendTo()"
             styleClass="w-full"
             [class.ng-invalid]="showError()"
             [class.ng-dirty]="touched()">
@@ -73,7 +73,7 @@ import { TooltipModule } from 'primeng/tooltip';
               [virtualScroll]="virtualScroll()"
               [virtualScrollItemSize]="virtualScrollItemSize()"
               [scrollHeight]="scrollHeight()"
-              appendTo="body"
+              [appendTo]="appendTo()"
               styleClass="w-full"
               [class.ng-invalid]="showError()"
               [class.ng-dirty]="touched()">
@@ -111,36 +111,46 @@ import { TooltipModule } from 'primeng/tooltip';
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      width: 100%;
     }
 
     .field-wrapper {
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      gap: 0.35rem;
       width: 100%;
     }
 
     .field-wrapper > *:first-child {
-      flex: 1;
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     .add-btn {
       flex: 0 0 auto;
-      width: 2.25rem !important;
-      height: 2.25rem !important;
-      background: transparent !important;
-      border: none !important;
-      color: var(--primary-color) !important;
+      width: 2.5rem !important;
+      height: 2.5rem !important;
+      background: var(--surface-100, #f1f5f9) !important;
+      border: 1px solid var(--surface-300, #cbd5e1) !important;
+      border-radius: 6px !important;
+      color: var(--primary-color, #3b82f6) !important;
       padding: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.2s ease;
       
       &:hover {
-        background: var(--surface-100) !important;
+        background: var(--primary-50, #eff6ff) !important;
+        border-color: var(--primary-color, #3b82f6) !important;
+        color: var(--primary-color, #2563eb) !important;
       }
     }
 
     :host ::ng-deep {
       .p-floatlabel {
         width: 100%;
+        display: block;
       }
 
       .p-select {
@@ -148,8 +158,8 @@ import { TooltipModule } from 'primeng/tooltip';
       }
 
       .p-select .p-select-label {
-        font-size: 1rem;
-        padding: 0.875rem 1rem;
+        font-size: 0.95rem;
+        padding: 0.75rem 0.875rem;
       }
 
       .p-floatlabel label {
@@ -218,6 +228,9 @@ export class SelectFieldComponent<T = any> {
 
   /** Max height of dropdown panel */
   scrollHeight = input<string>('200px');
+
+  /** Target element to attach overlay to (e.g. 'body', or undefined for parent/local attachment) */
+  appendTo = input<string | undefined>('body');
 
   /** Show add button */
   showAddButton = input<boolean>(false);

@@ -538,10 +538,17 @@
 
               <div class="flex align-items-center gap-1.5">
                 <button *ngIf="newTaskSetType() === 'INTERNAL'" 
-                        pButton label="Add Task" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true"
+                        pButton label="Add Task" icon="pi pi-plus" size="small" severity="primary"
                         styleClass="h-1.85rem text-xs font-semibold px-2"
-                        (click)="openInlineTaskDialog()"></button>
-                <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="primary"
+                        (click)="openInlineTaskDialog()"
+                        pTooltip="Create a new task and add it to this set" tooltipPosition="top"></button>
+                <button *ngIf="newTaskSetType() === 'INTERNAL'" 
+                        pButton label="Load Previous Tasks" icon="pi pi-history" size="small" severity="secondary" [outlined]="true"
+                        styleClass="h-1.85rem text-xs font-semibold px-2"
+                        (click)="loadPreviousTasks()"
+                        [loading]="loadingPreviousTasks()"
+                        pTooltip="Load existing previous tasks" tooltipPosition="top"></button>
+                <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="secondary" [outlined]="true"
                         [disabled]="filteredAvailableTasks().length === 0"
                         styleClass="h-1.85rem text-xs font-semibold px-2.5"
                         (click)="addAllAvailableTasks()"
@@ -835,57 +842,172 @@
   </ng-template>
 </p-drawer>
 
-<!-- Inline Create Task Drawer -->
+<!-- Inline Create Task Drawer (Full Task Master parity) -->
 <p-drawer 
   [(visible)]="showInlineTaskDrawer" 
   position="right"
-  [style]="{ width: '480px' }" 
-  header="Add New Task" 
+  [style]="{ width: '760px', maxWidth: '96vw' }" 
+  [modal]="true"
+  [dismissible]="true"
+  [showCloseIcon]="false"
+  styleClass="task-drawer"
   appendTo="body"
 >
-  <div class="flex flex-column gap-3 px-4 py-3">
-    <div class="field">
-      <app-textarea-field 
-        label="Task Description" 
-        [field]="inlineTaskDescription" 
-        [rows]="4" 
-        [required]="true"
-        placeholder="Enter task detail / checklist responsibility...">
-      </app-textarea-field>
+  <ng-template pTemplate="header">
+    <div class="drawer-header-row">
+      <div class="drawer-title-wrap">
+        <span class="drawer-title-icon">
+          <i class="pi pi-plus-circle"></i>
+        </span>
+        <div>
+          <div class="text-900 font-semibold text-xl">Create &amp; Add Task</div>
+          <div class="text-600 text-sm mt-1">Create a new compliance task and map it directly to this task set</div>
+        </div>
+      </div>
+      <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded" (click)="showInlineTaskDrawer.set(false)"></button>
     </div>
+  </ng-template>
 
-    <div class="field">
-      <app-select-field 
-        label="Priority" 
-        [field]="inlineTaskPriority" 
-        [options]="priorityOptions" 
-        optionLabel="label" 
-        optionValue="value"
-        [required]="true">
-      </app-select-field>
-    </div>
+  <ng-template pTemplate="content">
+    @if (showInlineTaskDrawer()) {
+      <div class="drawer-content-shell">
+        <section class="drawer-section">
+          <div class="section-heading">
+            <span class="section-kicker">Task Details</span>
+            <span class="section-line"></span>
+          </div>
 
-    <div class="field">
-      <app-select-field
-        label="Authority (RBI, NABARD, etc.)"
-        [field]="inlineTaskAuthorityId"
-        [options]="authorities()"
-        optionLabel="name"
-        optionValue="id"
-        filterBy="name"
-        [showClear]="true"
-        [required]="true"
-        placeholder="Select Authority"
-        (onShow)="ensureAuthoritiesLoaded()">
-      </app-select-field>
-    </div>
-  </div>
+          <div class="grid formgrid p-fluid drawer-form-grid">
+            <div class="field col-12" *ngIf="newTaskSetType() === 'REGULAR'">
+              <app-select-field
+                label="Select Circular (Optional)"
+                [field]="inlineTaskCircularId"
+                [options]="circularFilterOptions()"
+                optionLabel="label"
+                optionValue="value"
+                filterBy="label"
+                [filter]="true"
+                [showClear]="true"
+                (onShow)="ensureCircularsLoaded()">
+              </app-select-field>
+            </div>
+
+            <div class="field col-12">
+              <app-select-field
+                label="Task Header"
+                [virtualScroll]="false"
+                [field]="inlineTaskHeaderId"
+                [options]="taskHeaders()"
+                optionLabel="name"
+                optionValue="id"
+                [showAddButton]="true"
+                addTooltip="Add New Header"
+                (add)="showAddHeaderModal = true;">
+              </app-select-field>
+            </div>
+
+            <div class="field col-12">
+              <app-select-field
+                label="Priority"
+                [field]="inlineTaskPriority"
+                [options]="priorityOptions"
+                optionLabel="label"
+                optionValue="value"
+                [virtualScroll]="false">
+              </app-select-field>
+            </div>
+
+            <div class="field col-12">
+              <app-textarea-field
+                label="Description"
+                [field]="inlineTaskDescription"
+                [rows]="5"
+                [autoResize]="true"
+                [required]="true"
+                placeholder="Enter task description">
+              </app-textarea-field>
+            </div>
+
+            <div class="field col-12">
+              <label class="font-semibold text-sm text-gray-700 block mb-2">
+                Attachment (Optional) <span class="text-gray-400 text-xs font-normal">(CSV, Excel, PDF)</span>
+              </label>
+
+              <div *ngIf="inlineTaskFileUrl()" class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
+                <div class="flex align-items-center gap-3 min-width-0 flex-1">
+                  <span class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round" style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
+                    <i class="pi pi-file text-xl"></i>
+                  </span>
+                  <div class="min-width-0 flex-1">
+                    <div class="font-semibold text-900 text-sm" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;" [title]="inlineTaskFileName() || 'Attached File'">
+                      {{ inlineTaskFileName() || 'Attached File' }}
+                    </div>
+                    <a [href]="getFileUrl(inlineTaskFileUrl())" target="_blank" class="text-xs text-indigo-600 hover:underline">View Document</a>
+                  </div>
+                </div>
+                <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded p-button-danger p-button-sm" (click)="removeInlineTaskFile()"></button>
+              </div>
+
+              <p-fileupload
+                *ngIf="!inlineTaskFileUrl()"
+                name="inlineTaskFile"
+                accept=".pdf,.csv,.xlsx,.xls"
+                [multiple]="false"
+                [customUpload]="true"
+                [showUploadButton]="false"
+                [showCancelButton]="false"
+                chooseLabel="Choose File (CSV, Excel, PDF)"
+                chooseIcon="pi pi-upload"
+                styleClass="circular-file-upload"
+                (onSelect)="onInlineTaskFileSelected($event)"
+                (onRemove)="removeInlineTaskFile()"
+                (onClear)="removeInlineTaskFile()">
+                <ng-template pTemplate="file" let-file let-index="index" let-removeFileCallback="removeFileCallback">
+                  <div class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
+                    <div class="flex align-items-center gap-3 min-width-0 flex-1">
+                      <span class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round animate-fadein" style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
+                        <i class="pi pi-file text-xl"></i>
+                      </span>
+                      <div class="min-width-0 flex-1">
+                        <div class="font-semibold text-900 text-sm" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;" [title]="file.name">{{ file.name }}</div>
+                        <div class="text-xs text-600 mt-1" *ngIf="file.size">{{ (file.size / 1024 / 1024).toFixed(3) }} MB</div>
+                      </div>
+                    </div>
+                    <div class="flex align-items-center gap-3 flex-shrink-0">
+                      <span *ngIf="uploadingInlineTaskFile()" class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 border-round">Uploading...</span>
+                      <span *ngIf="!uploadingInlineTaskFile() && inlineTaskFileUrl()" class="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 border-round">Uploaded</span>
+                      <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded p-button-danger p-button-sm" (click)="removeFileCallback($event, index); removeInlineTaskFile()"></button>
+                    </div>
+                  </div>
+                </ng-template>
+              </p-fileupload>
+            </div>
+          </div>
+        </section>
+      </div>
+    }
+  </ng-template>
 
   <ng-template pTemplate="footer">
     <div class="drawer-footer-row">
-      <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="showInlineTaskDrawer.set(false)"></button>
-      <button pButton type="button" label="Add Task" icon="pi pi-plus" [loading]="savingInlineTask()" [disabled]="!isInlineTaskValid() || savingInlineTask()" (click)="saveInlineTask()"></button>
+      <button pButton pRipple type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="showInlineTaskDrawer.set(false)"></button>
+      <button pButton pRipple type="button" label="Create &amp; Add Task" icon="pi pi-check" [loading]="savingInlineTask()" [disabled]="!isInlineTaskValid() || savingInlineTask()" (click)="saveInlineTask()"></button>
     </div>
   </ng-template>
 </p-drawer>
+
+<!-- Quick Add Header Modal in Task Sets -->
+<p-dialog header="Add New Task Header" [(visible)]="showAddHeaderModal" [modal]="true" [style]="{ width: '100%', 'max-width': '30rem', 'margin': '1rem' }">
+  <div class="flex flex-column gap-3 mt-4">
+    <div class="flex flex-column gap-2">
+      <label class="font-medium">Header Name</label>
+      <input type="text" [(ngModel)]="newHeaderName" class="p-inputtext w-full" placeholder="e.g. KYC Compliance">
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" class="p-button-outlined p-button-secondary" (click)="showAddHeaderModal = false"></button>
+    <button pButton type="button" label="Save Header" [disabled]="!newHeaderName.trim()" (click)="quickAddHeader()"></button>
+  </ng-template>
+</p-dialog>
+
 

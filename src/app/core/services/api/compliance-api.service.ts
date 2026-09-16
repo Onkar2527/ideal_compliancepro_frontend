@@ -76,6 +76,8 @@ export interface ComplianceDocument {
   access_level?: 'PUBLIC' | 'PRIVATE' | string;
   created_by_user_id?: number | null;
   created_by_username?: string | null;
+  is_evidence?: boolean;
+  source_type?: 'DOC_MASTER' | 'TASK_EVIDENCE' | string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -545,6 +547,34 @@ export class ComplianceApiService {
 
   deleteHoliday(id: number) {
     return this.http.delete<any>(`${this.baseUrl}/holidays/${id}`);
+  }
+
+  // Evidence Documents Store
+  getEvidenceDocuments(): ComplianceDocument[] {
+    try {
+      const data = localStorage.getItem('compliancepro_uploaded_evidences');
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  saveEvidenceDocuments(evDocs: ComplianceDocument[]): void {
+    try {
+      const existing = this.getEvidenceDocuments();
+      const map = new Map<string, ComplianceDocument>();
+      existing.forEach(d => {
+        if (d.file_url) map.set(d.file_url.toLowerCase().trim(), d);
+        else if (d.id) map.set(String(d.id), d);
+      });
+      evDocs.forEach(d => {
+        if (d.file_url) map.set(d.file_url.toLowerCase().trim(), d);
+        else if (d.id) map.set(String(d.id), d);
+      });
+      localStorage.setItem('compliancepro_uploaded_evidences', JSON.stringify(Array.from(map.values())));
+    } catch (e) {
+      console.warn('Failed to cache evidence documents:', e);
+    }
   }
 
   // Document Master
