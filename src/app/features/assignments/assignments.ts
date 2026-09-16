@@ -719,10 +719,25 @@ export class AssignmentsComponent implements OnInit {
     const day = String(dt.getDate()).padStart(2, '0');
     const formattedTimeline = `${year}-${month}-${day}`;
 
-    const payload = {
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
+    const payload: any = {
       task_set_id: ts.id,
       branch_ids: this.selectedBranchIds,
-      proposed_timeline: formattedTimeline
+      proposed_timeline: formattedTimeline,
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined
     };
 
     this.api.createAssignment(payload).subscribe(() => {

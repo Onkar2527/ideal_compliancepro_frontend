@@ -322,8 +322,29 @@ export class TaskSetsComponent implements OnInit {
     if (!file) return;
     
     this.saving.set(true);
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
     const formData = new FormData();
     formData.append('file', file);
+    if (userId) {
+      formData.append('created_by', String(userId));
+      formData.append('created_by_id', String(userId));
+      formData.append('created_by_user_id', String(userId));
+      formData.append('user_id', String(userId));
+    }
+    if (userRole) {
+      formData.append('created_by_role', userRole);
+      formData.append('creator_role', userRole);
+    }
+    if (userName) {
+      formData.append('created_by_name', userName);
+      formData.append('creator_name', userName);
+      formData.append('created_by_username', userName);
+    }
     
     this.api.bulkUploadTaskSets(formData).subscribe({
       next: (res: any) => {
@@ -368,12 +389,13 @@ export class TaskSetsComponent implements OnInit {
 
   tableColumns: TableColumn[] = [
     { field: 'type', header: 'Type', type: 'badge', width: '100px' },
-    { field: 'circular_title', header: 'Circular / Authority', type: 'text', width: '22%' },
-    { field: 'name', header: 'Task Set Name', type: 'text', width: '20%' },
-    { field: 'branch_names', header: 'Dept/Branch', type: 'text', width: '18%' },
+    { field: 'circular_title', header: 'Circular / Authority', type: 'text', width: '20%' },
+    { field: 'name', header: 'Task Set Name', type: 'text', width: '18%' },
+    { field: 'branch_names', header: 'Dept/Branch', type: 'text', width: '16%' },
+    { field: 'created_by_username', header: 'Created By', type: 'text', width: '120px' },
     { field: 'default_due_date', header: 'Due Date', type: 'date', width: '110px' },
     { field: 'start_date', header: 'Start Date', type: 'date', width: '110px' },
-    { field: 'frequency', header: 'Frequency', type: 'text', width: '120px' },
+    { field: 'frequency', header: 'Frequency', type: 'text', width: '110px' },
     { field: 'created_at', header: 'Created', type: 'date', width: '110px' }
   ];
 
@@ -655,12 +677,26 @@ export class TaskSetsComponent implements OnInit {
 
     this.savingInlineTask.set(true);
     const circularId = this.newTaskSetType() === 'REGULAR' ? (this.newTaskSetCircularId() || undefined) : undefined;
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
 
     const payload: any = {
       description: desc,
       circular_id: circularId,
       priority: priority,
-      authority_id: authorityId
+      authority_id: authorityId,
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined
     };
 
     this.api.createManualTask(payload).subscribe({
@@ -1094,6 +1130,7 @@ export class TaskSetsComponent implements OnInit {
             ? (row.authority_name ? `Authority: ${row.authority_name}` : 'Internal / Operational')
             : (row.circular_title || '-'),
           branch_names: row.branch_names || '—',
+          created_by_username: row.created_by_username || row.created_by_name || row.creator_name || (row.created_by ? `User #${row.created_by}` : '—'),
           frequency: this.frequencyMap[row.frequency] ?? row.frequency
         }));
         this.taskSets.set(mapped);
@@ -1381,14 +1418,26 @@ export class TaskSetsComponent implements OnInit {
     this.saving.set(true);
 
     const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userIdRaw = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userId = (!isNaN(Number(userIdRaw)) && userIdRaw !== null && userIdRaw !== '') ? Number(userIdRaw) : userIdRaw;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
     const payload: any = {
       name: this.newTaskSetName().trim(),
       type: this.newTaskSetType(),
       frequency: freq || undefined,
       start_date: this.formatDate(this.newTaskSetStartDate()),
-      created_by_role: user?.role || undefined,
-      created_by_name: user?.name || user?.username || undefined,
-      created_by_id: user?.id || undefined,
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined,
       // REGULAR-only fields
       circular_id: isRegular ? (this.newTaskSetCircularId() || undefined) : undefined,
       authority_id: undefined,

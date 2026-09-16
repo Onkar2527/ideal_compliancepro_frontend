@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed } from '@angular/core';
+import { Component, input, output, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
@@ -7,6 +7,7 @@ import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { SelectFieldComponent } from '../../../shared/components/form/select-field/select-field.component';
 import { ComplianceApiService } from '../../../core/services/api/compliance-api.service';
+import { AuthService } from '../../../core/services/auth/auth.service';
 
 @Component({
   selector: 'app-bulk-upload',
@@ -58,7 +59,7 @@ export class BulkUploadComponent {
     { label: 'Low', value: 'Low' },
   ];
 
-  constructor(private api: ComplianceApiService, private messageService: MessageService) {}
+  constructor(private api: ComplianceApiService, private messageService: MessageService, private auth: AuthService) {}
 
   /** Called by parent to seed the circularId and reset state */
   open(initialCircularId: number | null) {
@@ -194,25 +195,15 @@ export class BulkUploadComponent {
           summary: this.hasErrors() ? 'Validation Complete with Errors' : 'Validation Successful',
           detail: this.hasErrors() ? 'Please correct invalid rows' : `${valid.length} rows ready`,
         });
-      } catch (err: any) {
+      } catch (e: any) {
         this.validating.set(false);
         this.messageService.add({
           severity: 'error',
-          summary: 'Parser Error',
-          detail: err.message || 'Error parsing CSV file',
+          summary: 'Parse Error',
+          detail: e?.message || 'Failed to parse CSV file',
         });
       }
     };
-
-    reader.onerror = () => {
-      this.validating.set(false);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Reader Error',
-        detail: 'Error reading file content',
-      });
-    };
-
     reader.readAsText(file);
   }
 
@@ -221,7 +212,32 @@ export class BulkUploadComponent {
     if (!this.validRows().length || this.hasErrors()) return;
 
     this.uploading.set(true);
-    this.api.bulkUploadTasks({ rows: this.validRows() }).subscribe({
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
+    const rowsWithCreator = this.validRows().map((r: any) => ({
+      ...r,
+      created_by: userId,
+      created_by_id: userId,
+      created_by_user_id: userId,
+      user_id: userId,
+      created_by_role: userRole,
+      creator_role: userRole,
+      created_by_name: userName,
+      creator_name: userName,
+      created_by_username: userName
+    }));
+
+    this.api.bulkUploadTasks({
+      rows: rowsWithCreator,
+      created_by: userId,
+      created_by_id: userId,
+      created_by_role: userRole,
+      created_by_name: userName
+    }).subscribe({
       next: () => {
         this.uploading.set(false);
         this.visibleChange.emit(false);

@@ -2,6 +2,8 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
@@ -830,22 +832,8 @@ import { InputTextModule } from 'primeng/inputtext';
 
       <!-- ==================== CASE B: Regular Circular Master Flow (CO Review) ==================== -->
       <ng-template #circularReviewFlow>
-        <!-- Already submitted to CO / Under Review banner -->
-        <div *ngIf="assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO'" 
-             style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
-          <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
-          <div style="flex: 1;">
-            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
-              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'Escalated to CCO for Final Review' : 'Compliance Submitted to Compliance Officer' }}
-            </div>
-            <div>
-              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'This assignment has been escalated to CCO. Awaiting CCO review decision.' : 'Your department compliance checklist has been submitted to the Compliance Officer. Awaiting review and approval in CO Review Queue.' }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Rejection / Pending Guidance Alert Banner for Head (when in progress) -->
-        <div *ngIf="assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO' && !allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+        <!-- Rejection / Pending Guidance Alert Banner for Head (when in progress or pending sub-dept review) -->
+        <div *ngIf="!allTasksApprovedByHead() && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO'" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
              [ngClass]="{
                'bg-red-50 border border-red-200 text-red-800': rejectedSubDeptTasksCount() > 0,
                'bg-amber-50 border border-amber-200 text-amber-800': rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0,
@@ -869,7 +857,7 @@ import { InputTextModule } from 'primeng/inputtext';
                 You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can complete the assignment.
               </ng-container>
               <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
-                Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before completing.
+                Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before submitting to CO.
               </ng-container>
               <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
                 Ensure all direct and delegated checklist items are completed before submitting to CO.
@@ -878,32 +866,45 @@ import { InputTextModule } from 'primeng/inputtext';
           </div>
         </div>
 
-        <!-- Submit / Complete Compliance Buttons (Shown only when in IN_PROGRESS or PENDING_RECOMPLIANCE) -->
+        <!-- Ready to Submit to Compliance Officer Banner (When all tasks approved, ready for Head to submit) -->
+        <div *ngIf="allTasksApprovedByHead() && assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO'" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #f0fdf4; border: 1px solid #86efac; color: #166534;">
+          <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              All Compliance Tasks Accepted
+            </div>
+            <div>
+              All checklist items have been reviewed and accepted. Click <strong>"Submit to Compliance Officer"</strong> below to send this compliance checklist to the CO Review Queue for approval.
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit to Compliance Officer Button (Shown when not yet in CO review) -->
         <div *ngIf="assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO'" 
              style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
-          
-          <!-- Complete Compliance Button (Direct Completion) -->
-          <p-button
-            label="Complete Compliance"
-            icon="pi pi-check-circle"
-            severity="success"
-            [disabled]="!allTasksApprovedByHead() || submitting"
-            pTooltip="Complete this department compliance checklist directly (marks as Completed)"
-            [loading]="submitting && lastSubmitAction === 'COMPLETE'"
-            loadingIcon="pi pi-spinner pi-spin"
-            (click)="submitAllCompliance('COMPLETE')" />
-
-          <!-- Submit to Compliance Officer Button -->
           <p-button
             label="Submit to Compliance Officer"
             icon="pi pi-send"
             severity="primary"
-            [outlined]="true"
             [disabled]="!allTasksApprovedByHead() || submitting"
             pTooltip="Submit compliance checklist to CO Review Queue"
             [loading]="submitting && lastSubmitAction === 'SUBMIT_CO'"
             loadingIcon="pi pi-spinner pi-spin"
             (click)="submitAllCompliance('SUBMIT_CO')" />
+        </div>
+
+        <!-- Already submitted to CO banner (When all tasks approved and assignment is in CO Review) -->
+        <div *ngIf="assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO'" 
+             style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
+          <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
+          <div style="flex: 1;">
+            <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
+              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'Escalated to CCO for Final Review' : 'Compliance Submitted to Compliance Officer' }}
+            </div>
+            <div>
+              {{ assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO' ? 'This assignment has been escalated to CCO. Awaiting CCO review decision.' : 'Your department compliance checklist has been submitted to the Compliance Officer. Awaiting review and approval in CO Review Queue.' }}
+            </div>
+          </div>
         </div>
       </ng-template>
     </div>
@@ -1275,9 +1276,9 @@ export class AssignmentDetailsComponent implements OnInit {
 
   loadDepartmentPreviousEvidences() {
     const currentBranchName = (this.branchName() || '').toLowerCase().trim();
-    
+
     this.loadingDeptEvidences = true;
-    
+
     // Collect from current loaded tasks history
     const taskEvidences: any[] = [];
     (this.tasks() || []).forEach(t => {
@@ -1338,7 +1339,7 @@ export class AssignmentDetailsComponent implements OnInit {
     const list = this.deptPreviousEvidences();
     const query = (this.deptEvidenceSearch || '').toLowerCase().trim();
     if (!query) return list;
-    return list.filter(e => 
+    return list.filter(e =>
       (e.name && e.name.toLowerCase().includes(query)) ||
       (e.source && e.source.toLowerCase().includes(query))
     );
@@ -1379,27 +1380,75 @@ export class AssignmentDetailsComponent implements OnInit {
   createdByRole = signal<string>('');
   createdByName = signal<string>('');
 
-  isInternalTaskSet = computed(() => {
-    const type = (this.taskSetType() || '').toUpperCase().trim();
-    const circularRef = (this.circularReferenceNo() || '').trim();
-    const circularTitle = (this.circularTitle() || '').trim();
+  isBranchCreated = computed(() => {
+    const role = (
+      this.createdByRole() ||
+      this.tasks()[0]?.created_by_role ||
+      this.tasks()[0]?.creator_role ||
+      this.tasks()[0]?.task_set_created_by_role ||
+      this.tasks()[0]?.user_role ||
+      ''
+    ).toUpperCase().trim();
 
-    // If explicitly marked INTERNAL, it completes within the department
-    if (type === 'INTERNAL') {
-      return true;
-    }
-
-    // If linked to an actual circular from Circular Master, it must go through CO review
-    const hasValidCircularRef = circularRef && circularRef !== 'N/A' && circularRef !== 'null' && circularRef !== '-';
-    const hasValidCircularTitle = circularTitle && circularTitle !== 'N/A' && circularTitle !== 'null' && circularTitle !== '-';
-
-    if (hasValidCircularRef || hasValidCircularTitle) {
+    // If role is explicitly CO / CCO / ADMIN -> Not branch created (requires CO review)
+    if (['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(role)) {
       return false;
     }
 
-    // When type is REGULAR but no circular exists, or for branch-created task sets -> completes at Head Dept
-    return true;
+    // If role is explicitly BRANCH_USER / DEPARTMENT -> Branch created (Direct Completion)
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'DEPARTMENT_USER', 'USER', 'STAFF'].includes(role)) {
+      return true;
+    }
+
+    const name = (
+      this.createdByName() ||
+      this.tasks()[0]?.created_by_username ||
+      this.tasks()[0]?.created_by_name ||
+      this.tasks()[0]?.creator_name ||
+      this.tasks()[0]?.created_by ||
+      ''
+    ).toLowerCase().trim();
+
+    // If username/name indicates CO or Admin -> Not branch created
+    if (
+      name.startsWith('co_') ||
+      name.startsWith('cco_') ||
+      name.startsWith('co ') ||
+      name.startsWith('cco ') ||
+      name === 'co' ||
+      name === 'cco' ||
+      name === 'admin' ||
+      name.includes('compliance officer') ||
+      name.includes('compliance_officer') ||
+      name.includes('co_it') ||
+      name.includes('co_admin') ||
+      name.includes('co_ops') ||
+      name.includes('compliance')
+    ) {
+      return false;
+    }
+
+    // If name indicates a branch/department user
+    if (
+      name.includes('branch') ||
+      name.includes('department') ||
+      name.includes('branch_user')
+    ) {
+      return true;
+    }
+
+    // Default: if not created by a branch user, it routes to CO/CCO review
+    return false;
   });
+
+  isCOCreated = computed(() => {
+    return !this.isBranchCreated();
+  });
+
+  isInternalTaskSet = computed(() => {
+    return this.isBranchCreated();
+  });
+
   proposedTimeline = signal<string>('');
   frequency = signal<string>('');
   startDate = signal<string>('');
@@ -1478,37 +1527,6 @@ export class AssignmentDetailsComponent implements OnInit {
     return !this.isSubDepartmentUser();
   });
 
-  isBranchCreated = computed(() => {
-    const role = (this.createdByRole() || '').toUpperCase();
-    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER') {
-      return true;
-    }
-    const createdBy = (this.createdByName() || '').toLowerCase();
-    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('it department')) {
-      return true;
-    }
-    const name = (this.taskSetName() || '').toLowerCase();
-    if (name === 'gfg') {
-      return true;
-    }
-    const tasks = this.tasks();
-    if (tasks.length > 0) {
-      const first = tasks[0];
-      const tRole = (first.created_by_role || first.creator_role || first.task_set_created_by_role || '').toUpperCase();
-      if (tRole === 'BRANCH' || tRole === 'BRANCH_USER' || tRole === 'DEPARTMENT' || tRole === 'BRANCH USER') {
-        return true;
-      }
-      const tName = (first.created_by_username || first.created_by_name || '').toLowerCase();
-      if (tName.includes('branch') || tName.includes('dept') || tName.includes('department') || tName.includes('it department')) {
-        return true;
-      }
-    }
-    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      return true;
-    }
-    return false;
-  });
-
   rejectingTaskId = signal<number | null>(null);
   headRejectionRemark = signal<string>('');
 
@@ -1574,7 +1592,7 @@ export class AssignmentDetailsComponent implements OnInit {
     if (!userBId) return false;
     const branches = this.allBranches();
     const bName = (this.branchName() || '').trim().toLowerCase();
-    const targetBranch = branches.find(b => 
+    const targetBranch = branches.find(b =>
       (bName && (b.name || '').trim().toLowerCase() === bName) ||
       (this.tasks().length > 0 && String(b.id) === String(this.tasks()[0].branch_id))
     );
@@ -1593,13 +1611,13 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   completedCount = computed(() => {
-    return this.tasks().filter(t => 
-      t.compliance_status === 'COMPLIED' || 
-      t.compliance_status === 'NOT_COMPLIED' || 
-      t.status === 'COMPLETED' || 
-      !!t.remarks?.trim() || 
-      !!t.temp_remarks?.trim() || 
-      t.has_evidence || 
+    return this.tasks().filter(t =>
+      t.compliance_status === 'COMPLIED' ||
+      t.compliance_status === 'NOT_COMPLIED' ||
+      t.status === 'COMPLETED' ||
+      !!t.remarks?.trim() ||
+      !!t.temp_remarks?.trim() ||
+      t.has_evidence ||
       !!t.evidence_file_name
     ).length;
   });
@@ -1780,9 +1798,19 @@ export class AssignmentDetailsComponent implements OnInit {
   loadTasks() {
     if (this.assignmentId) {
       console.log('Fetching tasks for assignmentId:', this.assignmentId);
-      this.api.getAssignmentTasks(this.assignmentId).subscribe({
-        next: (data) => {
+      forkJoin({
+        data: this.api.getAssignmentTasks(this.assignmentId),
+        taskSets: this.api.getTaskSets().pipe(catchError(() => of([]))),
+        assignments: this.api.getAssignments({ limit: 1000 }).pipe(catchError(() => of({ data: [] }))),
+        branches: this.api.getBranches().pipe(catchError(() => of([])))
+      }).subscribe({
+        next: ({ data, taskSets, assignments, branches }: any) => {
           console.log('API Response data received:', data);
+
+          const taskSetList = taskSets || [];
+          const asgList = assignments?.data || (Array.isArray(assignments) ? assignments : []);
+          const branchList = branches || [];
+          const matchedAsg = asgList.find((a: any) => Number(a.id) === Number(this.assignmentId));
 
           // Map backend tasks to hold temporary form values while preserving unsaved user input
           const currentTasksMap = new Map<number, any>();
@@ -1792,7 +1820,54 @@ export class AssignmentDetailsComponent implements OnInit {
             }
           });
 
-          const mappedTasks = data.map(t => {
+          const firstItem = (data && data.length > 0) ? data[0] : {};
+          const matchedTs = taskSetList.find((s: any) => 
+            (matchedAsg?.task_set_id && Number(s.id) === Number(matchedAsg.task_set_id)) ||
+            (firstItem.task_set_id && Number(s.id) === Number(firstItem.task_set_id)) ||
+            (firstItem.task_set_name && (s.name || '').toLowerCase().trim() === (firstItem.task_set_name || '').toLowerCase().trim()) ||
+            (matchedAsg?.task_set_name && (s.name || '').toLowerCase().trim() === (matchedAsg.task_set_name || '').toLowerCase().trim())
+          );
+
+          const creatorRole = (
+            firstItem.created_by_role ||
+            firstItem.creator_role ||
+            firstItem.task_set_created_by_role ||
+            matchedTs?.created_by_role ||
+            matchedTs?.creator_role ||
+            matchedAsg?.created_by_role ||
+            matchedAsg?.creator_role ||
+            ''
+          );
+
+          const creatorName = (
+            firstItem.created_by_username ||
+            firstItem.created_by_name ||
+            firstItem.creator_name ||
+            firstItem.created_by ||
+            matchedTs?.created_by_name ||
+            matchedTs?.created_by_username ||
+            matchedTs?.creator_name ||
+            matchedAsg?.created_by_name ||
+            matchedAsg?.created_by_username ||
+            ''
+          );
+
+          const tsType = (
+            firstItem.task_set_type ||
+            firstItem.type ||
+            matchedTs?.type ||
+            matchedTs?.task_set_type ||
+            matchedAsg?.type ||
+            matchedAsg?.task_set_type ||
+            'REGULAR'
+          );
+
+          const tsName = firstItem.task_set_name || matchedTs?.name || matchedAsg?.task_set_name || '';
+          const circRef = firstItem.circular_reference_no || matchedTs?.reference_no || matchedTs?.circular_reference_no || matchedAsg?.circular_reference_no || '';
+          const circTitle = firstItem.circular_title || matchedTs?.circular_title || matchedAsg?.circular_title || '';
+          const asgStatus = firstItem.assignment_status || matchedAsg?.status || '';
+
+          const mappedTasks = (data || []).map((t: any) => {
             const rawDate = t.proposed_due_date || t.due_date;
             const existing = currentTasksMap.get(t.assignment_task_id);
 
@@ -1848,15 +1923,19 @@ export class AssignmentDetailsComponent implements OnInit {
             }
 
             const desc = t.description || t.task_description || t.title || 'Compliance Task';
-            const firstItem = data[0] || {};
             return {
               ...t,
-              branch_id: t.branch_id || firstItem.branch_id || firstItem.branchId,
-              branch_name: t.branch_name || firstItem.branch_name || firstItem.branchName,
-              task_set_type: t.task_set_type || t.type || firstItem.task_set_type || firstItem.type || '',
-              type: t.type || t.task_set_type || firstItem.type || firstItem.task_set_type || '',
-              created_by_role: t.created_by_role || t.creator_role || t.task_set_created_by_role || t.user_role || firstItem.created_by_role || firstItem.creator_role || firstItem.task_set_created_by_role || firstItem.user_role || '',
-              created_by_username: t.created_by_username || t.created_by_name || t.creator_name || t.created_by || firstItem.created_by_username || firstItem.created_by_name || firstItem.creator_name || firstItem.created_by || '',
+              assignment_status: t.assignment_status || asgStatus || firstItem.assignment_status,
+              branch_id: t.branch_id || matchedAsg?.branch_id || firstItem.branch_id || firstItem.branchId,
+              branch_name: t.branch_name || matchedAsg?.branch_name || firstItem.branch_name || firstItem.branchName,
+              task_set_name: t.task_set_name || tsName,
+              task_set_type: tsType,
+              type: tsType,
+              created_by_role: creatorRole,
+              created_by_username: creatorName,
+              created_by_name: creatorName,
+              circular_reference_no: t.circular_reference_no || circRef,
+              circular_title: t.circular_title || circTitle,
               description: desc,
               task_description: desc,
               temp_compliance_status: preservedComplianceStatus,
@@ -1875,9 +1954,9 @@ export class AssignmentDetailsComponent implements OnInit {
           // Fetch evidence urls linked to this assignment
           this.api.getAssignmentEvidence(this.assignmentId!).subscribe({
             next: (evidenceList) => {
-              mappedTasks.forEach(task => {
-                const evidences = evidenceList.filter(e => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
-                task.evidence_history = evidences.map(e => {
+              mappedTasks.forEach((task: any) => {
+                const evidences = evidenceList.filter((e: any) => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
+                task.evidence_history = evidences.map((e: any) => {
                   let fileName = 'Evidence Document.pdf';
                   if (e.file_url) {
                     const parts = e.file_url.split('/');
@@ -1919,7 +1998,7 @@ export class AssignmentDetailsComponent implements OnInit {
                 return;
               }
 
-              mappedTasks.forEach(task => {
+              mappedTasks.forEach((task: any) => {
                 this.api.getTaskRemarksHistory(this.assignmentId!, task.assignment_task_id).subscribe({
                   next: (history) => {
                     const historyList = history || [];
@@ -1969,19 +2048,19 @@ export class AssignmentDetailsComponent implements OnInit {
                     completedCount++;
                     if (completedCount === mappedTasks.length) {
                       this.tasks.set(mappedTasks);
-                      if (mappedTasks.some(t => t.review_status === 'NEEDS_REDO')) {
+                      if (mappedTasks.some((t: any) => t.review_status === 'NEEDS_REDO')) {
                         this.subDeptSubmittedSignal.set(false);
                       }
                       this.populateMetadata(mappedTasks);
                       this.groupTasks();
                     }
                   },
-                  error: (err) => {
+                  error: (err: any) => {
                     console.error('Failed to load remarks history for task:', task.assignment_task_id, err);
                     completedCount++;
                     if (completedCount === mappedTasks.length) {
                       this.tasks.set(mappedTasks);
-                      if (mappedTasks.some(t => t.review_status === 'NEEDS_REDO')) {
+                      if (mappedTasks.some((t: any) => t.review_status === 'NEEDS_REDO')) {
                         this.subDeptSubmittedSignal.set(false);
                       }
                       this.populateMetadata(mappedTasks);
@@ -1991,7 +2070,7 @@ export class AssignmentDetailsComponent implements OnInit {
                 });
               });
             },
-            error: (err) => {
+            error: (err: any) => {
               console.error('Failed to load assignment evidence:', err);
               if (mappedTasks.length === 0) {
                 this.loadFallbackFromTaskSet();
@@ -2003,7 +2082,7 @@ export class AssignmentDetailsComponent implements OnInit {
             }
           });
         },
-        error: (err) => {
+        error: (err: any) => {
           console.warn('API Error fetching tasks directly, attempting fallback from task set:', err);
           this.loadFallbackFromTaskSet();
         }
@@ -2028,7 +2107,7 @@ export class AssignmentDetailsComponent implements OnInit {
 
         this.api.getBranches().subscribe({
           next: (branchesList) => {
-            const targetBranchObj = (branchesList || []).find((b: any) => 
+            const targetBranchObj = (branchesList || []).find((b: any) =>
               (qpBranchId && String(b.id) === String(qpBranchId)) ||
               (qpBranchName && (b.name || '').trim().toLowerCase() === qpBranchName.trim().toLowerCase()) ||
               (ts.branch_id && String(b.id) === String(ts.branch_id)) ||
@@ -2118,6 +2197,9 @@ export class AssignmentDetailsComponent implements OnInit {
         task_set_name: ts.name,
         task_set_type: ts.type || ts.task_set_type || 'REGULAR',
         type: ts.type || ts.task_set_type || 'REGULAR',
+        created_by_role: ts.created_by_role || ts.creator_role || '',
+        created_by_username: ts.created_by_username || ts.created_by_name || ts.creator_name || ts.created_by || '',
+        created_by_name: ts.created_by_username || ts.created_by_name || ts.creator_name || ts.created_by || '',
         branch_name: targetBranchName || 'Network Department',
         branch_id: targetBranchObj?.id || ts.branch_id,
         frequency: this.frequencyMap[String(ts.frequency)] || ts.frequency || 'Weekly',
@@ -2144,7 +2226,7 @@ export class AssignmentDetailsComponent implements OnInit {
       this.createdByRole.set(first.created_by_role || first.creator_role || first.task_set_created_by_role || first.user_role || '');
       this.createdByName.set(first.created_by_username || first.created_by_name || first.creator_name || first.created_by || '');
       this.proposedTimeline.set(first.proposed_timeline || '');
-      
+
       if (first.proposed_timeline) {
         this.tempAssignmentTimeline = first.proposed_timeline.split('T')[0];
         this.tempAssignmentTimelineObj = new Date(first.proposed_timeline);
@@ -2185,7 +2267,7 @@ export class AssignmentDetailsComponent implements OnInit {
         this.allBranches.set(branches || []);
         const userBId = this.userBranchId();
 
-        const current = branches.find(b => 
+        const current = branches.find(b =>
           (branchId && String(b.id) === String(branchId)) ||
           ((b.name || '').trim().toLowerCase() === (branchName || '').trim().toLowerCase())
         );
@@ -2404,7 +2486,7 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/pdf' });
-    this.selectedFilesMap.update(map => ({ ...map, [taskId]: renamedFile }));
+    this.selectedFilesMap.update((map: any) => ({ ...map, [taskId]: renamedFile }));
     this.notification.success(`Evidence PDF "${finalName}" selected.`);
     this.stagedFile = null;
     this.displayEvidenceSourceModal = false;
@@ -2416,7 +2498,7 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   removeSelectedFile(assignmentTaskId: number) {
-    this.selectedFilesMap.update(map => {
+    this.selectedFilesMap.update((map: any) => {
       const copy = { ...map };
       delete copy[assignmentTaskId];
       return copy;
@@ -2459,12 +2541,12 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     const taskId = task.assignment_task_id;
-    this.rowSavingMap.update(map => ({ ...map, [taskId]: true }));
+    this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: true }));
 
     const clearRejectionIfAny = () => {
       if (task.review_status === 'NEEDS_REDO') {
         this.api.reviewTaskStatus(this.assignmentId!, taskId, null as any, '').subscribe({
-          next: () => {},
+          next: () => { },
           error: (err) => console.warn('Could not clear review_status flag:', err)
         });
       }
@@ -2507,12 +2589,12 @@ export class AssignmentDetailsComponent implements OnInit {
             next: () => {
               clearRejectionIfAny();
               setTimeout(() => {
-                this.selectedFilesMap.update(map => {
+                this.selectedFilesMap.update((map: any) => {
                   const copy = { ...map };
                   delete copy[taskId];
                   return copy;
                 });
-                this.rowSavingMap.update(map => ({ ...map, [taskId]: false }));
+                this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
                 this.loadTasks();
                 if (showNotification) {
                   this.notification.success('Task compliance and evidence saved successfully!');
@@ -2524,7 +2606,7 @@ export class AssignmentDetailsComponent implements OnInit {
             error: (err) => {
               console.error(err);
               setTimeout(() => {
-                this.rowSavingMap.update(map => ({ ...map, [taskId]: false }));
+                this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
                 this.notification.error('Failed to upload evidence document: ' + (err.message || err.statusText));
                 resolve(false);
               });
@@ -2537,7 +2619,7 @@ export class AssignmentDetailsComponent implements OnInit {
             next: () => {
               clearRejectionIfAny();
               setTimeout(() => {
-                this.rowSavingMap.update(map => ({ ...map, [taskId]: false }));
+                this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
                 this.loadTasks();
                 if (showNotification) {
                   this.notification.success('Task compliance saved successfully!');
@@ -2549,7 +2631,7 @@ export class AssignmentDetailsComponent implements OnInit {
             error: (err) => {
               console.error(err);
               setTimeout(() => {
-                this.rowSavingMap.update(map => ({ ...map, [taskId]: false }));
+                this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
                 this.notification.error('Failed to save task compliance: ' + (err.message || err.statusText));
                 resolve(false);
               });

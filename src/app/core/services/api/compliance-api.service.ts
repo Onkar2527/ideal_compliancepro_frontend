@@ -463,7 +463,7 @@ export class ComplianceApiService {
   }
 
   // Bulk Upload Tasks
-  bulkUploadTasks(data: { rows: any[] }) {
+  bulkUploadTasks(data: { rows: any[]; [key: string]: any }) {
     return this.http.post<any>(`${this.baseUrl}/master-bulk-upload/tasks`, data);
   }
 
@@ -471,8 +471,8 @@ export class ComplianceApiService {
     return this.http.post<{ tasks: string[] }>(`${this.baseUrl}/tasks/extract-from-text`, { text });
   }
 
-  createBulkTasks(circularId: number, tasks: { description: string }[]) {
-    return this.http.post<any>(`${this.baseUrl}/tasks/bulk`, { circular_id: circularId, tasks });
+  createBulkTasks(circularId: number, tasks: any[], extraData?: any) {
+    return this.http.post<any>(`${this.baseUrl}/tasks/bulk`, { circular_id: circularId, tasks, ...(extraData || {}) });
   }
 
   bulkUploadTaskSets(formData: FormData) {

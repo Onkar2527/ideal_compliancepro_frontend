@@ -18,6 +18,7 @@ import { MessageService } from 'primeng/api';
 import { DialogModule } from 'primeng/dialog';
 import { ToastModule } from 'primeng/toast';
 import { ComplianceApiService, Circular } from '../../core/services/api/compliance-api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { APP_CONFIG } from '../../core/services/config/config.token';
 import { ButtonModule } from 'primeng/button';
 import { Textarea } from 'primeng/textarea';
@@ -146,6 +147,7 @@ export class CircularChatComponent implements OnInit, OnDestroy, AfterViewChecke
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private api = inject(ComplianceApiService);
+  private auth = inject(AuthService);
   private http = inject(HttpClient);
   private config: any = inject(APP_CONFIG);
   private messageService = inject(MessageService);
@@ -901,7 +903,39 @@ export class CircularChatComponent implements OnInit, OnDestroy, AfterViewChecke
     if (selected.length === 0) return;
 
     this.savingTasks.set(true);
-    this.api.createBulkTasks(this.circularId, selected.map(s => ({ description: s.description }))).subscribe({
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
+    const tasksPayload = selected.map(s => ({
+      description: s.description,
+      circular_id: this.circularId,
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined
+    }));
+
+    const creatorMeta = {
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined
+    };
+
+    this.api.createBulkTasks(this.circularId, tasksPayload, creatorMeta).subscribe({
       next: () => {
         this.savingTasks.set(false);
         this.showPreviewDialog.set(false);

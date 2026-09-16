@@ -706,7 +706,8 @@ export class TasksComponent implements OnInit {
     { field: 'circular_title', header: 'Circular Title', width: '20%', filterable: true },
     { field: 'authority_name', header: 'Authority', width: '15%', filterable: true },
     { field: 'header_name', header: 'Task Header', width: '15%' },
-    { field: 'description', header: 'Task Description', width: '30%' },
+    { field: 'description', header: 'Task Description', width: '25%' },
+    { field: 'created_by_name', header: 'Created By', width: '12%', filterable: true },
     {
       field: 'status',
       header: 'Status',
@@ -966,6 +967,7 @@ export class TasksComponent implements OnInit {
       next: (res) => {
         const mappedTasks = res.data.map((t: any) => ({
           ...t,
+          created_by_name: t.created_by_username || t.created_by_name || t.creator_name || (t.created_by ? `User #${t.created_by}` : '—'),
           status: t.is_approved ? 'Approved' : 'Pending'
         }));
         this.allTasks.set(mappedTasks);
@@ -1084,6 +1086,12 @@ export class TasksComponent implements OnInit {
     if (!circularId) return;
 
     this.savingManual.set(true);
+    const user = this.auth.currentUser();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
+    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+
     const payload = {
       description: this.manualTaskDescription(),
       circular_id: circularId,
@@ -1093,7 +1101,16 @@ export class TasksComponent implements OnInit {
       business_risk: this.manualTaskBusinessRisk() || undefined,
       control_risk: this.manualTaskControlRisk() || undefined,
       audit_area_id: this.manualTaskAuditAreaId() || undefined,
-      file_url: this.manualTaskFileUrl() || null
+      file_url: this.manualTaskFileUrl() || null,
+      created_by: userId || undefined,
+      created_by_id: userId || undefined,
+      created_by_user_id: userId || undefined,
+      user_id: userId || undefined,
+      created_by_role: userRole || undefined,
+      creator_role: userRole || undefined,
+      created_by_name: userName || undefined,
+      creator_name: userName || undefined,
+      created_by_username: userName || undefined
     };
 
     this.api.createManualTask(payload).subscribe({
