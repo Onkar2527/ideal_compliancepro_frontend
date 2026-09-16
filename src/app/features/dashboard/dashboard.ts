@@ -30,6 +30,11 @@ export class Dashboard implements OnInit {
     return this.auth.currentUser()?.role || '';
   }
 
+  get userDisplayName(): string {
+    const user = this.auth.currentUser();
+    return user?.full_name || user?.username || 'Administrator';
+  }
+
   ngOnInit() {
     this.loading.set(true);
     this.api.getBranches().subscribe({

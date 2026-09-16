@@ -887,42 +887,87 @@ body {
         }
     }
 
+    .task-group-body {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
     .review-progress,
     .decision-summary {
         background: #0f172a !important;
         border-color: #334155 !important;
     }
 
-    .task-group-header {
-        background: #1e293b !important;
+    .task-group-header,
+    .task-group-header-bar {
+        background: linear-gradient(90deg, #1e293b 0%, #334155 100%) !important;
         border-color: #334155 !important;
         color: #f1f5f9 !important;
     }
 
     .question-card {
-        background: #1e293b !important;
+        background: #0f172a !important;
         border-color: #334155 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 
-        &.card-approved {
-            background: rgba(21, 128, 61, 0.1) !important;
+        &.card-approved,
+        &.border-left-green {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            border-left: 4px solid #10b981 !important;
         }
 
-        &.card-needs-redo {
-            background: rgba(217, 119, 6, 0.1) !important;
+        &.card-needs-redo,
+        &.border-left-red {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+            border-left: 4px solid #ef4444 !important;
+        }
+
+        .question-main {
+            border-right-color: #334155 !important;
+            border-bottom-color: #334155 !important;
         }
 
         .question-desc, .task-description {
-            color: #f1f5f9 !important;
+            color: #f8fafc !important;
         }
     }
 
     .branch-remark-box {
-        background: #0f172a !important;
+        background: #1e293b !important;
         border-color: #334155 !important;
-        color: #cbd5e1 !important;
+        color: #e2e8f0 !important;
     }
 
-    .question-number,
+    .co-remark-input,
+    .answer-control,
+    .overall-remark-input {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+    }
+
+    .decision-banner-approved {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.35) !important;
+        border-left: 3px solid #10b981 !important;
+        color: #34d399 !important;
+    }
+
+    .decision-banner-rejected {
+        background: rgba(239, 68, 68, 0.15) !important;
+        border-color: rgba(239, 68, 68, 0.35) !important;
+        border-left: 3px solid #ef4444 !important;
+        color: #f87171 !important;
+    }
+
+    .question-number {
+        background: #2563eb !important;
+        border-color: #3b82f6 !important;
+        color: #ffffff !important;
+    }
+
     .group-count,
     .circular-tag {
         background: #0f172a !important;

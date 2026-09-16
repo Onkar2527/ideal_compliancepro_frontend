@@ -127,6 +127,7 @@ export class CircularsComponent implements OnInit, OnDestroy {
 
   isApplicable = signal<boolean>(true);
   isActive = signal<boolean>(true);
+  loading = signal<boolean>(true);
   editingCircularId = signal<number | null>(null);
   selectedAuthorityFilter = signal<number | null>(null);
   categories = signal<any[]>([]);
@@ -436,10 +437,12 @@ export class CircularsComponent implements OnInit, OnDestroy {
       }
     }
 
+    this.loading.set(true);
     this.api.getCirculars(params).subscribe({
       next: (res) => {
         this.circulars.set(res.data);
         this.totalRecords.set(res.total);
+        this.loading.set(false);
         if (isRefresh) {
           this.messageService.add({ severity: 'info', summary: 'Refreshed', detail: 'Circulars list refreshed', life: 2500 });
         }
@@ -454,7 +457,10 @@ export class CircularsComponent implements OnInit, OnDestroy {
           }, 300);
         }
       },
-      error: (err) => console.error(err)
+      error: (err) => {
+        this.loading.set(false);
+        console.error(err);
+      }
     });
     this.api.getAuthorities().subscribe(data => this.authorities.set(data));
     this.api.getCategories().subscribe(data => this.categories.set(data));

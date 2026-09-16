@@ -1,205 +1,271 @@
 <!-- CO Compliance Officer Dashboard View -->
 <div class="dashboard-hero">
   <div class="hero-left">
-    <div class="hero-tag">Compliance Review</div>
-    <h1>Compliance Officer Dashboard</h1>
-    <p>Review unit timelines, checklists, and overdue compliance items.</p>
+    <div class="hero-tag">
+      <i class="pi pi-shield"></i> Compliance Oversight & Review
+    </div>
+    <h1>Welcome, {{ userDisplayName }}</h1>
+    <p>Review unit submissions, verify regulatory checklist evidence, and track mapped unit performance.</p>
   </div>
-  <div class="hero-right">
-    <span class="role-badge"><i class="pi pi-check-circle"></i> {{ role }}</span>
+  <div class="hero-right flex flex-wrap gap-2">
+    <a routerLink="/co-review" class="hero-action-btn primary-btn">
+      <i class="pi pi-check-circle"></i> CO Review Queue
+      <span class="action-count-badge" *ngIf="reviewPendingCount > 0">{{ reviewPendingCount }}</span>
+    </a>
+    <a routerLink="/task-sets" class="hero-action-btn outline-btn">
+      <i class="pi pi-folder-open"></i> Task Sets Master
+    </a>
+    <a routerLink="/circulars" class="hero-action-btn outline-btn">
+      <i class="pi pi-file-pdf"></i> Circular Master
+    </a>
   </div>
 </div>
 
 <!-- Quick Metrics Grid -->
 <div class="metrics-grid">
-  <div class="metric-card theme-blue cursor-pointer" [routerLink]="['/home']" fragment="branch-performance">
+  <!-- 1. Mapped Units -->
+  <div class="metric-card theme-blue cursor-pointer" [routerLink]="['/dashboard']" fragment="branch-performance">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-sitemap"></i></div>
     <div class="card-details">
       <span class="card-title">Mapped Units</span>
-      <span class="card-value">{{ (stats?.coMetrics?.totalBranches ?? 0) + (stats?.coMetrics?.totalHeadOffice ?? 0) }}</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ totalMappedUnits }}</span>
+        <span class="text-xs text-blue-600 font-semibold">Depts & Branches</span>
+      </div>
     </div>
   </div>
 
-  <div class="metric-card theme-amber cursor-pointer" routerLink="/assignments">
-    <div class="card-glow"></div>
-    <div class="card-icon"><i class="pi pi-calendar-times"></i></div>
-    <div class="card-details">
-      <span class="card-title">Timeline Reviews</span>
-      <span class="card-value">{{ stats?.assignments?.timelineReview ?? 0 }}</span>
-    </div>
-  </div>
-
+  <!-- 2. Checklist Reviews Pending -->
   <div class="metric-card theme-purple cursor-pointer" routerLink="/co-review">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-search"></i></div>
     <div class="card-details">
       <span class="card-title">Checklist Reviews</span>
-      <span class="card-value">{{ stats?.assignments?.reviewPending ?? 0 }}</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ reviewPendingCount }}</span>
+        <span class="badge-rate" [ngClass]="reviewPendingCount > 0 ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'">
+          {{ reviewPendingCount > 0 ? 'Action Required' : 'All Clear' }}
+        </span>
+      </div>
     </div>
   </div>
 
+  <!-- 3. Active in Progress -->
+  <div class="metric-card theme-emerald cursor-pointer" routerLink="/co-review" [queryParams]="{status: 'In_Progress'}">
+    <div class="card-glow"></div>
+    <div class="card-icon"><i class="pi pi-sync"></i></div>
+    <div class="card-details">
+      <span class="card-title">Under Execution</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ inProgressCount }}</span>
+        <span class="text-xs text-emerald-600 font-semibold">In Progress</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Overdue Tasks -->
   <div class="metric-card theme-red cursor-pointer" routerLink="/co-review">
     <div class="card-glow"></div>
-    <div class="card-icon"><i class="pi pi-clock"></i></div>
+    <div class="card-icon"><i class="pi pi-exclamation-triangle"></i></div>
     <div class="card-details">
-      <span class="card-title">Overdue Tasks</span>
-      <span class="card-value">{{ stats?.coMetrics?.totalOverdue ?? 0 }}</span>
+      <span class="card-title">Overdue Items</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ overdueCount }}</span>
+        <span class="text-xs text-red-600 font-semibold" *ngIf="overdueCount > 0">Needs Attention</span>
+        <span class="text-xs text-green-600 font-semibold" *ngIf="overdueCount === 0">Zero Overdue</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Detail Grid -->
+<!-- Detail 2-Column Section -->
 <div class="dashboard-grid-2col">
+  
   <!-- Awaiting Action Queue -->
   <div class="dashboard-panel table-panel">
     <div class="panel-header">
       <div>
         <h3>Awaiting Action Queue</h3>
-        <span class="panel-subtitle">All assignments for review tracking</span>
+        <span class="panel-subtitle">Assignments pending review and sign-off</span>
       </div>
-      <span class="text-xs text-orange-600 font-bold bg-orange-50 border border-orange-200 px-3 py-1 rounded-full flex items-center gap-1"
-            *ngIf="stats?.coMetrics?.awaitingActionQueue?.length > 0">
-        <i class="pi pi-list"></i> {{ stats?.coMetrics?.awaitingActionQueue?.length }} Total
-      </span>
+      <a routerLink="/co-review" class="text-primary hover:underline text-sm font-semibold flex align-items-center gap-1">
+        View All <i class="pi pi-arrow-right" style="font-size: 0.75rem;"></i>
+      </a>
     </div>
-    <div class="panel-body">
+
+    <div class="panel-body" style="padding-top: 0.5rem;">
       <div *ngIf="stats?.coMetrics?.awaitingActionQueue?.length > 0; else noActionQueue"
-           style="max-height: 320px; overflow-y: auto; overflow-x: auto;">
-        <table class="dashboard-table w-full">
-          <thead style="position: sticky; top: 0; z-index: 1; background: var(--surface-card, #fff);">
-            <tr>
-              <th>Branch / Dept</th>
-              <th>Task Set</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of stats?.coMetrics?.awaitingActionQueue">
-              <td class="font-bold text-gray-900">{{ item.branch_name }}</td>
-              <td>{{ item.task_set_name }}</td>
-              <td class="font-semibold text-gray-600">{{ item.proposed_timeline | date:'dd/MM/yyyy' }}</td>
-              <td>
-                <span class="text-xs font-bold px-2 py-0.5 rounded"
+           class="action-queue-list">
+        <div *ngFor="let item of stats?.coMetrics?.awaitingActionQueue" class="queue-item-card" [routerLink]="['/co-review', item.assignment_id]">
+          <div class="queue-item-icon">
+            <i class="pi pi-shield"></i>
+          </div>
+
+          <div class="queue-item-info">
+            <span class="queue-item-title">{{ item.task_set_name }}</span>
+            <div class="queue-item-meta">
+              <span class="meta-item"><i class="pi pi-building"></i> {{ item.branch_name }}</span>
+              <span class="meta-item" *ngIf="item.proposed_timeline"><i class="pi pi-calendar"></i> Due {{ item.proposed_timeline | date:'dd MMM yyyy' }}</span>
+            </div>
+          </div>
+
+          <div class="queue-item-action">
+            <span class="status-chip"
                   [ngClass]="{
-                    'text-green-700 bg-green-50': item.status === 'COMPLETED',
-                    'text-purple-700 bg-purple-50': item.status === 'REVIEW_PENDING',
-                    'text-amber-700 bg-amber-50': item.status === 'TIMELINE_REVIEW',
-                    'text-red-700 bg-red-50': item.status === 'ESCALATED_TO_CCO',
-                    'text-blue-700 bg-blue-50': item.status === 'IN_PROGRESS',
-                    'text-gray-600 bg-gray-100': !['COMPLETED','REVIEW_PENDING','TIMELINE_REVIEW','ESCALATED_TO_CCO','IN_PROGRESS'].includes(item.status)
+                    'chip-completed': item.status === 'COMPLETED',
+                    'chip-review': item.status === 'REVIEW_PENDING',
+                    'chip-timeline': item.status === 'TIMELINE_REVIEW',
+                    'chip-escalated': item.status === 'ESCALATED_TO_CCO',
+                    'chip-progress': item.status === 'IN_PROGRESS' || item.status === 'In_Progress'
                   }">
-                  {{ item.status | titlecase }}
-                </span>
-              </td>
-              <td>
-                <a [routerLink]="['/co-review', item.assignment_id]"
-                   class="text-indigo-600 hover:text-indigo-900 font-bold text-sm flex items-center gap-1 cursor-pointer">
-                  <i class="pi pi-chevron-right"></i> View
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              {{ (item.status === 'REVIEW_PENDING' ? 'Review Ready' : item.status) | titlecase }}
+            </span>
+            <button class="review-btn">
+              Review <i class="pi pi-arrow-right" style="font-size: 0.7rem;"></i>
+            </button>
+          </div>
+        </div>
       </div>
+
       <ng-template #noActionQueue>
-        <div class="text-center py-6 text-gray-400 font-medium">No assignments found.</div>
+        <div class="empty-feed text-center py-6">
+          <div class="empty-icon-box">
+            <i class="pi pi-check-circle" style="color: #10b981;"></i>
+          </div>
+          <p class="font-bold text-gray-700 mt-2 mb-1">Queue is Clear!</p>
+          <span class="text-xs text-gray-500">No submissions currently awaiting CO action.</span>
+        </div>
       </ng-template>
     </div>
   </div>
-
 
   <!-- Recent Regulatory Circulars -->
   <div class="dashboard-panel">
     <div class="panel-header">
       <div>
         <h3>Recent Regulatory Circulars</h3>
-        <span class="panel-subtitle">Latest incoming guidelines to map/assign</span>
+        <span class="panel-subtitle">Latest regulatory circulars and compliance mandates</span>
       </div>
-      <a routerLink="/circulars" class="text-primary hover:underline text-sm font-medium">View All →</a>
+      <a routerLink="/circulars" class="text-primary hover:underline text-sm font-semibold flex align-items-center gap-1">
+        View All <i class="pi pi-arrow-right" style="font-size: 0.75rem;"></i>
+      </a>
     </div>
-    <div class="panel-body">
+
+    <div class="panel-body" style="padding-top: 0.5rem;">
       <div class="progress-list" *ngIf="stats?.recentCirculars?.length > 0; else noCircularsCO">
         <ng-container *ngFor="let c of stats.recentCirculars">
-          <a *ngIf="c.pdf_url; else noPdfCO" [href]="getFileUrl(c.pdf_url)" target="_blank" class="progress-item circular-item-link" style="border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; flex-direction: row; gap: 0.75rem; text-decoration: none; cursor: pointer; transition: all 0.2s;">
-            <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background-color: #fee2e2; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-              <i class="pi pi-file-pdf" style="color: #ef4444; font-size: 1.1rem;"></i>
+          <a *ngIf="c.pdf_url; else noPdfCO" [href]="getFileUrl(c.pdf_url)" target="_blank" class="circular-card">
+            <div class="circular-icon">
+              <i class="pi pi-file-pdf"></i>
             </div>
-            <div style="flex: 1; min-width: 0;">
-              <span class="font-semibold text-gray-900 block" style="font-size: 0.9rem; line-height: 1.4; white-space: normal; color: var(--text-color);">{{ c.title }}</span>
-              <span class="text-xs text-gray-500 block mt-1">{{ c.authority_name }} · {{ c.published_date | date:'mediumDate' }}</span>
-            </div>
-          </a>
-          <ng-template #noPdfCO>
-            <div class="progress-item" style="border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; flex-direction: row; gap: 0.75rem;">
-              <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i class="pi pi-file-pdf" style="color: #9ca3af; font-size: 1.1rem;"></i>
+            <div class="circular-info">
+              <span class="circular-title">{{ c.title }}</span>
+              <div class="circular-meta">
+                <span class="authority-badge" *ngIf="c.authority_name">{{ c.authority_name }}</span>
+                <span class="meta-date">{{ c.published_date | date:'dd MMM yyyy' }}</span>
               </div>
-              <div style="flex: 1; min-width: 0;">
-                <span class="font-semibold text-gray-900 block" style="font-size: 0.9rem; line-height: 1.4; white-space: normal; color: var(--text-color);">{{ c.title }}</span>
-                <span class="text-xs text-gray-500 block mt-1">{{ c.authority_name }} · {{ c.published_date | date:'mediumDate' }}</span>
+            </div>
+            <i class="pi pi-external-link text-gray-400" style="font-size: 0.85rem;"></i>
+          </a>
+
+          <ng-template #noPdfCO>
+            <div class="circular-card">
+              <div class="circular-icon no-pdf">
+                <i class="pi pi-file"></i>
+              </div>
+              <div class="circular-info">
+                <span class="circular-title">{{ c.title }}</span>
+                <div class="circular-meta">
+                  <span class="authority-badge" *ngIf="c.authority_name">{{ c.authority_name }}</span>
+                  <span class="meta-date">{{ c.published_date | date:'dd MMM yyyy' }}</span>
+                </div>
               </div>
             </div>
           </ng-template>
         </ng-container>
       </div>
+
       <ng-template #noCircularsCO>
-        <div class="text-center py-6 text-gray-400 font-medium">No recent circulars found.</div>
+        <div class="empty-feed text-center py-6">
+          <div class="empty-icon-box">
+            <i class="pi pi-inbox"></i>
+          </div>
+          <p class="font-bold text-gray-700 mt-2 mb-1">No Recent Circulars</p>
+          <span class="text-xs text-gray-500">No new guidelines ingested recently.</span>
+        </div>
       </ng-template>
     </div>
   </div>
+
 </div>
 
-<!-- Mapped Units performance -->
+<!-- Mapped Units Performance Matrix -->
 <div class="dashboard-panel margin-top-2rem" id="branch-performance">
   <div class="panel-header">
-    <h3>Branch / Department Compliance Progress</h3>
-    <span class="panel-subtitle">Overview of total, active, completed and overdue checklists across mapped units</span>
+    <div>
+      <h3>Branch / Department Compliance Progress</h3>
+      <span class="panel-subtitle">Performance breakdown across all mapped operational units</span>
+    </div>
+    <div class="flex align-items-center gap-2">
+      <span class="badge-rate bg-blue-50 text-blue-700 border border-blue-200">
+        {{ stats?.coMetrics?.branchReports?.length || 0 }} Units Monitored
+      </span>
+    </div>
   </div>
+
   <div class="panel-body">
     <div class="overflow-x-auto w-full">
       <table class="dashboard-table w-full">
         <thead>
           <tr>
-            <th style="width: 60px;">Sr. No.</th>
+            <th style="width: 50px;" class="text-center">Sr.</th>
             <th>Branch / Department</th>
-            <th class="text-center">Total Assigned</th>
-            <th class="text-center">Active (In Progress)</th>
+            <th class="text-center">Total Checklists</th>
+            <th class="text-center">In Progress</th>
             <th class="text-center">Review Pending</th>
             <th class="text-center">Completed</th>
             <th class="text-center">Overdue</th>
+            <th style="width: 150px;">Progress</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let br of stats?.coMetrics?.branchReports; let i = index">
             <td class="text-center text-gray-500 font-semibold">{{ i + 1 }}</td>
             <td>
-              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name }" class="font-bold text-primary block text-base no-underline hover:underline cursor-pointer">{{ br.name }}</a>
-              <span class="text-xs text-gray-400 font-medium uppercase">{{ br.type }}</span>
+              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name }" class="font-bold text-gray-900 block text-sm no-underline hover:text-primary cursor-pointer">{{ br.name }}</a>
+              <span class="unit-type-tag">{{ br.type }}</span>
             </td>
-            <td class="text-center text-gray-800 font-semibold">
+            <td class="text-center font-bold text-gray-800">
               <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name }" class="text-gray-800 no-underline hover:underline cursor-pointer">{{ br.total_assignments }}</a>
             </td>
             <td class="text-center">
-              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'In_Progress' }" class="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-blue-100 no-underline inline-block transition-colors">{{ br.active_assignments }}</a>
+              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'In_Progress' }" class="metric-pill pill-blue">{{ br.active_assignments }}</a>
             </td>
             <td class="text-center">
-              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'REVIEW_PENDING' }" class="text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-purple-100 no-underline inline-block transition-colors">{{ br.review_pending_assignments }}</a>
+              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'REVIEW_PENDING' }" class="metric-pill pill-purple">{{ br.review_pending_assignments }}</a>
             </td>
             <td class="text-center">
-              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'COMPLETED' }" class="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-green-100 no-underline inline-block transition-colors">{{ br.completed_assignments }}</a>
+              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name, status: 'COMPLETED' }" class="metric-pill pill-green">{{ br.completed_assignments }}</a>
             </td>
             <td class="text-center">
-              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name }" class="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded text-xs cursor-pointer hover:bg-red-200 no-underline inline-block transition-colors" [class.bg-red-100]="br.overdue_assignments > 0">{{ br.overdue_assignments }}</a>
+              <a [routerLink]="['/co-review']" [queryParams]="{ branch: br.name }" class="metric-pill pill-red" [class.has-overdue]="br.overdue_assignments > 0">{{ br.overdue_assignments }}</a>
+            </td>
+            <td>
+              <div class="unit-progress-box">
+                <div class="unit-progress-bar">
+                  <div class="unit-progress-fill" [style.width.%]="getBranchCompliancePercent(br)"></div>
+                </div>
+                <span class="unit-progress-text">{{ getBranchCompliancePercent(br) }}%</span>
+              </div>
             </td>
           </tr>
           <tr *ngIf="stats?.coMetrics?.branchReports?.length === 0">
-            <td colspan="7" class="text-center py-6 text-gray-400 font-medium">No mapped branches/departments assigned to you yet.</td>
+            <td colspan="8" class="text-center py-6 text-gray-400 font-medium">No mapped branches/departments assigned to you yet.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 </div>
+

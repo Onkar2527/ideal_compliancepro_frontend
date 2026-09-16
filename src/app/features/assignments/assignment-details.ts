@@ -15,56 +15,68 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 
 @Component({
   selector: 'app-assignment-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, SelectModule, Textarea, TagModule, TooltipModule, DatePickerModule, DialogModule, InputTextModule],
+  imports: [CommonModule, FormsModule, ButtonModule, SelectModule, Textarea, TagModule, TooltipModule, DatePickerModule, DialogModule, InputTextModule, ConfirmDialogModule],
+  providers: [ConfirmationService],
   styleUrls: ['../../shared/styles/checklist-shared.css'],
   template: `
     <!-- Compact Premium Dashboard Header -->
-    <div class="glass-panel mb-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm flex flex-wrap justify-between items-center gap-4" 
-         style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem;">
+    <div class="review-header-card mb-4" 
+         style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem 1.25rem;">
       
       <!-- Left: Scope & Period -->
       <div class="flex-column gap-1" style="flex: 1.2; min-width: 250px;">
-        <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">
+        <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span class="dept-pill-badge">
             {{ branchName() }}
           </span>
-          <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded uppercase">
+          <span class="dept-pill-badge" *ngIf="isSubDepartmentUser() && userBranchName()" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3);">
+            <i class="pi pi-users" style="font-size: 0.7rem;"></i> {{ userBranchName() }}
+          </span>
+          <span class="freq-pill-badge">
             Freq: {{ frequency() || 'ONCE' }}
           </span>
+          <span *ngIf="isBranchCreated()" style="background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <i class="pi pi-building" style="font-size: 0.68rem;"></i> Branch Created
+          </span>
+          <span *ngIf="!isBranchCreated()" style="background: rgba(59, 130, 246, 0.12); color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
+            <i class="pi pi-shield" style="font-size: 0.68rem;"></i> CO Created
+          </span>
         </div>
-        <h1 class="text-lg font-bold text-gray-900 m-0 mt-1" style="margin-top: 0.15rem;">{{ taskSetName() }}</h1>
-        <span class="text-xs text-gray-500 font-medium" *ngIf="startDate() && endDate()">
+        <h1 class="text-lg font-bold m-0 mt-1" style="margin-top: 0.25rem; color: var(--text-color, #1e293b); font-size: 1.2rem; line-height: 1.3;">{{ taskSetName() }}</h1>
+        <span class="text-xs font-medium" *ngIf="startDate() && endDate()" style="color: var(--text-color-secondary, #64748b); font-size: 0.75rem;">
           Period: {{ startDate() | date:'dd/MM/yyyy' }} to {{ endDate() | date:'dd/MM/yyyy' }}
         </span>
       </div>
 
       <!-- Middle: Circular Ref & Due Date -->
-      <div class="flex-column gap-1" style="flex: 1.5; min-width: 280px; border-left: 1px solid #f3f4f6; padding-left: 1rem;">
-        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block" style="font-size: 0.75rem;">Circular Details</span>
-        <p class="text-sm font-bold text-gray-900 m-0 truncate max-w-md" [title]="circularTitle()" style="font-size: 0.95rem; line-height: 1.35;">
+      <div class="flex-column gap-1" style="flex: 1.5; min-width: 280px; border-left: 1px solid var(--surface-border, #e2e8f0); padding-left: 1rem;">
+        <span class="text-xs font-bold uppercase tracking-wider block" style="font-size: 0.725rem; color: var(--text-color-secondary, #64748b);">Circular Details</span>
+        <p class="text-sm font-bold m-0 truncate max-w-md" [title]="circularTitle()" style="font-size: 0.92rem; line-height: 1.35; color: var(--text-color, #1e293b);">
           {{ circularTitle() }}
         </p>
-        <div class="flex items-center gap-2 mt-1" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
-          <span class="text-xs font-semibold text-gray-700 bg-gray-50 border px-2 py-0.5 rounded" style="font-size: 0.8rem;">
+        <div class="flex items-center gap-2 mt-1" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; flex-wrap: wrap;">
+          <span class="meta-chip-badge">
             Ref: {{ circularReferenceNo() || 'N/A' }}
           </span>
-          <span class="text-xs font-semibold text-gray-700 bg-gray-50 border px-2 py-0.5 rounded" style="font-size: 0.8rem;">
+          <span class="meta-chip-badge">
             Auth: {{ authorityName() || 'N/A' }}
           </span>
           
           <!-- Editable main assignment due date in planning phase -->
           <div *ngIf="canEditTimeline(); else viewDueDate" class="flex items-center gap-1">
-            <span class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-1 rounded" style="font-size: 0.8rem;">
+            <span class="due-date-pill">
               <i class="pi pi-calendar"></i> Suggest Assignment Due:
             </span>
             <p-datepicker [(ngModel)]="tempAssignmentTimelineObj" (ngModelChange)="tempAssignmentTimeline = formatDateForBackend($event)" dateFormat="dd-mm-yy" appendTo="body" styleClass="w-32" [inputStyleClass]="'p-1 border rounded text-xs font-semibold'"></p-datepicker>
           </div>
           <ng-template #viewDueDate>
-            <span class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1" style="font-size: 0.8rem;">
+            <span class="due-date-pill">
               <i class="pi pi-calendar-times"></i> Due: {{ proposedTimeline() | date:'dd-MM-yyyy' }}
             </span>
           </ng-template>
@@ -72,27 +84,20 @@ import { InputTextModule } from 'primeng/inputtext';
       </div>
 
       <!-- Right: Progress, Status & Back Button -->
-      <div class="flex items-center justify-content-between gap-4" style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-width: 320px; border-left: 1px solid #f3f4f6; padding-left: 1.5rem; flex: 1.2;">
+      <div class="flex items-center justify-content-between gap-4" style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-width: 320px; border-left: 1px solid var(--surface-border, #e2e8f0); padding-left: 1.5rem; flex: 1.2;">
         <div class="flex-column items-start" style="display: flex; flex-direction: column; align-items: flex-start; flex: 1;">
-          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-0.5" style="font-size: 0.75rem;">Status & Progress</span>
+          <span class="text-xs font-bold uppercase tracking-wider block mb-0.5" style="font-size: 0.725rem; color: var(--text-color-secondary, #64748b);">Status & Progress</span>
           <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider"
-                  [ngClass]="{
-                    'bg-yellow-100 text-yellow-800': assignmentStatus().toUpperCase() === 'PENDING_TIMELINE' || assignmentStatus().toUpperCase() === 'TIMELINE_REVIEW',
-                    'bg-indigo-100 text-indigo-800': assignmentStatus().toUpperCase() === 'IN_PROGRESS' || assignmentStatus().toUpperCase() === 'PENDING_RECOMPLIANCE',
-                    'bg-orange-100 text-orange-800': assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO',
-                    'bg-green-100 text-green-800': assignmentStatus().toUpperCase() === 'COMPLETED',
-                    'bg-red-100 text-red-800': assignmentStatus().toUpperCase() === 'REJECTED'
-                  }" style="font-size: 0.8rem; padding: 0.15rem 0.5rem;">
-              {{ assignmentStatus() }}
-            </span>
-            <span class="text-xs font-bold text-indigo-600">
-              {{ completedCount() }}/{{ tasks().length }}
+            <p-tag [value]="assignmentStatus()" 
+                   [severity]="assignmentStatus().toUpperCase() === 'COMPLETED' ? 'success' : (assignmentStatus().toUpperCase() === 'REJECTED' ? 'danger' : (assignmentStatus().toUpperCase().includes('PENDING') ? 'warn' : 'info'))" 
+                   [rounded]="true" />
+            <span class="text-xs font-bold" style="color: var(--primary-color, #2563eb); font-size: 0.82rem;">
+              {{ completedCount() }}/{{ isSubDepartmentUser() ? visibleTasks().length : tasks().length }}
               {{ (assignmentStatus().toUpperCase() === 'PENDING_TIMELINE' || assignmentStatus().toUpperCase() === 'TIMELINE_REVIEW') ? 'Dates Set' : 'Done' }}
             </span>
           </div>
-          <div class="w-24 bg-gray-100 rounded-full h-1 overflow-hidden mt-1" style="width: 5rem; margin-top: 0.25rem;">
-            <div class="bg-indigo-600 h-1 rounded-full transition-all duration-300" [style.width.%]="progressPercentage()"></div>
+          <div class="w-24 rounded-full h-1 overflow-hidden mt-1" style="width: 5rem; margin-top: 0.25rem; background: var(--surface-border, #e2e8f0);">
+            <div class="h-1 rounded-full transition-all duration-300" style="background: #3b82f6;" [style.width.%]="progressPercentage()"></div>
           </div>
         </div>
         
@@ -100,14 +105,14 @@ import { InputTextModule } from 'primeng/inputtext';
       </div>
     </div>
 
-    <!-- Reviewer Viewing Branch Created Task Banner (View-Only Mode) -->
-    <div *ngIf="isReviewer() && isBranchCreated()" 
+    <!-- Reviewer Viewing Internal / Branch-Created Task Banner (View-Only Mode) -->
+    <div *ngIf="isReviewer() && (isInternalTaskSet() || isBranchCreated())" 
          style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1.5px solid #86efac; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 0.6rem;">
         <i class="pi pi-info-circle" style="color: #16a34a; font-size: 1.25rem;"></i>
         <div>
-          <span style="font-size: 0.85rem; font-weight: 700; color: #14532d; display: block;">Branch / Department Task Set — View-Only Mode</span>
-          <span style="font-size: 0.75rem; color: #166534;">Created by Branch / Department ({{ createdByName() || 'Branch User' }}). Compliance is executed and approved directly within the department.</span>
+          <span style="font-size: 0.85rem; font-weight: 700; color: #14532d; display: block;">Department / Branch Task Set — View-Only Tracking Mode</span>
+          <span style="font-size: 0.75rem; color: #166534;">Department compliance checklist. Compliance is executed and completed directly within the department without requiring CO review.</span>
         </div>
       </div>
       <span style="font-size: 0.72rem; font-weight: 700; color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
@@ -132,20 +137,20 @@ import { InputTextModule } from 'primeng/inputtext';
 
     <!-- Bulk Assign All Tasks Bar (Visible to Head Department) -->
     <div *ngIf="availableSubDepts().length > 1 && isHeadDepartmentUser() && !isReviewer() && assignmentStatus() !== 'COMPLETED'" 
-         style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #0f2942; border-radius: 10px; margin-top: 0.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,41,66,0.04);">
+         style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; background: var(--surface-card, #ffffff); border: 1px solid var(--surface-border, #cbd5e1); border-left: 4px solid var(--primary-color, #0f2942); border-radius: 10px; margin-top: 0.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,41,66,0.04);">
       
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background: #0f2942; color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 1px 3px rgba(15,41,66,0.25);">
+        <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background: var(--primary-color, #0f2942); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 1px 3px rgba(15,41,66,0.25);">
           <i class="pi pi-sitemap"></i>
         </div>
         <div>
-          <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: #0f2942;">Bulk Assign All Tasks</h3>
-          <span style="font-size: 0.725rem; color: #64748b; font-weight: 500;">Assign all {{ tasks().length }} tasks in this checklist to a sub-department or self-compliance in one click</span>
+          <h3 style="margin: 0; font-size: 0.9rem; font-weight: 800; color: var(--text-color, #0f2942);">Bulk Assign All Tasks</h3>
+          <span style="font-size: 0.725rem; color: var(--text-color-secondary, #64748b); font-weight: 500;">Assign all {{ tasks().length }} tasks in this checklist to a sub-department or self-compliance in one click</span>
         </div>
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-        <span style="font-size: 0.75rem; font-weight: 700; color: #0f2942;">Assign All To:</span>
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-color, #0f2942);">Assign All To:</span>
         <p-select 
           [options]="availableSubDepts()" 
           [(ngModel)]="bulkSelectedSubDeptId" 
@@ -184,18 +189,20 @@ import { InputTextModule } from 'primeng/inputtext';
           </span>
         </div>
 
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; padding: 1rem 1rem 0.5rem 1rem; display: flex; flex-direction: column; gap: 0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div class="task-group-body">
           <div *ngFor="let t of group.tasks; trackBy: trackByTaskId; let i = index" 
                class="question-card"
                [ngClass]="{
-                 'border-left-green': t.status === 'COMPLETED' && t.compliance_status === 'COMPLIED',
-                 'border-left-red': t.status === 'COMPLETED' && t.compliance_status === 'NOT_COMPLIED',
-                 'border-left-yellow': t.status === 'PENDING'
+                 'card-approved': t.review_status === 'APPROVED',
+                 'card-needs-redo': t.review_status === 'NEEDS_REDO',
+                 'border-left-green': (!t.review_status && t.status === 'COMPLETED' && t.compliance_status === 'COMPLIED'),
+                 'border-left-red': (!t.review_status && t.status === 'COMPLETED' && t.compliance_status === 'NOT_COMPLIED'),
+                 'border-left-yellow': (!t.review_status && t.status === 'PENDING')
                }"
                style="margin-bottom: 0.75rem;">
             
             <!-- Left Column: Serial Number & Task Info -->
-            <div class="question-main" style="padding: 1.1rem; border-right: 1px solid #f1f5f9; display: flex; gap: 0.85rem; align-items: flex-start;">
+            <div class="question-main" style="padding: 1.1rem; border-right: 1px solid var(--surface-border, #f1f5f9); display: flex; gap: 0.85rem; align-items: flex-start;">
               <div class="question-number">
                 {{ i + 1 }}
               </div>
@@ -204,32 +211,32 @@ import { InputTextModule } from 'primeng/inputtext';
                 <!-- Top Tags Bar -->
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
                   <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block" style="font-size: 0.65rem; letter-spacing: 0.05em;" *ngIf="t.circular_title">
+                    <span class="circular-ref-tag" *ngIf="t.circular_title" style="color: #93c5fd; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;">
                       {{ t.circular_title }}
                     </span>
-                    <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                      <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #047857;"></i> Accepted
+                    <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                      <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #10b981;"></i> Accepted
                     </span>
-                    <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                       <i class="pi pi-times-circle" style="font-size: 0.65rem;"></i> Rejected
                     </span>
-                    <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                       <i class="pi pi-exclamation-triangle" style="font-size: 0.65rem;"></i> Escalated to CCO
                     </span>
                   </div>
                 </div>
 
                 <!-- Task Description -->
-                <p class="font-semibold text-gray-800 m-0" style="line-height: 1.45; font-size: 0.92rem; color: #0f172a; margin-top: 0.2rem;">
+                <p class="task-description">
                   {{ t.description || t.task_description || t.title }}
                 </p>
 
                 <!-- Task Attachment Download Link -->
                 <div *ngIf="t.file_url" style="margin-top: 0.35rem;">
-                  <a [href]="getFileUrl(t.file_url)" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-800 hover:bg-slate-200 rounded-md text-xs font-semibold border border-slate-300 no-underline transition-colors" title="Download Task Attachment" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background-color: #f1f5f9; color: #0f2942; border: 1px solid #cbd5e1; border-radius: 6px; text-decoration: none; font-size: 0.75rem; font-weight: 700;">
-                    <i class="pi pi-file text-slate-600"></i>
+                  <a [href]="getFileUrl(t.file_url)" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold no-underline transition-colors" title="Download Task Attachment" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background-color: var(--surface-hover, #f1f5f9); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; text-decoration: none; font-size: 0.75rem; font-weight: 700;">
+                    <i class="pi pi-file" style="color: var(--primary-color, #4f46e5);"></i>
                     <span>Attached Task Document</span>
-                    <i class="pi pi-download text-xs text-slate-500" style="margin-left: 0.25rem;"></i>
+                    <i class="pi pi-download text-xs" style="margin-left: 0.25rem; color: var(--text-color-secondary, #94a3b8);"></i>
                   </a>
                 </div>
               </div>
@@ -243,14 +250,14 @@ import { InputTextModule } from 'primeng/inputtext';
                 <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%; min-width: 0; box-sizing: border-box;">
                   
                   <!-- Timeline Header with Mode / Assignee (Single Line matching Topbar) -->
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; box-sizing: border-box; min-width: 0;">
-                    <label class="control-label font-bold text-gray-700 m-0" style="font-size: 0.72rem; white-space: nowrap; flex-shrink: 0;">{{ getTimelineLabel() }}</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding-bottom: 0.45rem; border-bottom: 1px solid var(--surface-border, #e2e8f0); box-sizing: border-box; min-width: 0;">
+                    <label class="control-label font-bold m-0" style="font-size: 0.72rem; white-space: nowrap; flex-shrink: 0; color: var(--text-color-secondary, #475569);">{{ getTimelineLabel() }}</label>
 
                     <!-- Sub-Department Delegation Control (Shown ONLY to Head Department / Admin) -->
                     <div *ngIf="availableSubDepts().length > 1 && isHeadDepartmentUser() && !isReviewer() && assignmentStatus() !== 'COMPLETED'" 
                          style="display: flex; align-items: center; gap: 0.35rem; flex: 1; min-width: 0; justify-content: flex-end;">
-                      <span style="font-size: 0.7rem; font-weight: 700; color: #475569; display: inline-flex; align-items: center; gap: 0.2rem; white-space: nowrap; flex-shrink: 0;">
-                        <i class="pi pi-sitemap" style="color: #0f2942; font-size: 0.72rem;"></i> Assignee:
+                      <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-color-secondary, #475569); display: inline-flex; align-items: center; gap: 0.2rem; white-space: nowrap; flex-shrink: 0;">
+                        <i class="pi pi-sitemap" style="color: var(--primary-color, #0f2942); font-size: 0.72rem;"></i> Assignee:
                       </span>
                       <div style="flex: 1; min-width: 0; max-width: 200px;">
                         <p-select 
@@ -269,27 +276,27 @@ import { InputTextModule } from 'primeng/inputtext';
 
                     <!-- For Sub-Department User: Badge display of assignee -->
                     <div *ngIf="isSubDepartmentUser() && t.sub_dept_name" style="white-space: nowrap; flex-shrink: 0;">
-                      <span style="padding: 0.2rem 0.5rem; background: #f8fafc; color: #0f2942; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
-                        <i class="pi pi-users" style="color: #0f2942;"></i> Assigned: {{ t.sub_dept_name }}
+                      <span style="padding: 0.2rem 0.5rem; background: var(--surface-hover, #f8fafc); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <i class="pi pi-users" style="color: var(--primary-color, #0f2942);"></i> Assigned: {{ t.sub_dept_name }}
                       </span>
                     </div>
                   </div>
 
                   <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between;">
-                    <span class="text-xs text-gray-500 font-medium" *ngIf="t.due_date">Default Due Date: <strong class="text-gray-700">{{ t.due_date | date:'dd-MM-yyyy' }}</strong></span>
-                    <span class="text-xs text-red-600 font-bold bg-red-50 border border-red-200 px-2 py-0.5 rounded-full" *ngIf="t.review_status === 'REJECTED'">
+                    <span class="text-xs font-medium" *ngIf="t.due_date" style="color: var(--text-color-secondary, #64748b);">Default Due Date: <strong style="color: var(--text-color, #1e293b);">{{ t.due_date | date:'dd-MM-yyyy' }}</strong></span>
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" *ngIf="t.review_status === 'REJECTED'">
                       Rejected
                     </span>
-                    <span class="text-xs text-green-600 font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-full" *ngIf="t.review_status === 'APPROVED'">
+                    <span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);" *ngIf="t.review_status === 'APPROVED'">
                       Approved
                     </span>
                   </div>
 
                   <!-- Reviewer's Feedback (Show to Branch if rejected/approved) -->
-                  <div class="text-xs text-red-700 font-medium bg-red-50 border border-red-200 p-2 rounded mb-2" *ngIf="t.review_status === 'REJECTED' && t.timeline_review_remark">
+                  <div class="text-xs font-medium p-2 rounded mb-2" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; border-radius: 6px;" *ngIf="t.review_status === 'REJECTED' && t.timeline_review_remark">
                     <strong>Reviewer Feedback:</strong> "{{ t.timeline_review_remark }}"
                   </div>
-                  <div class="text-xs text-green-700 font-medium bg-green-50 border border-green-200 p-2 rounded mb-2" *ngIf="t.review_status === 'APPROVED' && t.timeline_review_remark">
+                  <div class="text-xs font-medium p-2 rounded mb-2" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981; border-radius: 6px;" *ngIf="t.review_status === 'APPROVED' && t.timeline_review_remark">
                     <strong>Reviewer Remarks:</strong> "{{ t.timeline_review_remark }}"
                   </div>
 
@@ -385,19 +392,19 @@ import { InputTextModule } from 'primeng/inputtext';
               <div class="answer-form" style="display: flex; flex-direction: column; gap: 0.65rem; width: 100%; padding: 0.9rem 1rem; box-sizing: border-box;">
                 
                 <!-- Card Header Line: Due Date & Mode / Assignee (Single Line matching Topbar) -->
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding-bottom: 0.45rem; border-bottom: 1px solid #e2e8f0; box-sizing: border-box; min-width: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding-bottom: 0.45rem; border-bottom: 1px solid var(--surface-border, #e2e8f0); box-sizing: border-box; min-width: 0;">
                   <!-- Due Date Badge -->
-                  <div style="display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: #1e293b; background: #f8fafc; border: 1px solid #cbd5e1; padding: 0.2rem 0.5rem; border-radius: 6px; white-space: nowrap; flex-shrink: 0;">
-                    <i class="pi pi-calendar" style="color: #0f2942; font-size: 0.75rem;"></i>
-                    <span style="color: #64748b; font-weight: 600;">Due:</span>
-                    <span style="color: #0f2942; font-weight: 800;">{{ (t.due_date ? (t.due_date | date:'dd/MM/yyyy') : (proposedTimeline() | date:'dd/MM/yyyy')) }}</span>
+                  <div class="task-due-badge">
+                    <i class="pi pi-calendar" style="color: var(--primary-color, #0f2942); font-size: 0.75rem;"></i>
+                    <span style="color: var(--text-color-secondary, #64748b); font-weight: 600;">Due:</span>
+                    <span style="color: var(--text-color, #0f2942); font-weight: 800;">{{ (t.due_date ? (t.due_date | date:'dd/MM/yyyy') : (proposedTimeline() | date:'dd/MM/yyyy')) }}</span>
                   </div>
 
                   <!-- Sub-Department Delegation Control (Shown ONLY to Head Department / Admin) -->
                   <div *ngIf="availableSubDepts().length > 1 && isHeadDepartmentUser() && !isReviewer() && assignmentStatus() !== 'COMPLETED'" 
                        style="display: flex; align-items: center; gap: 0.35rem; flex: 1; min-width: 0; justify-content: flex-end;">
-                    <span style="font-size: 0.7rem; font-weight: 700; color: #475569; display: inline-flex; align-items: center; gap: 0.2rem; white-space: nowrap; flex-shrink: 0;">
-                      <i class="pi pi-sitemap" style="color: #0f2942; font-size: 0.72rem;"></i> Assignee:
+                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-color-secondary, #475569); display: inline-flex; align-items: center; gap: 0.2rem; white-space: nowrap; flex-shrink: 0;">
+                      <i class="pi pi-sitemap" style="color: var(--primary-color, #0f2942); font-size: 0.72rem;"></i> Assignee:
                     </span>
                     <div style="flex: 1; min-width: 0; max-width: 200px;">
                       <p-select 
@@ -416,44 +423,44 @@ import { InputTextModule } from 'primeng/inputtext';
 
                   <!-- For Sub-Department User: Badge display of assignee -->
                   <div *ngIf="isSubDepartmentUser() && t.sub_dept_name" style="white-space: nowrap; flex-shrink: 0;">
-                    <span style="padding: 0.2rem 0.5rem; background: #f8fafc; color: #0f2942; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
-                      <i class="pi pi-users" style="color: #0f2942;"></i> Assigned: {{ t.sub_dept_name }}
+                    <span style="padding: 0.2rem 0.5rem; background: var(--surface-hover, #f8fafc); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;">
+                      <i class="pi pi-users" style="color: var(--primary-color, #0f2942);"></i> Assigned: {{ t.sub_dept_name }}
                     </span>
                   </div>
                 </div>
 
                 <!-- Per-Task Review Status Banner -->
                 <div *ngIf="t.review_status" class="w-full">
-                  <div *ngIf="t.review_status === 'APPROVED'" style="padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #a7f3d0; border-left: 3px solid #047857; border-radius: 6px; font-size: 0.75rem; color: #065f46; display: flex; align-items: center; justify-content: space-between;">
+                  <div *ngIf="t.review_status === 'APPROVED'" class="decision-banner-approved">
                     <span style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
-                      <i class="pi pi-check-circle" style="color: #047857;"></i>
+                      <i class="pi pi-check-circle" style="color: #10b981;"></i>
                       <span>Approved {{ isHeadDepartmentUser() ? 'by Head Department' : 'by Reviewer' }}</span>
                     </span>
-                    <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 0.15rem 0.5rem; border-radius: 4px;">Accepted</span>
+                    <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 0.15rem 0.5rem; border-radius: 4px;">Accepted</span>
                   </div>
 
-                  <div *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.45rem 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; font-size: 0.75rem; color: #991b1b;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 600;">
+                  <div *ngIf="t.review_status === 'NEEDS_REDO'" class="decision-banner-rejected">
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 600; width: 100%;">
                       <span style="display: flex; align-items: center; gap: 0.35rem;">
-                        <i class="pi pi-exclamation-circle text-red-600"></i>
+                        <i class="pi pi-exclamation-circle" style="color: #ef4444;"></i>
                         <span>Needs Re-compliance</span>
                       </span>
-                      <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #fee2e2; color: #b91c1c; padding: 0.15rem 0.5rem; border-radius: 4px;">Rejected</span>
+                      <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 0.15rem 0.5rem; border-radius: 4px;">Rejected</span>
                     </div>
-                    <div *ngIf="t.review_remark" style="font-size: 0.725rem; font-weight: 500; color: #7f1d1d; margin-top: 0.25rem;">
+                    <div *ngIf="t.review_remark" style="font-size: 0.725rem; font-weight: 500; color: #ef4444; margin-top: 0.25rem;">
                       <strong>Feedback:</strong> "{{ t.review_remark }}"
                     </div>
                   </div>
 
-                  <div *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.45rem 0.75rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 0.75rem; color: #92400e;">
+                  <div *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.45rem 0.75rem; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.75rem; color: #f59e0b;">
                     <div style="display: flex; align-items: center; justify-content: space-between; font-weight: 600;">
                       <span style="display: flex; align-items: center; gap: 0.35rem;">
-                        <i class="pi pi-exclamation-triangle text-amber-600"></i>
+                        <i class="pi pi-exclamation-triangle" style="color: #f59e0b;"></i>
                         <span>Escalated to CCO for Final Review</span>
                       </span>
-                      <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #fef3c7; color: #b45309; padding: 0.15rem 0.5rem; border-radius: 4px;">Escalated to CCO</span>
+                      <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(245,158,11,0.2); color: #f59e0b; padding: 0.15rem 0.5rem; border-radius: 4px;">Escalated to CCO</span>
                     </div>
-                    <div *ngIf="t.review_remark" style="font-size: 0.725rem; font-weight: 500; color: #78350f; margin-top: 0.25rem;">
+                    <div *ngIf="t.review_remark" style="font-size: 0.725rem; font-weight: 500; color: #f59e0b; margin-top: 0.25rem;">
                       <strong>CO Remarks:</strong> "{{ t.review_remark }}"
                     </div>
                   </div>
@@ -463,42 +470,52 @@ import { InputTextModule } from 'primeng/inputtext';
                 <ng-container *ngIf="isHeadDepartmentUser() && (t.sub_dept_id || isTargetSubDeptOfHead()) && !isReviewer()">
                   <!-- If Sub-Dept has filled compliance -->
                   <div *ngIf="t.remarks || t.has_evidence || t.status === 'COMPLETED'; else subDeptPendingBlock" 
-                       class="p-3 border rounded-lg w-full flex flex-column gap-2"
-                       style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 3px solid #0f2942; border-radius: 8px;">
+                       class="subdept-submission-card w-full">
                     
-                    <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between;">
-                      <span class="text-xs font-bold flex items-center gap-1" style="font-size: 0.75rem; font-weight: 700; color: #0f2942;">
-                        <i class="pi pi-users" style="color: #0f2942;"></i> {{ t.sub_dept_name || 'Sub-Department' }} Submission:
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span class="subdept-submission-title" style="display: flex; align-items: center; gap: 0.35rem;">
+                        <i class="pi pi-users" style="color: #3b82f6;"></i> {{ t.sub_dept_name || 'Sub-Department' }} Submission:
                       </span>
                       <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
-                            [ngClass]="t.compliance_status === 'COMPLIED' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                            style="font-size: 0.65rem;">
+                            [style.background]="t.compliance_status === 'COMPLIED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'"
+                            [style.color]="t.compliance_status === 'COMPLIED' ? '#10b981' : '#ef4444'"
+                            [style.border]="t.compliance_status === 'COMPLIED' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)'"
+                            style="font-size: 0.68rem; font-weight: 800;">
                         {{ t.compliance_status || 'COMPLIED' }}
                       </span>
                     </div>
 
-                    <div class="text-xs text-gray-800 font-medium" *ngIf="t.remarks" style="font-size: 0.8rem; color: #1f2937; line-height: 1.4;">
-                      <strong>Sub-Dept Remarks:</strong> "{{ t.remarks }}"
+                    <div class="subdept-submission-remarks" *ngIf="t.remarks">
+                      <span style="font-weight: 700; color: var(--text-color-secondary, #64748b);">Sub-Dept Remarks:</span> "{{ t.remarks }}"
                     </div>
 
                     <div *ngIf="t.has_evidence && t.evidence_url" style="margin-top: 0.15rem;">
-                      <a [href]="t.evidence_url" target="_blank" class="evidence-link" style="font-size: 0.75rem; font-weight: 700; color: #dc2626; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none;">
+                      <a [href]="t.evidence_url" target="_blank" class="evidence-link" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none;">
                         <i class="pi pi-file-pdf"></i> View Sub-Dept Evidence PDF
                       </a>
                     </div>
 
                     <!-- Head Decision Action Bar (Only in Hierarchical Mode) -->
-                    <div *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus() !== 'COMPLETED' && !isReviewer()" class="mt-2 pt-2 border-t border-gray-200" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+                    <div *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus() !== 'COMPLETED' && !isReviewer()" class="mt-2 pt-2" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--surface-border, #e2e8f0);">
                       
-                      <!-- Head Comment / Remarks Box -->
-                      <div *ngIf="t.review_status !== 'APPROVED'" style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
-                        <label class="text-xs font-semibold text-gray-700 block" style="font-size: 0.725rem; display: flex; align-items: center; gap: 0.35rem;">
+                      <!-- When task is awaiting sub-dept re-compliance after rejection -->
+                      <div *ngIf="t.review_status === 'NEEDS_REDO'" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: rgba(239, 68, 68, 0.05); border: 1px dashed rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 0.5rem 0.75rem;">
+                        <div class="text-xs font-bold text-red-600 flex items-center gap-1.5">
+                          <i class="pi pi-clock text-red-500"></i>
+                          <span>Sent for Re-compliance — Awaiting revised submission from {{ t.sub_dept_name || 'Sub-Department' }}</span>
+                          <span *ngIf="t.review_remark" class="font-normal text-gray-500 ml-1"> (Feedback: "{{ t.review_remark }}")</span>
+                        </div>
+                      </div>
+
+                      <!-- Head Comment / Remarks Box (Only when pending initial review) -->
+                      <div *ngIf="t.review_status !== 'APPROVED' && t.review_status !== 'NEEDS_REDO'" style="display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
+                        <label class="text-xs font-semibold block" style="font-size: 0.725rem; display: flex; align-items: center; gap: 0.35rem; color: var(--text-color, #374151);">
                           <i class="pi pi-comment text-gray-500"></i> Head Remarks / Comment:
                         </label>
                         <textarea pTextarea 
                                   [(ngModel)]="t.head_comment"
-                                  class="w-full p-2 border rounded text-xs" 
-                                  style="resize: none; min-height: 2.75rem; height: 2.75rem; font-size: 0.775rem; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff;"
+                                  class="w-full p-2 border rounded text-xs co-remark-input" 
+                                  style="resize: none; min-height: 2.75rem; height: 2.75rem; font-size: 0.775rem;"
                                   placeholder="Enter review remarks / comments (optional for Accept, required for Reject)..."></textarea>
                       </div>
 
@@ -507,7 +524,7 @@ import { InputTextModule } from 'primeng/inputtext';
                         <label class="text-xs font-bold text-red-700 block" style="font-size: 0.725rem;">Rejection Reason for {{ t.sub_dept_name || 'Sub-Dept' }} *</label>
                         <textarea pTextarea 
                                   [(ngModel)]="headRejectionRemark"
-                                  class="w-full p-2 border rounded text-xs" 
+                                  class="w-full p-2 border rounded text-xs co-remark-input" 
                                   style="resize: none; height: 3rem; font-size: 0.75rem;"
                                   placeholder="Explain why this is rejected and what needs to be fixed..."></textarea>
                         <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
@@ -517,16 +534,12 @@ import { InputTextModule } from 'primeng/inputtext';
                       </div>
 
                       <!-- Accept / Reject Buttons for Head -->
-                      <div *ngIf="rejectingTaskId() !== t.assignment_task_id" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-                        <div *ngIf="t.review_status === 'APPROVED'" class="text-xs font-bold text-green-700 flex items-center gap-1">
-                          <i class="pi pi-check-circle text-green-600"></i> Accepted by Head Department
-                          <span *ngIf="t.review_remark" class="font-normal text-gray-600 ml-1"> — "{{ t.review_remark }}"</span>
+                      <div *ngIf="rejectingTaskId() !== t.assignment_task_id && t.review_status !== 'NEEDS_REDO'" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                        <div *ngIf="t.review_status === 'APPROVED'" class="text-xs font-bold text-green-600 flex items-center gap-1">
+                          <i class="pi pi-check-circle text-green-500"></i> Accepted by Head Department
+                          <span *ngIf="t.review_remark" class="font-normal text-gray-400 ml-1"> — "{{ t.review_remark }}"</span>
                         </div>
-                        <div *ngIf="t.review_status === 'NEEDS_REDO'" class="text-xs font-bold text-red-700 flex items-center gap-1">
-                          <i class="pi pi-times-circle text-red-600"></i> Re-compliance Requested
-                          <span *ngIf="t.review_remark" class="font-normal text-gray-600 ml-1"> — "{{ t.review_remark }}"</span>
-                        </div>
-                        <div *ngIf="!t.review_status" class="text-xs font-semibold text-gray-500">
+                        <div *ngIf="!t.review_status" class="text-xs font-semibold text-gray-400">
                           Head Decision:
                         </div>
 
@@ -537,7 +550,7 @@ import { InputTextModule } from 'primeng/inputtext';
                                     severity="success" 
                                     size="small" 
                                     (click)="headAcceptSubDeptTask(t)"></p-button>
-                          <p-button *ngIf="t.review_status !== 'NEEDS_REDO'"
+                          <p-button *ngIf="t.review_status !== 'APPROVED'"
                                     label="Reject" 
                                     icon="pi pi-times" 
                                     severity="danger" 
@@ -552,10 +565,10 @@ import { InputTextModule } from 'primeng/inputtext';
 
                   <!-- Awaiting Sub-Dept Submission template -->
                   <ng-template #subDeptPendingBlock>
-                    <div class="p-3 border rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-2"
-                         style="padding: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #64748b; border-radius: 8px; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
-                      <i class="pi pi-clock" style="color: #0f2942;"></i>
-                      <span>Awaiting compliance declaration & documents from <strong>{{ t.sub_dept_name || 'Sub-Department' }}</strong></span>
+                    <div class="p-3 border rounded-lg text-xs font-semibold flex items-center gap-2"
+                         style="padding: 0.75rem; background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-left: 3px solid #64748b; border-radius: 8px; color: var(--text-color-secondary, #94a3b8); display: flex; align-items: center; gap: 0.5rem;">
+                      <i class="pi pi-clock" style="color: var(--primary-color, #0f2942);"></i>
+                      <span>Awaiting compliance declaration & documents from <strong style="color: var(--text-color, #e2e8f0);">{{ t.sub_dept_name || 'Sub-Department' }}</strong></span>
                     </div>
                   </ng-template>
                 </ng-container>
@@ -563,25 +576,37 @@ import { InputTextModule } from 'primeng/inputtext';
                 <!-- ══ CASE 2: DIRECT TASKS OR SUB-DEPT USER VIEWING THEIR TASK ══ -->
                 <ng-container *ngIf="!isHeadDepartmentUser() || (!t.sub_dept_id && !isTargetSubDeptOfHead()) || isReviewer()">
                   <!-- If assignment is completed, hide form inputs and show read-only details -->
-                  <div *ngIf="assignmentStatus() === 'COMPLETED'; else activeComplianceForm" class="flex flex-column gap-2 p-3 bg-gray-50 border border-gray-100 rounded-lg w-full">
+                  <div *ngIf="assignmentStatus() === 'COMPLETED'; else activeComplianceForm" 
+                       class="flex flex-column gap-2 p-3 rounded-lg w-full"
+                       style="background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-radius: 8px;">
                     <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                      <span class="text-xs font-bold text-gray-500">Compliance Status:</span>
-                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800" *ngIf="t.compliance_status === 'COMPLIED'">
+                      <span class="text-xs font-bold" style="color: var(--text-color-secondary, #94a3b8);">Compliance Status:</span>
+                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                            [style.background]="t.compliance_status === 'COMPLIED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'"
+                            [style.color]="t.compliance_status === 'COMPLIED' ? '#10b981' : '#ef4444'"
+                            [style.border]="t.compliance_status === 'COMPLIED' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)'"
+                            *ngIf="t.compliance_status === 'COMPLIED'">
                         Complied
                       </span>
-                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-red-100 text-red-800" *ngIf="t.compliance_status === 'NOT_COMPLIED'">
+                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                            [style.background]="'rgba(239,68,68,0.15)'"
+                            [style.color]="'#ef4444'"
+                            [style.border]="'1px solid rgba(239,68,68,0.3)'"
+                            *ngIf="t.compliance_status === 'NOT_COMPLIED'">
                         Not Complied
                       </span>
-                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-800" *ngIf="t.compliance_status !== 'COMPLIED' && t.compliance_status !== 'NOT_COMPLIED'">
+                      <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                            style="background: var(--surface-hover); color: var(--text-color-secondary); border: 1px solid var(--surface-border);"
+                            *ngIf="t.compliance_status !== 'COMPLIED' && t.compliance_status !== 'NOT_COMPLIED'">
                         {{ t.compliance_status || 'Pending Declaration' }}
                       </span>
                     </div>
-                    <div class="text-xs text-gray-700 font-medium mt-1" *ngIf="t.remarks">
-                      <strong>Remarks / Explanation:</strong> "{{ t.remarks }}"
+                    <div class="text-xs font-medium mt-1" *ngIf="t.remarks" style="color: var(--text-color, #1f2937);">
+                      <strong style="color: var(--text-color-secondary, #94a3b8);">Remarks / Explanation:</strong> "{{ t.remarks }}"
                     </div>
                     <!-- View PDF link -->
                     <div class="mt-1.5" *ngIf="hasFileToView(t)">
-                      <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #dc2626; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
+                      <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
                         <i class="pi pi-file-pdf" style="color: #ef4444;"></i> View PDF
                       </button>
                     </div>
@@ -593,8 +618,8 @@ import { InputTextModule } from 'primeng/inputtext';
                       
                       <div style="display: flex; flex-direction: column; gap: 0.25rem;">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
-                          <label class="control-label font-bold text-gray-700 m-0" style="font-size: 0.725rem;">
-                            Remarks / Explanation <span class="text-red-500">*</span>
+                          <label class="control-label font-bold m-0" style="font-size: 0.725rem; color: var(--text-color-secondary, #475569);">
+                            Remarks / Explanation <span style="color: #ef4444;">*</span>
                           </label>
                         </div>
                         <textarea pTextarea
@@ -605,78 +630,97 @@ import { InputTextModule } from 'primeng/inputtext';
                       </div>
 
                       <!-- Bottom Actions Row -->
-                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.15rem;">
+                      <div style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.25rem;">
                         
-                        <!-- Upload PDF + Attached File Preview -->
-                        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                          <button type="button"
-                                  (click)="openEvidencePicker(t)"
-                                  style="padding: 0.25rem 0.65rem; height: 1.95rem; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; font-weight: 600; border: 1px dashed #6366f1; background: #eef2ff; color: #4338ca; margin: 0; cursor: pointer;">
-                            <i class="pi pi-upload" style="font-size: 0.72rem;"></i> 
-                            {{ getSelectedFileName(t.assignment_task_id) ? 'Change Evidence' : 'Upload Evidence' }}
-                          </button>
-
-                          <div *ngIf="getSelectedFileName(t.assignment_task_id)"
-                               style="display: inline-flex; align-items: center; gap: 0.35rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 0.2rem 0.55rem; height: 1.95rem; font-size: 0.72rem; color: #166534;">
-                            <i class="pi pi-file-pdf" style="color: #dc2626; font-size: 0.82rem;"></i>
-                            <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="getSelectedFileName(t.assignment_task_id)">
-                              {{ getSelectedFileName(t.assignment_task_id) }}
-                            </span>
-                            <button type="button" 
-                                    (click)="previewFile(t)" 
-                                    title="Preview PDF"
-                                    style="background: #ffffff; border: 1px solid #86efac; border-radius: 4px; padding: 0.15rem 0.4rem; cursor: pointer; color: #15803d; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
-                              <i class="pi pi-eye" style="font-size: 0.7rem;"></i> Preview
+                        <!-- Actions & Upload Button Row -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                          
+                          <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                            <button type="button"
+                                    (click)="openEvidencePicker(t)"
+                                    style="padding: 0.25rem 0.65rem; height: 1.95rem; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; font-weight: 600; border: 1px dashed #6366f1; background: rgba(99, 102, 241, 0.12); color: #818cf8; margin: 0; cursor: pointer;">
+                              <i class="pi pi-upload" style="font-size: 0.72rem;"></i> 
+                              {{ getSelectedFiles(t.assignment_task_id).length > 0 ? '+ Add More Evidence' : 'Upload Evidence' }}
                             </button>
-                            <button type="button" 
-                                    (click)="removeSelectedFile(t.assignment_task_id)" 
-                                    title="Remove file"
-                                    style="background: none; border: none; padding: 0.1rem; cursor: pointer; color: #dc2626; display: inline-flex; align-items: center;">
-                              <i class="pi pi-times" style="font-size: 0.75rem;"></i>
+
+                            <button *ngIf="hasSavedEvidence(t)"
+                                    type="button"
+                                    (click)="previewFile(t)"
+                                    class="p-button p-button-sm p-button-outlined p-button-danger"
+                                    style="height: 1.95rem; font-size: 0.72rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                              <i class="pi pi-file-pdf"></i> View Saved Evidence
                             </button>
                           </div>
 
-                          <button *ngIf="!getSelectedFileName(t.assignment_task_id) && hasFileToView(t)"
-                                  type="button"
-                                  (click)="previewFile(t)"
-                                  class="p-button p-button-sm p-button-outlined p-button-danger"
-                                  style="height: 1.95rem; font-size: 0.72rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                            <i class="pi pi-file-pdf"></i> View PDF
-                          </button>
+                          <!-- Save Task Button -->
+                          <p-button label="Save Task"
+                                    [loading]="!!rowSavingMap()[t.assignment_task_id]"
+                                    loadingIcon="pi pi-spinner pi-spin"
+                                    icon="pi pi-save"
+                                    iconPos="left"
+                                    (click)="saveSingleTask(t)"
+                                    styleClass="save-row-btn"
+                                    size="small" />
                         </div>
 
-                        <!-- Save Task Button -->
-                        <p-button label="Save Task"
-                                  [loading]="!!rowSavingMap()[t.assignment_task_id]"
-                                  loadingIcon="pi pi-spinner pi-spin"
-                                  icon="pi pi-save"
-                                  iconPos="left"
-                                  (click)="saveSingleTask(t)"
-                                  styleClass="save-row-btn"
-                                  size="small" />
+                        <!-- Staged Evidence Files List with Preview & Remove Option -->
+                        <div *ngIf="getSelectedFiles(t.assignment_task_id).length > 0" 
+                             style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; padding: 0.35rem 0.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 6px; border: 1px dashed rgba(99, 102, 241, 0.2);">
+                          <div *ngFor="let file of getSelectedFiles(t.assignment_task_id); let fIdx = index"
+                               style="display: inline-flex; align-items: center; gap: 0.35rem; background: #ffffff; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.72rem; color: #047857; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <i class="pi pi-file-pdf" style="color: #ef4444; font-size: 0.82rem;"></i>
+                            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="file.name">
+                              {{ file.name }}
+                            </span>
+                            <button type="button" 
+                                    (click)="previewSelectedFile(file)" 
+                                    title="Preview PDF"
+                                    style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 0.1rem 0.35rem; cursor: pointer; color: #10b981; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                              <i class="pi pi-eye" style="font-size: 0.68rem;"></i>
+                            </button>
+                            <button type="button" 
+                                    (click)="removeSelectedFile(t.assignment_task_id, fIdx)" 
+                                    title="Remove this evidence file"
+                                    style="background: none; border: none; padding: 0.1rem 0.2rem; cursor: pointer; color: #ef4444; display: inline-flex; align-items: center;">
+                              <i class="pi pi-trash" style="font-size: 0.75rem;"></i>
+                            </button>
+                          </div>
+                        </div>
+
                       </div>
 
                     </div>
 
                     <ng-template #readOnlyTaskBlock>
-                      <div class="flex flex-column gap-2 p-3 bg-gray-50 border border-gray-100 rounded-lg w-full">
+                      <div class="flex flex-column gap-2 p-3 rounded-lg w-full"
+                           style="background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-radius: 8px;">
                         <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                          <span class="text-xs font-bold text-gray-500">Compliance Status:</span>
-                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-green-100 text-green-800" *ngIf="t.compliance_status === 'COMPLIED'">
+                          <span class="text-xs font-bold" style="color: var(--text-color-secondary, #94a3b8);">Compliance Status:</span>
+                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                                [style.background]="t.compliance_status === 'COMPLIED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'"
+                                [style.color]="t.compliance_status === 'COMPLIED' ? '#10b981' : '#ef4444'"
+                                [style.border]="t.compliance_status === 'COMPLIED' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)'"
+                                *ngIf="t.compliance_status === 'COMPLIED'">
                             Complied
                           </span>
-                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-red-100 text-red-800" *ngIf="t.compliance_status === 'NOT_COMPLIED'">
+                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                                [style.background]="'rgba(239,68,68,0.15)'"
+                                [style.color]="'#ef4444'"
+                                [style.border]="'1px solid rgba(239,68,68,0.3)'"
+                                *ngIf="t.compliance_status === 'NOT_COMPLIED'">
                             Not Complied
                           </span>
-                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-800" *ngIf="t.compliance_status !== 'COMPLIED' && t.compliance_status !== 'NOT_COMPLIED'">
+                          <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                                style="background: var(--surface-hover); color: var(--text-color-secondary); border: 1px solid var(--surface-border);"
+                                *ngIf="t.compliance_status !== 'COMPLIED' && t.compliance_status !== 'NOT_COMPLIED'">
                             {{ t.compliance_status || 'Pending Declaration' }}
                           </span>
                         </div>
-                        <div class="text-xs text-gray-700 font-medium mt-1" *ngIf="t.remarks">
-                          <strong>Remarks / Explanation:</strong> "{{ t.remarks }}"
+                        <div class="text-xs font-medium mt-1" *ngIf="t.remarks" style="color: var(--text-color, #1f2937);">
+                          <strong style="color: var(--text-color-secondary, #94a3b8);">Remarks / Explanation:</strong> "{{ t.remarks }}"
                         </div>
                         <div class="mt-1.5" *ngIf="hasFileToView(t)">
-                          <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #dc2626; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
+                          <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
                             <i class="pi pi-file-pdf" style="color: #ef4444;"></i> View PDF
                           </button>
                         </div>
@@ -687,7 +731,7 @@ import { InputTextModule } from 'primeng/inputtext';
                 </ng-container>
 
                 <!-- History Action Trigger Buttons Footer -->
-                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.4rem; border-top: 1px solid #f1f5f9; margin-top: 0.2rem;">
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(--surface-border, #f1f5f9); margin-top: 0.2rem;">
                   <button *ngIf="hasRemarksHistory(t)"
                           type="button"
                           pButton
@@ -728,13 +772,13 @@ import { InputTextModule } from 'primeng/inputtext';
         <div style="flex: 1;">
           <div style="font-weight: 700; font-size: 0.825rem; margin-bottom: 0.15rem;">
             <ng-container *ngIf="subDeptSubmitted()">
-              ✅ Compliance Submitted to Head Department ({{ completedCount() }}/{{ tasks().length }} Completed)
+              ✅ Compliance Submitted to Head Department ({{ completedCount() }}/{{ visibleTasks().length }} Completed)
             </ng-container>
             <ng-container *ngIf="!subDeptSubmitted() && isSubDeptAllTasksFilled()">
-              All Checklist Items Ready ({{ completedCount() }}/{{ tasks().length }})
+              All Checklist Items Ready ({{ completedCount() }}/{{ visibleTasks().length }})
             </ng-container>
             <ng-container *ngIf="!subDeptSubmitted() && !isSubDeptAllTasksFilled()">
-              Checklist In Progress ({{ completedCount() }}/{{ tasks().length }} Completed)
+              Checklist In Progress ({{ completedCount() }}/{{ visibleTasks().length }} Completed)
             </ng-container>
           </div>
           <div>
@@ -766,10 +810,10 @@ import { InputTextModule } from 'primeng/inputtext';
     <!-- Bulk Submit / Complete Compliance Section: For Head Department User -->
     <div class="mt-4 mb-5" *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus().toUpperCase() !== 'COMPLETED' && !isReviewer()" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
       
-      <!-- ==================== CASE A: Branch-Created / Internal Task Sets (Direct Completion Flow) ==================== -->
-      <ng-container *ngIf="isBranchCreated() || isInternalTaskSet(); else circularReviewFlow">
+      <!-- ==================== CASE A: Branch-Created Task Sets (Direct Completion Flow) ==================== -->
+      <ng-container *ngIf="isBranchCreated(); else circularReviewFlow">
         
-        <!-- Pending Head Decision / Rejection Alert Banner for Branch-Created Task Sets -->
+        <!-- Pending Head Decision / Rejection Alert Banner for Internal Task Sets -->
         <div *ngIf="!allTasksApprovedByHead()" style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
              [ngClass]="{
                'bg-red-50 border border-red-200 text-red-800': rejectedSubDeptTasksCount() > 0,
@@ -854,13 +898,13 @@ import { InputTextModule } from 'primeng/inputtext';
             </div>
             <div>
               <ng-container *ngIf="rejectedSubDeptTasksCount() > 0">
-                You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can complete the assignment.
+                You have rejected {{ rejectedSubDeptTasksCount() }} task(s). The Sub-Department must re-submit their compliance and you must accept it before you can submit to CO.
               </ng-container>
               <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() > 0">
                 Please review each task card above and click <strong>"Accept"</strong> (or "Reject" if changes are needed). All delegated tasks must be accepted by Head Department before submitting to CO.
               </ng-container>
               <ng-container *ngIf="rejectedSubDeptTasksCount() === 0 && pendingHeadAcceptanceCount() === 0">
-                Ensure all direct and delegated checklist items are completed before submitting to CO.
+                Ensure all direct and delegated checklist items are completed and accepted before submitting to CO.
               </ng-container>
             </div>
           </div>
@@ -879,22 +923,23 @@ import { InputTextModule } from 'primeng/inputtext';
           </div>
         </div>
 
-        <!-- Submit to Compliance Officer Button (Shown when not yet in CO review) -->
-        <div *ngIf="assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO'" 
+        <!-- Submit to Compliance Officer Button (Shown to Head Dept whenever not yet in review, or disabled if pending tasks) -->
+        <div *ngIf="(!allTasksApprovedByHead()) || (assignmentStatus().toUpperCase() !== 'REVIEW_PENDING' && assignmentStatus().toUpperCase() !== 'ESCALATED_TO_CCO')" 
              style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
           <p-button
             label="Submit to Compliance Officer"
             icon="pi pi-send"
             severity="primary"
             [disabled]="!allTasksApprovedByHead() || submitting"
-            pTooltip="Submit compliance checklist to CO Review Queue"
+            [pTooltip]="!allTasksApprovedByHead() ? 'Cannot submit: Please ensure all direct tasks are filled, all sub-dept submissions are accepted, and no tasks are pending re-compliance.' : 'Submit compliance checklist to CO Review Queue'"
+            tooltipPosition="top"
             [loading]="submitting && lastSubmitAction === 'SUBMIT_CO'"
             loadingIcon="pi pi-spinner pi-spin"
             (click)="submitAllCompliance('SUBMIT_CO')" />
         </div>
 
-        <!-- Already submitted to CO banner (When all tasks approved and assignment is in CO Review) -->
-        <div *ngIf="assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO'" 
+        <!-- Already submitted to CO banner (ONLY when ALL tasks approved AND status is REVIEW_PENDING or ESCALATED) -->
+        <div *ngIf="allTasksApprovedByHead() && (assignmentStatus().toUpperCase() === 'REVIEW_PENDING' || assignmentStatus().toUpperCase() === 'ESCALATED_TO_CCO')" 
              style="width: 100%; max-width: 680px; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;">
           <i class="pi pi-check-circle text-green-600 text-lg" style="margin-top: 0.1rem;"></i>
           <div style="flex: 1;">
@@ -928,8 +973,10 @@ import { InputTextModule } from 'primeng/inputtext';
         (click)="approveCustomTimeline()" />
     </div>
 
-    <div *ngIf="taskGroups().length === 0" class="glass-panel text-center py-8 text-gray-500 bg-white rounded-xl border border-gray-100">
-      No compliance tasks found for this assignment.
+    <div *ngIf="taskGroups().length === 0" class="glass-panel text-center py-8 text-gray-500 bg-white rounded-xl border border-gray-100" style="padding: 2.5rem; text-align: center; border-radius: 12px; background: #ffffff; border: 1px dashed #cbd5e1; margin-top: 1rem;">
+      <i class="pi pi-inbox text-4xl mb-3 text-gray-400" style="font-size: 2.5rem; color: #94a3b8; display: block; margin-bottom: 0.75rem;"></i>
+      <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #334155;">{{ isSubDepartmentUser() ? 'No Tasks Assigned to Your Sub-Department' : 'No compliance tasks found for this assignment.' }}</h3>
+      <p *ngIf="isSubDepartmentUser()" style="margin: 0; font-size: 0.875rem; color: #64748b;">There are currently no tasks delegated to your sub-department under this checklist.</p>
     </div>
 
     <!-- Remark Chain & Evidence History Dialog Overlay -->
@@ -964,7 +1011,7 @@ import { InputTextModule } from 'primeng/inputtext';
           </div>
           
           <div style="display: flex; flex-direction: column; gap: 0.65rem; padding: 0.85rem; max-height: 280px; overflow-y: auto;">
-            <div *ngFor="let ev of selectedTaskForChain.evidence_history" 
+            <div *ngFor="let ev of selectedTaskForChain.evidence_history; let evIdx = index" 
                  style="padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
               
               <!-- Header: Uploader Info & Date -->
@@ -990,14 +1037,32 @@ import { InputTextModule } from 'primeng/inputtext';
                 <a [href]="ev.file_url" target="_blank" 
                    style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #dc2626; text-decoration: none; font-size: 0.78rem;">
                   <i class="pi pi-file-pdf" style="font-size: 0.95rem;"></i> 
-                  <span>{{ ev.file_name || 'View Evidence PDF' }}</span>
+                  <span>{{ cleanFileName(ev.file_name || ev.file_url || 'View Evidence PDF') }}</span>
                 </a>
                 
-                <a [href]="ev.file_url" target="_blank" 
-                   class="p-button p-button-sm p-button-outlined p-button-danger"
-                   style="text-decoration: none; padding: 0.2rem 0.55rem; font-size: 0.7rem; height: 1.65rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                  <i class="pi pi-external-link"></i> Open PDF
-                </a>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <a [href]="ev.file_url" target="_blank" 
+                     class="p-button p-button-sm p-button-outlined p-button-danger"
+                     style="text-decoration: none; padding: 0.2rem 0.55rem; font-size: 0.7rem; height: 1.65rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <i class="pi pi-external-link"></i> Open PDF
+                  </a>
+                  <!-- Delete button allowed ONLY if user has authority to delete (e.g. self-compliance or sub-dept owner before submit) -->
+                  <button *ngIf="canDeleteEvidence(ev, selectedTaskForChain, evIdx)"
+                          type="button" 
+                          pButton 
+                          icon="pi pi-trash" 
+                          label="Delete" 
+                          size="small" 
+                          severity="danger" 
+                          (click)="deleteSavedEvidence(ev, selectedTaskForChain)"
+                          styleClass="p-button-sm p-button-outlined h-2rem text-xs font-semibold px-2 text-red-600 border-red-300 hover:bg-red-50"
+                          title="Delete this recently uploaded evidence"></button>
+                  <span *ngIf="!canDeleteEvidence(ev, selectedTaskForChain, evIdx)" 
+                        style="font-size: 0.65rem; color: #94a3b8; font-style: italic; background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px;"
+                        [title]="isSubDeptSubmission(ev, selectedTaskForChain) ? 'Evidence submitted by delegated sub-department' : 'Historical evidence is preserved in compliance audit trail'">
+                    <i class="pi pi-lock" style="font-size: 0.6rem;"></i> {{ isSubDeptSubmission(ev, selectedTaskForChain) && !isSubDepartmentUser() ? 'Sub-Dept Submission' : 'Audit Record' }}
+                  </span>
+                </div>
               </div>
 
             </div>
@@ -1089,12 +1154,12 @@ import { InputTextModule } from 'primeng/inputtext';
           
           <!-- Option 1: Upload from Computer (PC) -->
           <label style="border: 2px dashed #6366f1; background: #f5f7ff; border-radius: 10px; padding: 1.5rem 1rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.65rem; cursor: pointer; transition: all 0.2s;">
-            <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" accept="application/pdf" style="display: none;">
+            <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" multiple accept="application/pdf" style="display: none;">
             <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
               <i class="pi pi-desktop"></i>
             </div>
             <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;">Upload from PC</span>
-            <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload a new PDF file from your local storage</span>
+            <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload one or multiple PDF files from your local storage</span>
           </label>
 
           <!-- Option 2: Select from Previous Department Evidence -->
@@ -1228,10 +1293,13 @@ import { InputTextModule } from 'primeng/inputtext';
       </ng-template>
     </p-dialog>
     
+    <p-confirmDialog [style]="{ width: '450px', maxWidth: '95vw' }" appendTo="body"></p-confirmDialog>
+
     <div style="height: 4rem;"></div> <!-- bottom padding spacing -->
   `,
 })
 export class AssignmentDetailsComponent implements OnInit {
+  private confirmationService = inject(ConfirmationService);
   displayRemarkChainDialog = false;
   selectedTaskForChain: any = null;
   historyDialogMode: 'REMARK' | 'EVIDENCE' = 'REMARK';
@@ -1274,19 +1342,122 @@ export class AssignmentDetailsComponent implements OnInit {
     this.displayEvidenceSourceModal = true;
   }
 
+  cleanFileName(rawName: string): string {
+    if (!rawName) return 'Evidence Document.pdf';
+    let name = decodeURIComponent(rawName.trim().split('?')[0]);
+    // Remove leading timestamp e.g. 1726483920192-file.pdf
+    name = name.replace(/^\d{10,14}[-_]/, '');
+    // Remove trailing hex hash, uuid, or timestamp before .pdf extension
+    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.pdf$|$)/i, '');
+    if (!name.toLowerCase().endsWith('.pdf') && rawName.toLowerCase().includes('.pdf')) {
+      name = name + '.pdf';
+    }
+    return name || 'Evidence Document.pdf';
+  }
+
+  private getDeletedEvidenceKeys(): Set<string> {
+    try {
+      const stored = localStorage.getItem(`compliancepro_deleted_evidence_${this.assignmentId}`);
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  private markEvidenceAsDeleted(ev: any) {
+    try {
+      const keys = this.getDeletedEvidenceKeys();
+      if (ev.id) keys.add(`id_${ev.id}`);
+      if (ev.file_url) {
+        keys.add(`url_${ev.file_url}`);
+        const parts = ev.file_url.split('/');
+        const lastPart = parts[parts.length - 1];
+        keys.add(`part_${lastPart}`);
+      }
+      if (ev.url) {
+        keys.add(`url_${ev.url}`);
+        const parts = ev.url.split('/');
+        const lastPart = parts[parts.length - 1];
+        keys.add(`part_${lastPart}`);
+      }
+      if (ev.file_name) keys.add(`name_${ev.file_name}`);
+      if (ev.name) keys.add(`name_${ev.name}`);
+      localStorage.setItem(`compliancepro_deleted_evidence_${this.assignmentId}`, JSON.stringify(Array.from(keys)));
+    } catch (e) {
+      console.warn('Failed to save deleted evidence key:', e);
+    }
+  }
+
+  isEvidenceDeleted(ev: any): boolean {
+    if (!ev) return false;
+    const keys = this.getDeletedEvidenceKeys();
+    if (ev.id && keys.has(`id_${ev.id}`)) return true;
+    if (ev.file_url) {
+      if (keys.has(`url_${ev.file_url}`)) return true;
+      const parts = ev.file_url.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (keys.has(`part_${lastPart}`)) return true;
+    }
+    if (ev.url) {
+      if (keys.has(`url_${ev.url}`)) return true;
+      const parts = ev.url.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (keys.has(`part_${lastPart}`)) return true;
+    }
+    if (ev.file_name && keys.has(`name_${ev.file_name}`)) return true;
+    if (ev.name && keys.has(`name_${ev.name}`)) return true;
+    return false;
+  }
+
   loadDepartmentPreviousEvidences() {
     const currentBranchName = (this.branchName() || '').toLowerCase().trim();
 
     this.loadingDeptEvidences = true;
+
+    // Helper for robust deduplication by unique evidence name/url (avoids repetitive duplicates)
+    const deduplicateEvidences = (list: any[]) => {
+      const seen = new Map<string, any>();
+      list.forEach(item => {
+        if (!item) return;
+        let name = (item.name || '').trim();
+        if ((!name || name === 'Task Evidence Document.pdf') && item.url) {
+          const extracted = item.url.split('/').pop()?.split('?')[0];
+          if (extracted && extracted.toLowerCase().endsWith('.pdf')) {
+            name = decodeURIComponent(extracted);
+          }
+        }
+        name = this.cleanFileName(name);
+        item.name = name;
+        const url = (item.url || '').trim();
+        if (!name && !url) return;
+
+        // Key by unique cleaned document name so repeated documents don't show multiple times
+        const key = name.toLowerCase() || url.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, item);
+        } else {
+          const existing = seen.get(key);
+          if ((!existing.url && url) || (item.date && (!existing.date || new Date(item.date) > new Date(existing.date)))) {
+            seen.set(key, { ...existing, ...item, name });
+          }
+        }
+      });
+      return Array.from(seen.values());
+    };
 
     // Collect from current loaded tasks history
     const taskEvidences: any[] = [];
     (this.tasks() || []).forEach(t => {
       if (t.evidence_history && Array.isArray(t.evidence_history)) {
         t.evidence_history.forEach((eh: any) => {
+          if (this.isEvidenceDeleted(eh)) return;
           if (eh.file_url) {
+            let fname = eh.file_name || eh.filename;
+            if (!fname && eh.file_url) {
+              fname = eh.file_url.split('/').pop()?.split('?')[0];
+            }
             taskEvidences.push({
-              name: eh.file_name || eh.filename || 'Task Evidence Document.pdf',
+              name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
               url: eh.file_url,
               date: eh.uploaded_at || eh.created_at,
               source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -1294,9 +1465,13 @@ export class AssignmentDetailsComponent implements OnInit {
             });
           }
         });
-      } else if (t.evidence_url) {
+      } else if (t.evidence_url && !this.isEvidenceDeleted(t)) {
+        let fname = t.evidence_file_name;
+        if (!fname && t.evidence_url) {
+          fname = t.evidence_url.split('/').pop()?.split('?')[0];
+        }
         taskEvidences.push({
-          name: t.evidence_file_name || 'Task Evidence Document.pdf',
+          name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
           url: t.evidence_url,
           date: t.updated_at || t.created_at,
           source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -1310,26 +1485,24 @@ export class AssignmentDetailsComponent implements OnInit {
       next: (docs) => {
         const deptDocs = (docs || [])
           .filter(d => {
-            if (!d.file_url) return false;
+            if (!d.file_url || this.isEvidenceDeleted(d)) return false;
             if (currentBranchName && d.department_name && d.department_name.toLowerCase().trim() === currentBranchName) return true;
             return false;
           })
           .map(d => ({
-            name: d.file_name || d.document_name,
+            name: this.cleanFileName(d.file_name || d.document_name),
             url: d.file_url,
             date: d.created_at || d.issue_date,
             source: `Asset Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
-        // Deduplicate by URL
         const combined = [...taskEvidences, ...deptDocs];
-        const unique = combined.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-        this.deptPreviousEvidences.set(unique);
+        this.deptPreviousEvidences.set(deduplicateEvidences(combined));
         this.loadingDeptEvidences = false;
       },
       error: () => {
-        this.deptPreviousEvidences.set(taskEvidences);
+        this.deptPreviousEvidences.set(deduplicateEvidences(taskEvidences));
         this.loadingDeptEvidences = false;
       }
     });
@@ -1353,13 +1526,13 @@ export class AssignmentDetailsComponent implements OnInit {
       .then(res => res.blob())
       .then(blob => {
         const file = new File([blob], item.name, { type: blob.type || 'application/pdf' });
-        this.selectedFilesMap.update(map => ({ ...map, [taskId]: file }));
+        this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Attached "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
       })
       .catch(() => {
         const file = new File([new Blob()], item.name, { type: 'application/pdf' });
-        this.selectedFilesMap.update(map => ({ ...map, [taskId]: file }));
+        this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Selected "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
       });
@@ -1390,17 +1563,16 @@ export class AssignmentDetailsComponent implements OnInit {
       ''
     ).toUpperCase().trim();
 
-    // If role is explicitly CO / CCO / ADMIN -> Not branch created (requires CO review)
+    // 1. Explicit role check
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'DEPARTMENT_USER', 'SUB_DEPARTMENT', 'USER', 'STAFF', 'BRANCH USER'].includes(role)) {
+      return true;
+    }
     if (['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(role)) {
       return false;
     }
 
-    // If role is explicitly BRANCH_USER / DEPARTMENT -> Branch created (Direct Completion)
-    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'DEPARTMENT_USER', 'USER', 'STAFF'].includes(role)) {
-      return true;
-    }
-
-    const name = (
+    // 2. Explicit username / name check
+    const name = String(
       this.createdByName() ||
       this.tasks()[0]?.created_by_username ||
       this.tasks()[0]?.created_by_name ||
@@ -1409,7 +1581,6 @@ export class AssignmentDetailsComponent implements OnInit {
       ''
     ).toLowerCase().trim();
 
-    // If username/name indicates CO or Admin -> Not branch created
     if (
       name.startsWith('co_') ||
       name.startsWith('cco_') ||
@@ -1418,6 +1589,8 @@ export class AssignmentDetailsComponent implements OnInit {
       name === 'co' ||
       name === 'cco' ||
       name === 'admin' ||
+      name.includes('(co)') ||
+      name.includes('(cco)') ||
       name.includes('compliance officer') ||
       name.includes('compliance_officer') ||
       name.includes('co_it') ||
@@ -1428,16 +1601,29 @@ export class AssignmentDetailsComponent implements OnInit {
       return false;
     }
 
-    // If name indicates a branch/department user
     if (
       name.includes('branch') ||
       name.includes('department') ||
-      name.includes('branch_user')
+      name.includes('branch_user') ||
+      name.includes('it_dept') ||
+      name.includes('it department') ||
+      name.includes('(branch)')
     ) {
       return true;
     }
 
-    // Default: if not created by a branch user, it routes to CO/CCO review
+    // 3. Current logged-in user check (if creator ID matches logged in branch user)
+    const currentUser = this.currentUser() as any;
+    const currentRole = String(currentUser?.role || '').toUpperCase();
+    const isCurrentBranchUser = ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(currentRole);
+    if (isCurrentBranchUser) {
+      const creatorId = this.tasks()[0]?.created_by || this.tasks()[0]?.created_by_id;
+      if (creatorId && currentUser?.id && String(creatorId) === String(currentUser.id)) {
+        return true;
+      }
+    }
+
+    // 4. Default: All task sets assigned to branches by default originate from CO / Admin
     return false;
   });
 
@@ -1446,7 +1632,11 @@ export class AssignmentDetailsComponent implements OnInit {
   });
 
   isInternalTaskSet = computed(() => {
-    return this.isBranchCreated();
+    const type = (this.taskSetType() || '').toUpperCase().trim();
+    if (type === 'INTERNAL') return true;
+    if (type === 'REGULAR') return false;
+    if (this.circularReferenceNo() || this.circularTitle()) return false;
+    return false;
   });
 
   proposedTimeline = signal<string>('');
@@ -1484,7 +1674,7 @@ export class AssignmentDetailsComponent implements OnInit {
   ];
 
   // Local reactive signals to track newly selected files and saving states
-  selectedFilesMap = signal<Record<number, File>>({});
+  selectedFilesMap = signal<Record<number, File[]>>({});
   rowSavingMap = signal<Record<number, boolean>>({});
   headerSavingMap = new Map<string, boolean>();
 
@@ -1497,11 +1687,16 @@ export class AssignmentDetailsComponent implements OnInit {
   subDeptSubmittedSignal = signal<boolean>(false);
   subDeptSubmitted = computed(() => {
     if (this.subDeptSubmittedSignal()) return true;
+    const visible = this.visibleTasks();
+    if (!visible.length) return false;
+
+    // Sub-department is submitted only if all their visible tasks are filled
+    const allVisibleFilled = visible.every(t => !!(t.remarks?.trim() || t.has_evidence || t.status === 'COMPLETED'));
+    if (!allVisibleFilled) return false;
+
     const status = (this.assignmentStatus() || '').toUpperCase();
     if (status === 'REVIEW_PENDING' || status === 'COMPLETED') {
-      const all = this.tasks();
-      if (!all.length) return false;
-      if (all.some(t => t.review_status === 'NEEDS_REDO')) return false;
+      if (visible.some(t => t.review_status === 'NEEDS_REDO')) return false;
       return true;
     }
     return false;
@@ -1509,10 +1704,20 @@ export class AssignmentDetailsComponent implements OnInit {
   auth = inject(AuthService);
   currentUser = computed(() => this.auth.currentUser());
   userBranchId = computed(() => {
-    const u = this.currentUser();
+    const u = this.currentUser() as any;
     return u?.branch_id ?? u?.branchId ?? null;
   });
+  userBranchName = computed(() => {
+    const u = this.currentUser() as any;
+    return u?.branch_name || u?.branchName || '';
+  });
   isSubDepartmentUser = computed(() => {
+    const u = this.currentUser() as any;
+    if (u?.is_sub_department || u?.branch_parent_id || u?.parent_id) return true;
+    const role = String(u?.role || '').toLowerCase();
+    if (role === 'sub_department' || role.includes('sub_dept') || role.includes('subdepartment')) return true;
+    const userName = String(u?.username || u?.name || '').toLowerCase();
+    if (userName.includes('sub_') || userName.includes('subdept') || userName.includes('sub_dep')) return true;
     const userBId = this.userBranchId();
     if (!userBId) return false;
     const branches = this.allBranches();
@@ -1525,6 +1730,33 @@ export class AssignmentDetailsComponent implements OnInit {
     if (role === 'admin') return true;
     if (role === 'co' || role === 'cco') return false;
     return !this.isSubDepartmentUser();
+  });
+
+  visibleTasks = computed(() => {
+    const all = this.tasks();
+    const isSubDept = this.isSubDepartmentUser();
+    if (!isSubDept) return all;
+
+    const userBId = this.userBranchId();
+    const u = this.currentUser() as any;
+    const userBName = (u?.branch_name || u?.branchName || '').trim().toLowerCase();
+
+    return all.filter(task => {
+      // 1. Explicit match on sub_dept_id
+      if (task.sub_dept_id && userBId && String(task.sub_dept_id) === String(userBId)) {
+        return true;
+      }
+      // 2. Explicit match on sub_dept_name
+      if (task.sub_dept_name && userBName && task.sub_dept_name.trim().toLowerCase() === userBName) {
+        return true;
+      }
+      // 3. If assignment itself was created directly for this sub-department (and not assigned to another sub-dept)
+      const taskBranchId = task.branch_id || (all.length > 0 ? all[0].branch_id : null);
+      if (taskBranchId && userBId && String(taskBranchId) === String(userBId)) {
+        return !task.sub_dept_id || String(task.sub_dept_id) === String(userBId);
+      }
+      return false;
+    });
   });
 
   rejectingTaskId = signal<number | null>(null);
@@ -1600,9 +1832,9 @@ export class AssignmentDetailsComponent implements OnInit {
   });
 
   isSubDeptAllTasksFilled = computed(() => {
-    const all = this.tasks();
-    if (!all.length) return false;
-    return all.every(t => !!(t.remarks?.trim() || t.temp_remarks?.trim() || t.has_evidence || t.status === 'COMPLETED'));
+    const visible = this.visibleTasks();
+    if (!visible.length) return false;
+    return visible.every(t => !!(t.remarks?.trim() || t.temp_remarks?.trim() || t.has_evidence || t.status === 'COMPLETED'));
   });
 
   isTimelineMode(): boolean {
@@ -1611,7 +1843,8 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   completedCount = computed(() => {
-    return this.tasks().filter(t =>
+    const target = this.isSubDepartmentUser() ? this.visibleTasks() : this.tasks();
+    return target.filter(t =>
       t.compliance_status === 'COMPLIED' ||
       t.compliance_status === 'NOT_COMPLIED' ||
       t.status === 'COMPLETED' ||
@@ -1621,7 +1854,10 @@ export class AssignmentDetailsComponent implements OnInit {
       !!t.evidence_file_name
     ).length;
   });
-  progressPercentage = computed(() => this.tasks().length ? Math.round((this.completedCount() / this.tasks().length) * 100) : 0);
+  progressPercentage = computed(() => {
+    const total = this.isSubDepartmentUser() ? this.visibleTasks().length : this.tasks().length;
+    return total ? Math.round((this.completedCount() / total) * 100) : 0;
+  });
 
   canEditAssignment(): boolean {
     const status = this.assignmentStatus().toUpperCase();
@@ -1632,10 +1868,13 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   canEditTaskAssignment(task: any): boolean {
-    const status = this.assignmentStatus().toUpperCase();
+    if (!task) return false;
+    if (this.isReviewer()) {
+      return false;
+    }
 
-    // When submitted for review or completed, lock all tasks
-    if (status === 'REVIEW_PENDING' || status === 'COMPLETED') {
+    const assignmentStatus = (this.assignmentStatus() || '').toUpperCase();
+    if (assignmentStatus === 'COMPLETED') {
       return false;
     }
 
@@ -1644,15 +1883,14 @@ export class AssignmentDetailsComponent implements OnInit {
       return false;
     }
 
-    if (this.isReviewer()) {
-      return false;
-    }
-
     const userBId = this.userBranchId();
 
     // If user is a Sub-Department user, they can edit their assigned tasks
     if (this.isSubDepartmentUser()) {
-      if (this.subDeptSubmitted() && task?.review_status !== 'NEEDS_REDO') {
+      if (task?.review_status === 'NEEDS_REDO') {
+        return true;
+      }
+      if (this.subDeptSubmitted()) {
         return false;
       }
       if (task?.sub_dept_id && userBId) {
@@ -1672,10 +1910,10 @@ export class AssignmentDetailsComponent implements OnInit {
       if (taskBranchId && userBId && String(taskBranchId) !== String(userBId)) {
         return false;
       }
-      return status !== 'REVIEW_PENDING' && status !== 'COMPLETED';
+      return assignmentStatus !== 'REVIEW_PENDING' && assignmentStatus !== 'COMPLETED';
     }
 
-    return true;
+    return assignmentStatus !== 'REVIEW_PENDING' && assignmentStatus !== 'COMPLETED';
   }
 
   canEditTimeline(): boolean {
@@ -1951,18 +2189,44 @@ export class AssignmentDetailsComponent implements OnInit {
             };
           });
 
+          // Recover task-set sub-department assignments if not yet stored on assignment_tasks
+          const taskSetId = matchedTs?.id || matchedAsg?.task_set_id || firstItem.task_set_id;
+          if (taskSetId) {
+            this.api.getTaskSet(taskSetId).subscribe({
+              next: (tsDetails) => {
+                const tsTasks = tsDetails?.tasks || [];
+                const tsSubDeptMap = new Map<number, number>();
+                tsTasks.forEach((tt: any) => {
+                  if (tt.sub_dept_id || tt.branch_id) {
+                    tsSubDeptMap.set(tt.id, tt.sub_dept_id || tt.branch_id);
+                  }
+                });
+
+                mappedTasks.forEach((mt: any) => {
+                  if (!mt.sub_dept_id && tsSubDeptMap.has(mt.task_id)) {
+                    const sId = tsSubDeptMap.get(mt.task_id)!;
+                    mt.sub_dept_id = sId;
+                    this.api.delegateTaskToSubDept(this.assignmentId!, mt.assignment_task_id, sId).subscribe();
+                  }
+                });
+                this.tasks.set(mappedTasks);
+                this.groupTasks();
+              }
+            });
+          }
+
           // Fetch evidence urls linked to this assignment
           this.api.getAssignmentEvidence(this.assignmentId!).subscribe({
             next: (evidenceList) => {
+              const activeEvidenceList = (evidenceList || []).filter((e: any) => !this.isEvidenceDeleted(e));
               mappedTasks.forEach((task: any) => {
-                const evidences = evidenceList.filter((e: any) => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
+                const evidences = activeEvidenceList.filter((e: any) => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
                 task.evidence_history = evidences.map((e: any) => {
                   let fileName = 'Evidence Document.pdf';
                   if (e.file_url) {
                     const parts = e.file_url.split('/');
                     const lastPart = parts[parts.length - 1];
-                    fileName = decodeURIComponent(lastPart.split('?')[0]);
-                    fileName = fileName.replace(/^\d{10,14}-/, '');
+                    fileName = this.cleanFileName(lastPart);
                   }
                   let uName = e.uploader_name || '';
                   let uRole = e.uploader_role || '';
@@ -2203,7 +2467,7 @@ export class AssignmentDetailsComponent implements OnInit {
         branch_name: targetBranchName || 'Network Department',
         branch_id: targetBranchObj?.id || ts.branch_id,
         frequency: this.frequencyMap[String(ts.frequency)] || ts.frequency || 'Weekly',
-        assignment_status: (ts.type || '').toUpperCase() === 'INTERNAL' ? ((ts.tasks.every((tk: any) => tk.remarks || tk.status === 'COMPLETED')) ? 'REVIEW_PENDING' : 'IN_PROGRESS') : 'Pending_Timeline',
+        assignment_status: (ts.type || '').toUpperCase() === 'INTERNAL' ? 'In_Progress' : 'Pending_Timeline',
         remarks_history: t.remarks_history || [],
         evidence_history: t.evidence_history || []
       };
@@ -2406,8 +2670,9 @@ export class AssignmentDetailsComponent implements OnInit {
 
   groupTasks() {
     const groupsMap = new Map<string, any[]>();
+    const tasksToGroup = this.visibleTasks();
 
-    this.tasks().forEach(task => {
+    tasksToGroup.forEach(task => {
       const headerName = task.header_name || 'Uncategorized';
       if (!groupsMap.has(headerName)) {
         groupsMap.set(headerName, []);
@@ -2452,20 +2717,34 @@ export class AssignmentDetailsComponent implements OnInit {
 
   onFileSelected(event: any, assignmentTaskId: number | null) {
     if (!assignmentTaskId) return;
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-        this.notification.warn('Only PDF files are accepted as compliance evidence.');
-        return;
+    const fileList: FileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const validFiles: File[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const f = fileList[i];
+      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+        validFiles.push(f);
+      } else {
+        this.notification.warn(`Skipped "${f.name}": only PDF files are accepted.`);
       }
-      this.stagedFile = file;
-      this.originalFileName = file.name;
-      this.customDocName = file.name;
+    }
+
+    if (validFiles.length === 0) return;
+
+    if (validFiles.length === 1) {
+      this.stagedFile = validFiles[0];
+      this.originalFileName = validFiles[0].name;
+      this.customDocName = validFiles[0].name;
       this.activeEvidenceTaskId = assignmentTaskId;
       this.evidenceSourceStep = 'RENAME_CONFIRM';
       this.displayEvidenceSourceModal = true;
-      event.target.value = '';
+    } else {
+      this.addSelectedFiles(assignmentTaskId, validFiles);
+      this.notification.success(`${validFiles.length} evidence PDF documents attached.`);
+      this.displayEvidenceSourceModal = false;
     }
+    event.target.value = '';
   }
 
   resetToOriginalName() {
@@ -2486,38 +2765,80 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/pdf' });
-    this.selectedFilesMap.update((map: any) => ({ ...map, [taskId]: renamedFile }));
-    this.notification.success(`Evidence PDF "${finalName}" selected.`);
+    this.addSelectedFiles(taskId, [renamedFile]);
+    this.notification.success(`Evidence PDF "${finalName}" attached.`);
     this.stagedFile = null;
     this.displayEvidenceSourceModal = false;
   }
 
-  getSelectedFileName(assignmentTaskId: number): string {
-    const file = this.selectedFilesMap()[assignmentTaskId];
-    return file ? file.name : '';
+  getSelectedFiles(assignmentTaskId: number): File[] {
+    return this.selectedFilesMap()[assignmentTaskId] || [];
   }
 
-  removeSelectedFile(assignmentTaskId: number) {
-    this.selectedFilesMap.update((map: any) => {
+  getSelectedFileName(assignmentTaskId: number): string {
+    const files = this.getSelectedFiles(assignmentTaskId);
+    if (files.length === 0) return '';
+    if (files.length === 1) return files[0].name;
+    return `${files.length} evidence documents`;
+  }
+
+  addSelectedFiles(assignmentTaskId: number, files: File[]) {
+    this.selectedFilesMap.update((map: Record<number, File[]>) => {
+      const existing = map[assignmentTaskId] || [];
+      const newUnique = files.filter(f => !existing.some(e => e.name.toLowerCase() === f.name.toLowerCase() && e.size === f.size));
+      return { ...map, [assignmentTaskId]: [...existing, ...newUnique] };
+    });
+  }
+
+  removeSelectedFile(assignmentTaskId: number, fileIndex?: number) {
+    this.selectedFilesMap.update((map: Record<number, File[]>) => {
+      const copy = { ...map };
+      if (fileIndex === undefined) {
+        delete copy[assignmentTaskId];
+      } else {
+        const list = copy[assignmentTaskId] || [];
+        const updated = list.filter((_, idx) => idx !== fileIndex);
+        if (updated.length === 0) {
+          delete copy[assignmentTaskId];
+        } else {
+          copy[assignmentTaskId] = updated;
+        }
+      }
+      return copy;
+    });
+    this.notification.info('Evidence file removed from staged upload list.');
+  }
+
+  removeAllSelectedFiles(assignmentTaskId: number) {
+    this.selectedFilesMap.update((map: Record<number, File[]>) => {
       const copy = { ...map };
       delete copy[assignmentTaskId];
       return copy;
     });
   }
 
-  hasFileToView(task: any): boolean {
-    const localFile = this.selectedFilesMap()[task.assignment_task_id];
-    if (localFile) return true;
+  previewSelectedFile(file: File) {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank');
+  }
+
+  hasSavedEvidence(task: any): boolean {
     if (task.evidence_url) return true;
     if (task.has_evidence && task.evidence_history && task.evidence_history.length > 0) return true;
     return false;
   }
 
+  hasFileToView(task: any): boolean {
+    const localFiles = this.getSelectedFiles(task.assignment_task_id);
+    if (localFiles && localFiles.length > 0) return true;
+    return this.hasSavedEvidence(task);
+  }
+
   previewFile(task: any) {
-    const localFile = this.selectedFilesMap()[task.assignment_task_id];
-    if (localFile) {
-      const url = URL.createObjectURL(localFile);
-      window.open(url, '_blank');
+    const localFiles = this.getSelectedFiles(task.assignment_task_id);
+    if (localFiles && localFiles.length > 0) {
+      this.previewSelectedFile(localFiles[0]);
       return;
     }
     if (task.evidence_url) {
@@ -2530,6 +2851,95 @@ export class AssignmentDetailsComponent implements OnInit {
       if (fullUrl) window.open(fullUrl, '_blank');
       return;
     }
+  }
+
+  isSubDeptSubmission(ev: any, task: any): boolean {
+    if (!task) return false;
+    return !!(task.sub_dept_id);
+  }
+
+  canDeleteEvidence(ev: any, task: any, idx?: number): boolean {
+    if (!task || !ev) return false;
+    if (this.assignmentStatus() === 'COMPLETED') return false;
+
+    const isSubDeptUser = this.isSubDepartmentUser();
+
+    // 1. If task is delegated to a sub-department:
+    if (task.sub_dept_id) {
+      // Head Department reviewing a sub-dept task CANNOT delete sub-dept's evidence!
+      if (!isSubDeptUser) {
+        return false;
+      }
+      // Sub-department user can only delete if not yet submitted (or rejected for redo)
+      if (this.subDeptSubmitted() && task.review_status !== 'NEEDS_REDO') {
+        return false;
+      }
+    } else {
+      // 2. Direct task (Self-compliance): Sub-dept user cannot delete direct task
+      if (isSubDeptUser) {
+        return false;
+      }
+    }
+
+    // 3. Must be recent evidence (latest upload batch), older records are protected audit trail
+    return this.isRecentEvidence(ev, task, idx);
+  }
+
+  isRecentEvidence(ev: any, task: any, idx?: number): boolean {
+    if (!task || !task.evidence_history || task.evidence_history.length === 0) return false;
+    if (idx === 0) return true;
+    if (!ev || !ev.submitted_at) return false;
+    const latestTime = new Date(task.evidence_history[0].submitted_at).getTime();
+    const evTime = new Date(ev.submitted_at).getTime();
+    // Consider items within same 2-minute window as part of the same recent upload batch
+    return Math.abs(latestTime - evTime) < 120000;
+  }
+
+  deleteSavedEvidence(ev: any, task: any) {
+    if (!ev || !task) return;
+    const fileName = ev.file_name || 'Evidence Document.pdf';
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete the saved evidence "${fileName}"?`,
+      header: 'Confirm Evidence Deletion',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Yes, Delete',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-outlined p-button-secondary p-button-sm',
+      accept: () => {
+        const taskId = task.assignment_task_id;
+        this.markEvidenceAsDeleted(ev);
+
+        // Instantly update task & selectedTaskForChain objects in memory
+        if (task.evidence_history) {
+          task.evidence_history = task.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
+          task.has_evidence = task.evidence_history.length > 0;
+          task.evidence_url = task.evidence_history[0]?.file_url || null;
+        }
+        if (this.selectedTaskForChain && this.selectedTaskForChain.evidence_history) {
+          this.selectedTaskForChain.evidence_history = this.selectedTaskForChain.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
+        }
+
+        if (ev.id && this.assignmentId) {
+          this.api.deleteTaskEvidence(this.assignmentId, taskId, ev.id).subscribe({
+            next: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            },
+            error: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            }
+          });
+        } else {
+          this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+          this.loadDepartmentPreviousEvidences();
+        }
+      }
+    });
   }
 
   // Save a single task row declaration and/or upload evidence
@@ -2575,12 +2985,14 @@ export class AssignmentDetailsComponent implements OnInit {
     };
 
     return new Promise((resolve) => {
-      const file = this.selectedFilesMap()[taskId];
+      const files = this.getSelectedFiles(taskId);
 
-      if (file) {
-        // 1. Submit with evidence file upload
+      if (files && files.length > 0) {
+        // 1. Submit with multiple evidence files upload
         const formData = new FormData();
-        formData.append('files', file);
+        files.forEach((f: File) => {
+          formData.append('files', f, f.name);
+        });
         formData.append('remark', task.temp_remarks);
         formData.append('compliance_status', task.temp_compliance_status || 'COMPLIED');
 
@@ -2589,15 +3001,11 @@ export class AssignmentDetailsComponent implements OnInit {
             next: () => {
               clearRejectionIfAny();
               setTimeout(() => {
-                this.selectedFilesMap.update((map: any) => {
-                  const copy = { ...map };
-                  delete copy[taskId];
-                  return copy;
-                });
+                this.removeAllSelectedFiles(taskId);
                 this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
                 this.loadTasks();
                 if (showNotification) {
-                  this.notification.success('Task compliance and evidence saved successfully!');
+                  this.notification.success(`${files.length > 1 ? files.length + ' evidence documents' : 'Evidence document'} and compliance saved successfully!`);
                 }
                 checkDirectAutoSubmit();
                 resolve(true);
@@ -2607,7 +3015,7 @@ export class AssignmentDetailsComponent implements OnInit {
               console.error(err);
               setTimeout(() => {
                 this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
-                this.notification.error('Failed to upload evidence document: ' + (err.message || err.statusText));
+                this.notification.error('Failed to upload evidence documents: ' + (err.message || err.statusText));
                 resolve(false);
               });
             }
@@ -2723,7 +3131,7 @@ export class AssignmentDetailsComponent implements OnInit {
     if (!this.assignmentId) return;
 
     // Check if any temp remarks need to be saved
-    const unsavedTasks = this.tasks().filter(t => t.temp_remarks?.trim() && t.temp_remarks !== t.remarks);
+    const unsavedTasks = this.visibleTasks().filter(t => t.temp_remarks?.trim() && t.temp_remarks !== t.remarks);
     if (unsavedTasks.length > 0) {
       this.submitting = true;
       const results = await Promise.all(unsavedTasks.map(t => this.saveSingleTask(t, false)));
@@ -2736,19 +3144,21 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     this.submitting = true;
-    this.api.updateAssignmentStatus(this.assignmentId, 'REVIEW_PENDING').subscribe({
+    const isDirect = this.isDirectSubDeptAssignment();
+    const newStatus = isDirect ? 'REVIEW_PENDING' : 'In_Progress';
+    this.api.updateAssignmentStatus(this.assignmentId, newStatus).subscribe({
       next: () => {
         this.submitting = false;
-        this.assignmentStatus.set('REVIEW_PENDING');
+        this.assignmentStatus.set(newStatus);
         this.subDeptSubmittedSignal.set(true);
-        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
+        this.notification.success(isDirect ? 'Compliance submitted successfully to Compliance Officer!' : 'Compliance submitted successfully to Head Department for review and acceptance!');
         this.loadTasks();
       },
       error: () => {
         this.submitting = false;
-        this.assignmentStatus.set('REVIEW_PENDING');
+        this.assignmentStatus.set(newStatus);
         this.subDeptSubmittedSignal.set(true);
-        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
+        this.notification.success(isDirect ? 'Compliance submitted successfully to Compliance Officer!' : 'Compliance submitted successfully to Head Department for review and acceptance!');
         this.loadTasks();
       }
     });

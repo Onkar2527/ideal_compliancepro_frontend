@@ -5,41 +5,41 @@
     <!-- Left: Dept/Branch & Task Set -->
     <div style="flex: 1.2; min-width: 240px;">
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-        <span style="font-size: 0.7rem; font-weight: 700; background: #f0f4f8; color: #0f2942; border: 1px solid #cbd5e1; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
+        <span class="status-badge" style="background: var(--surface-hover, #f0f4f8); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
           {{ assignmentMeta()?.branch_name }}
         </span>
-        <span style="font-size: 0.7rem; font-weight: 700; background: #f3f4f6; color: #4b5563; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
+        <span class="status-badge" style="background: var(--surface-hover, #f3f4f6); color: var(--text-color-secondary, #4b5563); font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
           Freq: {{ assignmentMeta()?.frequency || 'ONCE' }}
         </span>
       </div>
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0; line-height: 1.3;">{{ assignmentMeta()?.task_set_name }}</h3>
-      <span *ngIf="assignmentMeta()?.start_date && assignmentMeta()?.end_date" style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-color, #111827); margin: 0; line-height: 1.3;">{{ assignmentMeta()?.task_set_name }}</h3>
+      <span *ngIf="assignmentMeta()?.start_date && assignmentMeta()?.end_date" style="font-size: 0.75rem; color: var(--text-color-secondary, #6b7280); font-weight: 500;">
         Period: {{ assignmentMeta()?.start_date | date:'dd/MM/yyyy' }} to {{ assignmentMeta()?.end_date | date:'dd/MM/yyyy' }}
       </span>
     </div>
 
     <!-- Middle: Circular Details -->
-    <div style="flex: 1.5; min-width: 260px; border-left: 1px solid #f3f4f6; padding-left: 1rem;">
-      <span style="font-size: 0.725rem; font-weight: 700; color: #0f2942; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">
+    <div style="flex: 1.5; min-width: 260px; border-left: 1px solid var(--surface-border, #f3f4f6); padding-left: 1rem;">
+      <span style="font-size: 0.725rem; font-weight: 700; color: var(--text-color-secondary, #0f2942); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.25rem;">
         <i class="pi pi-file" style="font-size: 0.725rem; margin-right: 0.25rem;"></i> Circular Details
       </span>
-      <p style="font-size: 0.9rem; font-weight: 700; color: #1f2937; margin: 0; line-height: 1.35;" [title]="assignmentMeta()?.circular_title || 'N/A'">
+      <p style="font-size: 0.9rem; font-weight: 700; color: var(--text-color, #1f2937); margin: 0; line-height: 1.35;" [title]="assignmentMeta()?.circular_title || 'N/A'">
         {{ assignmentMeta()?.circular_title || 'No Circular Title Specified' }}
       </p>
       <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; flex-wrap: wrap;">
-        <span style="font-size: 0.725rem; font-weight: 600; background: #f9fafb; border: 1px solid #e5e7eb; padding: 0.15rem 0.5rem; border-radius: 4px; color: #374151;">
+        <span style="font-size: 0.725rem; font-weight: 600; background: var(--surface-hover, #f9fafb); border: 1px solid var(--surface-border, #e5e7eb); padding: 0.15rem 0.5rem; border-radius: 4px; color: var(--text-color, #374151);">
           Ref No: {{ assignmentMeta()?.circular_reference_no || 'N/A' }}
         </span>
-        <span style="font-size: 0.725rem; font-weight: 600; background: #f9fafb; border: 1px solid #e5e7eb; padding: 0.15rem 0.5rem; border-radius: 4px; color: #374151;">
+        <span style="font-size: 0.725rem; font-weight: 600; background: var(--surface-hover, #f9fafb); border: 1px solid var(--surface-border, #e5e7eb); padding: 0.15rem 0.5rem; border-radius: 4px; color: var(--text-color, #374151);">
           Authority: {{ assignmentMeta()?.authority_name || 'N/A' }}
         </span>
       </div>
     </div>
 
     <!-- Right: Status & Back Button -->
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 220px; border-left: 1px solid #f3f4f6; padding-left: 1rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-width: 220px; border-left: 1px solid var(--surface-border, #f3f4f6); padding-left: 1rem;">
       <div>
-        <span style="font-size: 0.725rem; font-weight: 700; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Review Status</span>
+        <span style="font-size: 0.725rem; font-weight: 700; color: var(--text-color-secondary, #6b7280); text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Review Status</span>
         <p-tag [value]="getFormattedStatus()" [severity]="getStatusSeverity()" [rounded]="true" />
       </div>
       <button pButton type="button" icon="pi pi-arrow-left" label="Back" severity="secondary" outlined size="small" class="p-button-sm no-print" (click)="goBack()"></button>
@@ -78,15 +78,30 @@
   </div>
 
   <!-- Branch User Created Banner (View-Only Mode) -->
-  <div *ngIf="isBranchCreated()" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1.5px solid #86efac; border-left: 4px solid #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+  <div *ngIf="isBranchCreated()" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--surface-hover, #f0fdf4); border: 1.5px solid var(--surface-border, #86efac); border-left: 4px solid #16a34a; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
     <div style="display: flex; align-items: center; gap: 0.6rem;">
       <i class="pi pi-info-circle" style="color: #16a34a; font-size: 1.25rem;"></i>
       <div>
-        <span style="font-size: 0.85rem; font-weight: 700; color: #14532d; display: block;">Branch / Department Task Set — View-Only Mode</span>
-        <span style="font-size: 0.75rem; color: #166534;">Created by Branch / Department. Review actions are disabled as compliance is managed directly by the department.</span>
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-color, #14532d); display: block;">Branch / Department Task Set — View-Only Mode</span>
+        <span style="font-size: 0.75rem; color: var(--text-color-secondary, #166534);">Created by Branch / Department. Review actions are disabled as compliance is managed directly by the department.</span>
       </div>
     </div>
-    <span style="font-size: 0.72rem; font-weight: 700; color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
+    <span style="font-size: 0.72rem; font-weight: 700; color: #15803d; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
+      <i class="pi pi-eye"></i> View Only
+    </span>
+  </div>
+
+  <!-- In Progress / Not Submitted Yet Banner (View-Only Mode for CO) -->
+  <div *ngIf="!isReviewActive() && !isBranchCreated() && assignmentMeta()?.assignment_status !== 'COMPLETED'" 
+       style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: #f8fafc; border: 1.5px solid #cbd5e1; border-left: 4px solid #64748b; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <i class="pi pi-info-circle" style="color: #64748b; font-size: 1.25rem;"></i>
+      <div>
+        <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b; display: block;">In Progress — View-Only Tracking Mode</span>
+        <span style="font-size: 0.75rem; color: #64748b;">This compliance checklist is currently in progress within the department and has not yet been submitted to the Compliance Officer. Review actions (Accept / Reject) will be enabled once the Head Department submits compliance.</span>
+      </div>
+    </div>
+    <span style="font-size: 0.72rem; font-weight: 700; color: #475569; background: #e2e8f0; border: 1px solid #cbd5e1; padding: 0.25rem 0.6rem; border-radius: 6px; text-transform: uppercase;">
       <i class="pi pi-eye"></i> View Only
     </span>
   </div>
@@ -103,7 +118,7 @@
   </div>
 
   <!-- Active filter banner -->
-  <div *ngIf="activeFilter()" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; margin-bottom:0.5rem; font-size:0.82rem; font-weight:600; color:#1d4ed8;">
+  <div *ngIf="activeFilter()" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 1rem; background: var(--surface-hover, #eff6ff); border:1px solid var(--surface-border, #bfdbfe); border-radius:8px; margin-bottom:0.5rem; font-size:0.82rem; font-weight:600; color: var(--primary-color, #1d4ed8);">
     <i class="pi pi-filter" style="font-size:0.85rem;"></i>
     Showing only: <strong>{{ activeFilter() === 'APPROVED' ? 'Accepted' : activeFilter() === 'NEEDS_REDO' ? 'Rejected' : 'Not Reviewed' }}</strong> tasks
     <p-button label="Clear" icon="pi pi-times" [text]="true" severity="secondary" size="small" (click)="clearFilter()" [style]="{'margin-left': 'auto'}"/>
@@ -124,7 +139,7 @@
       </span>
     </div>
 
-    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 10px 10px; padding: 1rem 1rem 0.5rem 1rem; display: flex; flex-direction: column; gap: 0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+    <div class="task-group-body">
       <div *ngFor="let t of group.tasks; trackBy: trackByTaskId; let i = index"
            class="question-card"
            [class.card-approved]="t.review_status === 'APPROVED'"
@@ -134,23 +149,23 @@
            style="margin-bottom: 0.75rem;">
 
         <!-- Left Column: Serial Number & Task Info -->
-        <div class="question-main" style="padding: 1.1rem; border-right: 1px solid #f1f5f9; display: flex; gap: 0.85rem; align-items: flex-start;">
+        <div class="question-main">
           <div class="question-number">{{ i + 1 }}</div>
           <div style="flex: 1; display: flex; flex-direction: column; gap: 0.4rem;">
             <!-- Top Tags Bar -->
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
               <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
                 <span class="circular-ref-tag" *ngIf="t.circular_reference_no">{{ t.circular_reference_no }}</span>
-                <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                  <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #047857;"></i> Accepted
+                <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #10b981;"></i> Accepted
                 </span>
-                <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-times-circle" style="font-size: 0.65rem;"></i> Rejected
                 </span>
-                <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-exclamation-triangle" style="font-size: 0.65rem;"></i> Escalated to CCO
                 </span>
-                <span *ngIf="!t.review_status && (t.compliance_status === 'COMPLIED' || t.remarks || t.has_evidence)" style="padding: 0.15rem 0.55rem; background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <span *ngIf="!t.review_status && (t.compliance_status === 'COMPLIED' || t.remarks || t.has_evidence)" style="padding: 0.15rem 0.55rem; background: var(--surface-hover, #f3f4f6); color: var(--text-color-secondary, #4b5563); border: 1px solid var(--surface-border, #e5e7eb); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-clock" style="font-size: 0.65rem;"></i> Pending Review
                 </span>
               </div>
@@ -165,15 +180,15 @@
           <!-- Branch Remarks Box -->
           <div style="display: flex; flex-direction: column; gap: 0.25rem; width: 100%;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-              <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">
+              <span class="control-label" style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-color-secondary, #475569);">
                 Branch Remarks
               </span>
-              <span *ngIf="t.has_evidence" style="font-size: 0.68rem; font-weight: 700; color: #dc2626; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <span *ngIf="t.has_evidence" style="font-size: 0.68rem; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem;">
                 <i class="pi pi-file-pdf"></i> Evidence Attached
               </span>
             </div>
             
-            <div class="branch-remark-box" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.45rem 0.6rem; font-size: 0.8rem; color: #1e293b; line-height: 1.4; min-height: 2.4rem; width: 100%; box-sizing: border-box;">
+            <div class="branch-remark-box">
               <span>{{ t.remarks || '—' }}</span>
             </div>
           </div>
@@ -183,7 +198,7 @@
             
             <div style="display: flex; flex-direction: column; gap: 0.25rem; width: 100%;">
               <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #475569;">
+                <span class="control-label" style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-color-secondary, #475569);">
                   Reviewer Remarks / Feedback
                 </span>
               </div>
@@ -192,7 +207,7 @@
                         placeholder="Add remarks or feedback for branch..."
                         class="co-remark-input w-full"
                         rows="2"
-                        style="font-size: 0.8rem; line-height: 1.4; resize: none; min-height: 2.75rem; height: 2.75rem; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.45rem 0.6rem; width: 100%; box-sizing: border-box; background: #ffffff;"
+                        style="font-size: 0.8rem; line-height: 1.4; resize: none; min-height: 2.75rem; height: 2.75rem; width: 100%; box-sizing: border-box;"
                         [disabled]="savingTaskId() === t.assignment_task_id"></textarea>
             </div>
 
@@ -200,32 +215,46 @@
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.1rem;">
               
               <!-- Evidence Upload + Attached File Preview -->
-              <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                <button type="button"
-                        (click)="openEvidencePicker(t)"
-                        style="padding: 0.25rem 0.65rem; height: 1.95rem; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; font-weight: 600; border: 1px dashed #6366f1; background: #eef2ff; color: #4338ca; margin: 0; cursor: pointer;">
-                  <i class="pi pi-upload" style="font-size: 0.72rem;"></i> 
-                  {{ getSelectedFileName(t.assignment_task_id) ? 'Change Evidence' : 'Upload Evidence' }}
-                </button>
+              <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <button type="button"
+                          (click)="openEvidencePicker(t)"
+                          style="padding: 0.25rem 0.65rem; height: 1.95rem; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; font-weight: 600; border: 1px dashed #6366f1; background: rgba(99, 102, 241, 0.12); color: #818cf8; margin: 0; cursor: pointer;">
+                    <i class="pi pi-upload" style="font-size: 0.72rem;"></i> 
+                    {{ getSelectedFiles(t.assignment_task_id).length > 0 ? '+ Add More Evidence' : 'Upload Evidence' }}
+                  </button>
 
-                <div *ngIf="getSelectedFileName(t.assignment_task_id)"
-                     style="display: inline-flex; align-items: center; gap: 0.35rem; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 0.2rem 0.55rem; height: 1.95rem; font-size: 0.72rem; color: #166534;">
-                  <i class="pi pi-file-pdf" style="color: #dc2626; font-size: 0.82rem;"></i>
-                  <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="getSelectedFileName(t.assignment_task_id)">
-                    {{ getSelectedFileName(t.assignment_task_id) }}
-                  </span>
-                  <button type="button" 
-                          (click)="previewFile(t)" 
-                          title="Preview PDF"
-                          style="background: #ffffff; border: 1px solid #86efac; border-radius: 4px; padding: 0.15rem 0.4rem; cursor: pointer; color: #15803d; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
-                    <i class="pi pi-eye" style="font-size: 0.7rem;"></i> Preview
+                  <button *ngIf="hasSavedEvidence(t)"
+                          type="button"
+                          (click)="previewFile(t)"
+                          class="p-button p-button-sm p-button-outlined p-button-danger"
+                          style="height: 1.95rem; font-size: 0.72rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <i class="pi pi-file-pdf"></i> View Saved Evidence
                   </button>
-                  <button type="button" 
-                          (click)="removeSelectedFile(t.assignment_task_id)" 
-                          title="Remove file"
-                          style="background: none; border: none; padding: 0.1rem; cursor: pointer; color: #dc2626; display: inline-flex; align-items: center;">
-                    <i class="pi pi-times" style="font-size: 0.75rem;"></i>
-                  </button>
+                </div>
+
+                <!-- Staged Evidence Files List with Preview & Remove Option -->
+                <div *ngIf="getSelectedFiles(t.assignment_task_id).length > 0" 
+                     style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem;">
+                  <div *ngFor="let file of getSelectedFiles(t.assignment_task_id); let fIdx = index"
+                       style="display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.72rem; color: #10b981;">
+                    <i class="pi pi-file-pdf" style="color: #ef4444; font-size: 0.82rem;"></i>
+                    <span style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="file.name">
+                      {{ file.name }}
+                    </span>
+                    <button type="button" 
+                            (click)="previewSelectedFile(file)" 
+                            title="Preview PDF"
+                            style="background: #ffffff; border: 1px solid #86efac; border-radius: 4px; padding: 0.1rem 0.35rem; cursor: pointer; color: #10b981; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                      <i class="pi pi-eye" style="font-size: 0.68rem;"></i>
+                    </button>
+                    <button type="button" 
+                            (click)="removeSelectedFile(t.assignment_task_id, fIdx)" 
+                            title="Remove this file"
+                            style="background: none; border: none; padding: 0.1rem 0.2rem; cursor: pointer; color: #ef4444; display: inline-flex; align-items: center;">
+                      <i class="pi pi-trash" style="font-size: 0.75rem;"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -260,26 +289,26 @@
 
           <!-- Completed / Read-Only Review: Clean Decision Banner -->
           <div *ngIf="!isReviewActive() && t.review_status" style="width: 100%;">
-            <div *ngIf="t.review_status === 'APPROVED'" style="padding: 0.45rem 0.75rem; background: #f0fdf4; border: 1px solid #a7f3d0; border-left: 3px solid #047857; border-radius: 6px; font-size: 0.75rem; color: #065f46; display: flex; align-items: center; justify-content: space-between;">
+            <div *ngIf="t.review_status === 'APPROVED'" class="decision-banner-approved">
               <span style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
-                <i class="pi pi-check-circle" style="color: #047857;"></i>
+                <i class="pi pi-check-circle" style="color: #10b981;"></i>
                 <span>Accepted by Reviewer</span>
               </span>
-              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 0.15rem 0.5rem; border-radius: 4px;">Accepted</span>
+              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 0.15rem 0.5rem; border-radius: 4px;">Accepted</span>
             </div>
-            <div *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.45rem 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; font-size: 0.75rem; color: #991b1b; display: flex; align-items: center; justify-content: space-between;">
+            <div *ngIf="t.review_status === 'NEEDS_REDO'" class="decision-banner-rejected">
               <span style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
                 <i class="pi pi-times-circle text-red-600"></i>
                 <span>Needs Re-compliance</span>
               </span>
-              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #fee2e2; color: #b91c1c; padding: 0.15rem 0.5rem; border-radius: 4px;">Rejected</span>
+              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 0.15rem 0.5rem; border-radius: 4px;">Rejected</span>
             </div>
-            <div *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.45rem 0.75rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 0.75rem; color: #92400e; display: flex; align-items: center; justify-content: space-between;">
+            <div *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.45rem 0.75rem; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 0.75rem; color: #f59e0b; display: flex; align-items: center; justify-content: space-between;">
               <span style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600;">
-                <i class="pi pi-exclamation-triangle text-amber-600"></i>
+                <i class="pi pi-exclamation-triangle" style="color: #f59e0b;"></i>
                 <span>Escalated to CCO for Final Review</span>
               </span>
-              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: #fef3c7; color: #b45309; padding: 0.15rem 0.5rem; border-radius: 4px;">Escalated</span>
+              <span style="font-size: 0.65rem; font-weight: 700; text-transform: uppercase; background: rgba(245,158,11,0.2); color: #f59e0b; padding: 0.15rem 0.5rem; border-radius: 4px;">Escalated</span>
             </div>
           </div>
 
@@ -290,12 +319,12 @@
 
           <!-- Read-Only Reviewer Remark Display when review is closed -->
           <div *ngIf="!isReviewActive() && t.review_remark" 
-               style="font-size: 0.75rem; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #0f2942; padding: 0.45rem 0.6rem; border-radius: 6px; color: #1e293b; width: 100%; box-sizing: border-box;">
+               style="font-size: 0.75rem; background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-left: 3px solid var(--primary-color, #0f2942); padding: 0.45rem 0.6rem; border-radius: 6px; color: var(--text-color, #1e293b); width: 100%; box-sizing: border-box;">
             <strong>Reviewer Feedback:</strong> "{{ t.review_remark }}"
           </div>
 
           <!-- History Action Trigger Buttons Footer -->
-          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.4rem; border-top: 1px solid #f1f5f9; margin-top: 0.15rem;">
+          <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(--surface-border, #f1f5f9); margin-top: 0.15rem;">
             <button *ngIf="hasRemarksHistory(t)"
                     type="button"
                     pButton
@@ -324,12 +353,12 @@
   <!-- Final Review Decision Panel -->
   <div class="decision-panel" *ngIf="isReviewActive()">
     <div class="decision-panel-header">
-      <i class="pi pi-shield" style="color: #0f2942; font-size: 1.2rem;"></i>
+      <i class="pi pi-shield" style="color: var(--primary-color, #0f2942); font-size: 1.2rem;"></i>
       CO Final Decision
     </div>
 
     <!-- Clickable filter chips — click to highlight tasks of that type -->
-    <div class="decision-summary" style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 0.85rem; border-radius: 8px; margin-bottom: 1rem;">
+    <div class="decision-summary" style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); padding: 0.6rem 0.85rem; border-radius: 8px; margin-bottom: 1rem;">
       <button pButton type="button"
         [label]="approvedCount() + ' Accepted'"
         icon="pi pi-check-circle"
@@ -428,7 +457,7 @@
         </div>
         
         <div style="display: flex; flex-direction: column; gap: 0.65rem; padding: 0.85rem; max-height: 280px; overflow-y: auto;">
-          <div *ngFor="let ev of selectedTaskForChain.evidence_history" 
+          <div *ngFor="let ev of selectedTaskForChain.evidence_history; let evIdx = index" 
                style="padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem;">
             
             <!-- Header: Uploader Info & Date -->
@@ -454,14 +483,32 @@
               <a [href]="ev.file_url" target="_blank" 
                  style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #dc2626; text-decoration: none; font-size: 0.78rem;">
                 <i class="pi pi-file-pdf" style="font-size: 0.95rem;"></i> 
-                <span>{{ ev.file_name || 'View Evidence PDF' }}</span>
+                <span>{{ cleanFileName(ev.file_name || ev.file_url || 'View Evidence PDF') }}</span>
               </a>
               
-              <a [href]="ev.file_url" target="_blank" 
-                 class="p-button p-button-sm p-button-outlined p-button-danger"
-                 style="text-decoration: none; padding: 0.2rem 0.55rem; font-size: 0.7rem; height: 1.65rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i class="pi pi-external-link"></i> Open PDF
-              </a>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <a [href]="ev.file_url" target="_blank" 
+                   class="p-button p-button-sm p-button-outlined p-button-danger"
+                   style="text-decoration: none; padding: 0.2rem 0.55rem; font-size: 0.7rem; height: 1.65rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i class="pi pi-external-link"></i> Open PDF
+                </a>
+                <!-- Delete button allowed ONLY for recent reviewer uploads -->
+                <button *ngIf="canDeleteEvidence(ev, selectedTaskForChain, evIdx)"
+                        type="button" 
+                        pButton 
+                        icon="pi pi-trash" 
+                        label="Delete" 
+                        size="small" 
+                        severity="danger" 
+                        (click)="deleteSavedEvidence(ev, selectedTaskForChain)"
+                        styleClass="p-button-sm p-button-outlined h-2rem text-xs font-semibold px-2 text-red-600 border-red-300 hover:bg-red-50"
+                        title="Delete this recently uploaded evidence"></button>
+                <span *ngIf="!canDeleteEvidence(ev, selectedTaskForChain, evIdx)" 
+                      style="font-size: 0.65rem; color: #94a3b8; font-style: italic; background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px;"
+                      title="Historical evidence is preserved in compliance audit trail">
+                  <i class="pi pi-lock" style="font-size: 0.6rem;"></i> Audit Record
+                </span>
+              </div>
             </div>
 
           </div>
@@ -553,12 +600,12 @@
         
         <!-- Option 1: Upload from Computer (PC) -->
         <label style="border: 2px dashed #6366f1; background: #f5f7ff; border-radius: 10px; padding: 1.5rem 1rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.65rem; cursor: pointer; transition: all 0.2s;">
-          <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" accept="application/pdf" style="display: none;">
+          <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" multiple accept="application/pdf" style="display: none;">
           <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
             <i class="pi pi-desktop"></i>
           </div>
           <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;">Upload from PC</span>
-          <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload a new PDF file from your local storage</span>
+          <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload one or multiple PDF files from your local storage</span>
         </label>
 
         <!-- Option 2: Select from Previous Department Evidence -->
@@ -691,3 +738,5 @@
       <button *ngIf="evidenceSourceStep === 'RENAME_CONFIRM'" pButton label="Confirm & Attach" icon="pi pi-check" class="p-button-primary p-button-sm" (click)="confirmAttachStagedFile()"></button>
     </ng-template>
   </p-dialog>
+
+  <p-confirmDialog [style]="{ width: '450px', maxWidth: '95vw' }" appendTo="body"></p-confirmDialog>

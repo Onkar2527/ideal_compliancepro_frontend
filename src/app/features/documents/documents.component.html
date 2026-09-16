@@ -81,6 +81,7 @@
     <div class="filter-controls">
       <!-- Department Filter -->
       <p-select [options]="deptFilterOptions()" [(ngModel)]="selectedDeptFilter" 
+                [filter]="true" filterBy="label" [showClear]="true"
                 placeholder="Department / Branch" styleClass="filter-dropdown" />
 
       <!-- Access Level (Public/Private) Filter -->
@@ -147,16 +148,53 @@
             </span>
           </td>
 
-          <!-- Department / Branch -->
+          <!-- Department / Branch / Sub-Dept -->
           <td>
-            <span *ngIf="doc.department_id !== null && doc.department_name && doc.department_name !== 'All Branches'" class="dept-badge">
-              <i class="pi pi-building" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
-              {{ doc.department_name }}
-            </span>
-            <span *ngIf="doc.department_id === null || !doc.department_name || doc.department_name === 'All Branches'" class="dept-badge-all">
-              <i class="pi pi-globe" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
-              All Branches
-            </span>
+            <ng-container *ngIf="doc.department_id !== null && doc.department_id !== undefined; else allBranchesTpl">
+              <ng-container *ngIf="getDepartmentInfo(doc.department_id) as deptInfo; else rawDeptNameTpl">
+                <!-- Sub Department -->
+                <div *ngIf="deptInfo.isSub" class="dept-sub-cell">
+                  <span class="dept-parent-tag" [title]="'Head Dept: ' + (deptInfo.parentName || 'Head')">
+                    <i class="pi pi-building"></i> {{ deptInfo.parentName || 'Head Dept' }}
+                  </span>
+                  <span class="dept-sub-tag" [title]="'Sub-Department: ' + deptInfo.name">
+                    <i class="pi pi-angle-right text-xs"></i> {{ deptInfo.name }}
+                  </span>
+                </div>
+                <!-- Head Department -->
+                <div *ngIf="deptInfo.isHead" class="dept-head-cell">
+                  <span class="dept-badge dept-head-badge">
+                    <i class="pi pi-building" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+                    {{ deptInfo.name }}
+                  </span>
+                  <span class="badge-sub-pill head-pill">Head Dept</span>
+                </div>
+                <!-- Branch -->
+                <div *ngIf="deptInfo.isBranch" class="dept-branch-cell">
+                  <span class="dept-badge branch-badge">
+                    <i class="pi pi-map-marker" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+                    {{ deptInfo.name }}
+                  </span>
+                </div>
+                <!-- Other/Direct -->
+                <div *ngIf="!deptInfo.isSub && !deptInfo.isHead && !deptInfo.isBranch" class="dept-badge">
+                  <i class="pi pi-building" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+                  {{ doc.department_name || deptInfo.name }}
+                </div>
+              </ng-container>
+              <ng-template #rawDeptNameTpl>
+                <span class="dept-badge">
+                  <i class="pi pi-building" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+                  {{ doc.department_name }}
+                </span>
+              </ng-template>
+            </ng-container>
+            <ng-template #allBranchesTpl>
+              <span class="dept-badge-all">
+                <i class="pi pi-globe" style="font-size: 0.7rem; margin-right: 0.25rem;"></i>
+                All Branches
+              </span>
+            </ng-template>
           </td>
 
           <!-- Owner / User -->
@@ -338,8 +376,33 @@
               <label class="form-label">Department / Branch Target</label>
               <p-select [options]="formDeptOptions()" [(ngModel)]="departmentId" 
                         (onChange)="onDepartmentChange($event.value)"
-                        placeholder="Select Department / Branch" 
-                        [showClear]="true" appendTo="body" styleClass="w-full" />
+                        [filter]="true" filterBy="label"
+                        placeholder="Select Department / Branch / Sub-Dept" 
+                        [showClear]="true" appendTo="body" styleClass="w-full">
+                <ng-template let-item pTemplate="item">
+                  <div class="dept-option-item" [style.padding-left]="item.isSub ? '1.4rem' : '0'">
+                    <span [style.font-weight]="item.isHead ? '700' : (item.isSub ? '500' : '600')"
+                          [style.color]="item.isSub ? '#475569' : (item.isHead ? '#1e3a8a' : (item.isBranch ? '#0f766e' : '#1e293b'))"
+                          [style.font-size]="item.isSub ? '0.84rem' : '0.88rem'">
+                      {{ item.label }}
+                    </span>
+                  </div>
+                </ng-template>
+              </p-select>
+
+              <!-- Informative Hierarchy Feedback -->
+              <div *ngIf="selectedDepartmentInfo as info" class="mt-1">
+                <small *ngIf="info.isSub" style="color: #2563eb; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i class="pi pi-info-circle"></i> Sub-Department under <strong>{{ info.parentName }}</strong>
+                </small>
+                <small *ngIf="info.isHead" style="color: #4338ca; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i class="pi pi-info-circle"></i> Head Department (Applies to all sub-departments and staff)
+                </small>
+                <small *ngIf="info.isBranch" style="color: #0d9488; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i class="pi pi-map-marker"></i> Branch Location
+                </small>
+              </div>
+
               <small class="form-hint" *ngIf="departmentId === null">
                 Selecting "All Branches" allows assigning to any user across the whole organization.
               </small>

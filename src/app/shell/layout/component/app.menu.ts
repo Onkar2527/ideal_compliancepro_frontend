@@ -107,7 +107,7 @@ export class AppMenu implements OnInit {
         });
         complianceItems.push({
           label: 'Department Tasks',
-          icon: 'pi pi-fw pi-building',
+          icon: 'pi pi-fw pi-sitemap',
           routerLink: ['/assignments'],
           queryParams: { view: 'dept_tasks' },
           routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }

@@ -27,6 +27,7 @@ import { ButtonModule } from "primeng/button";
         [data]="assignments()"
         [columns]="tableColumns"
         [actions]="tableActions"
+        [loading]="loading()"
         [showAddButton]="false"
         [showRefreshButton]="true"
         [paginator]="true"
@@ -87,6 +88,7 @@ import { ButtonModule } from "primeng/button";
 })
 export class CcoReviewComponent implements OnInit {
   rawAssignments = signal<any[]>([]);
+  loading = signal<boolean>(true);
   searchQuery = signal<string>('');
   selectedStatusFilter = signal<string | null>(null);
   selectedBranchFilter = signal<string | null>(null);
@@ -120,11 +122,13 @@ export class CcoReviewComponent implements OnInit {
 
   statusFilterOptions = [
     { label: 'Escalated to CCO', value: 'ESCALATED_TO_CCO' },
+    { label: 'Review Pending', value: 'REVIEW_PENDING' },
     { label: 'Timeline Review', value: 'Timeline_Review' },
+    { label: 'Pending Recompliance', value: 'PENDING_RECOMPLIANCE' },
     { label: 'In Progress', value: 'In_Progress' },
     { label: 'Completed', value: 'COMPLETED' },
-    { label: 'Pending Recompliance', value: 'PENDING_RECOMPLIANCE' },
-    { label: 'Overdue', value: 'OVERDUE' }
+    { label: 'Overdue', value: 'OVERDUE' },
+    { label: 'All Statuses', value: 'ALL' }
   ];
 
   showNotifyModal = false;
@@ -135,9 +139,9 @@ export class CcoReviewComponent implements OnInit {
   assignments = computed(() => {
     let list = this.rawAssignments();
 
-    // Filter by status selection
+    // Filter by status selection if user selected one
     const status = this.selectedStatusFilter();
-    if (status) {
+    if (status && status.toUpperCase() !== 'ALL') {
       if (status.toUpperCase() === 'PENDING_RECOMPLIANCE' || status.toUpperCase() === 'REJECTED') {
         list = list.filter((a: any) => {
           const s = a.status?.toUpperCase();
@@ -172,27 +176,16 @@ export class CcoReviewComponent implements OnInit {
     return list;
   });
 
-  isBranchCreated(row: any): boolean {
+  isInternalTaskSet(row: any): boolean {
     if (!row) return false;
-    if (row.is_branch_created !== undefined && row.is_branch_created !== null) {
-      return !!row.is_branch_created;
-    }
-    const role = (row.created_by_role || row.creator_role || row.task_set_created_by_role || row.user_role || '').toUpperCase();
-    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER' || role === 'SUB_DEPARTMENT') {
-      return true;
-    }
-    const createdBy = (row.created_by_username || row.created_by_name || row.creator_name || row.created_by || '').toLowerCase();
-    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('user')) {
-      return true;
-    }
-    const branchName = (row.branch_name || '').toLowerCase();
-    const taskSetName = (row.task_set_name || '').toLowerCase();
-    if (!row.branch_parent_id) {
-      return true;
-    }
-    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      return true;
-    }
+    const type = (row.task_set_type || row.type || '').toUpperCase().trim();
+    if (type === 'INTERNAL') return true;
+    const role = (row.created_by_role || row.creator_role || '').toUpperCase().trim();
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role)) return true;
+    const name = (row.created_by_username || row.created_by_name || row.creator_name || '').toLowerCase().trim();
+    if (name.includes('branch') || name.includes('department')) return true;
+    if (type === 'REGULAR') return false;
+    if (row.circular_id || row.circular_name || row.circular_no || row.circular_title) return false;
     return false;
   }
 
@@ -200,19 +193,19 @@ export class CcoReviewComponent implements OnInit {
     {
       label: "Review Timeline",
       icon: "pi pi-calendar-plus",
-      visible: (row: any) => !this.isBranchCreated(row) && row.status?.toUpperCase() === 'TIMELINE_REVIEW',
+      visible: (row: any) => !this.isInternalTaskSet(row) && row.status?.toUpperCase() === 'TIMELINE_REVIEW',
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "Review Compliance",
       icon: "pi pi-shield",
-      visible: (row: any) => !this.isBranchCreated(row) && ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => !this.isInternalTaskSet(row) && ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "View Compliance",
       icon: "pi pi-eye",
-      visible: (row: any) => this.isBranchCreated(row) || ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => this.isInternalTaskSet(row) || ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
@@ -249,6 +242,7 @@ export class CcoReviewComponent implements OnInit {
   }
 
   loadAssignments() {
+    this.loading.set(true);
     this.api.getBranches().subscribe({
       next: (branches) => {
         const user = this.auth.currentUser();
@@ -332,20 +326,15 @@ export class CcoReviewComponent implements OnInit {
                 const bName = (a.branch_name || '').toLowerCase();
                 const tsName = (a.task_set_name || '').toLowerCase();
 
-                const isBranch = (
+                const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role);
+
+                const isBranch = !isCOOrAdmin && (
                   role === 'BRANCH' ||
                   role === 'BRANCH_USER' ||
                   role === 'DEPARTMENT' ||
                   role === 'BRANCH USER' ||
                   role === 'SUB_DEPARTMENT' ||
-                  username.includes('branch') ||
-                  username.includes('dept') ||
-                  username.includes('department') ||
-                  username.includes('user') ||
-                  tsName === 'gfg' ||
-                  bName.includes('network') ||
-                  !!a.branch_parent_id ||
-                  (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role))
+                  (a.branch_parent_id ? true : false)
                 );
 
                 // Format standard Date string dd/MM/yyyy
@@ -374,12 +363,19 @@ export class CcoReviewComponent implements OnInit {
                 };
               });
               this.rawAssignments.set(mappedData);
+              this.loading.set(false);
             },
-            error: (err: any) => this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText))
+            error: (err: any) => {
+              this.loading.set(false);
+              this.notification.error("Failed to load escalated assignments: " + (err.message || err.statusText));
+            }
           });
         });
       },
-      error: (err) => this.notification.error("Failed to load branch data: " + (err.message || err.statusText))
+      error: (err) => {
+        this.loading.set(false);
+        this.notification.error("Failed to load branch data: " + (err.message || err.statusText));
+      }
     });
   }
 

@@ -1,123 +1,251 @@
 <!-- Branch Operations Dashboard View -->
 <div class="dashboard-hero">
   <div class="hero-left">
-    <div class="hero-tag">Branch Workspace</div>
-    <h1>Branch Compliance Dashboard</h1>
-    <p>Submit checklists, update active task timelines, and audit circular guidelines.</p>
+    <div class="hero-tag">
+      <i class="pi pi-building"></i> {{ branchDisplayName }}
+    </div>
+    <h1>Welcome, {{ userDisplayName }}</h1>
+    <p>Manage department worksheets, track execution milestones, and verify compliance tasks.</p>
   </div>
-  <div class="hero-right">
-    <span class="role-badge"><i class="pi pi-briefcase"></i> Branch Operations</span>
+  <div class="hero-right flex flex-wrap gap-2">
+    <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks'}" class="hero-action-btn primary-btn">
+      <i class="pi pi-check-square"></i> Department Tasks
+    </a>
+    <a routerLink="/task-sets" class="hero-action-btn outline-btn">
+      <i class="pi pi-plus-circle"></i> Task Sets Master
+    </a>
   </div>
 </div>
 
 <!-- Quick Metrics Grid -->
 <div class="metrics-grid">
+  <!-- 1. Total Assignments -->
   <div class="metric-card theme-purple cursor-pointer" routerLink="/assignments">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-briefcase"></i></div>
     <div class="card-details">
-      <span class="card-title">Total Assignments</span>
-      <span class="card-value">{{ stats?.assignments?.total || 0 }}</span>
+      <span class="card-title">Total Worksheets</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ totalAssignments }}</span>
+        <span class="text-xs text-purple-600 font-semibold">Active & Assigned</span>
+      </div>
     </div>
   </div>
 
-  <div class="metric-card theme-blue cursor-pointer" routerLink="/assignments">
+  <!-- 2. Active In Progress -->
+  <div class="metric-card theme-blue cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'In_Progress'}">
     <div class="card-glow"></div>
-    <div class="card-icon"><i class="pi pi-chart-bar"></i></div>
+    <div class="card-icon"><i class="pi pi-sync"></i></div>
     <div class="card-details">
       <span class="card-title">Active (In Progress)</span>
-      <span class="card-value">{{ stats?.assignments?.inProgress || 0 }}</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ inProgressAssignments }}</span>
+        <span class="text-xs text-blue-600 font-semibold">Under Execution</span>
+      </div>
     </div>
   </div>
 
-  <div class="metric-card theme-emerald cursor-pointer" routerLink="/assignments">
+  <!-- 3. Completed Compliance -->
+  <div class="metric-card theme-emerald cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'COMPLETED'}">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-check-circle"></i></div>
     <div class="card-details">
-      <span class="card-title">Completed Worksheets</span>
-      <span class="card-value">{{ stats?.assignments?.completed || 0 }}</span>
+      <span class="card-title">Completed</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ completedAssignments }}</span>
+        <span class="badge-rate bg-green-100 text-green-800">{{ complianceRate }}% Rate</span>
+      </div>
     </div>
   </div>
 
+  <!-- 4. Review & Recompliance -->
   <div class="metric-card theme-orange cursor-pointer" routerLink="/assignments">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-clock"></i></div>
     <div class="card-details">
-      <span class="card-title">Pending Timeline</span>
-      <span class="card-value">{{ stats?.assignments?.pendingTimeline || 0 }}</span>
+      <span class="card-title">Review / Pending</span>
+      <div class="flex align-items-baseline gap-2">
+        <span class="card-value">{{ reviewPendingAssignments + recomplianceAssignments + pendingTimelineAssignments }}</span>
+        <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments > 0">{{ recomplianceAssignments }} Need Attention</span>
+        <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments === 0">Awaiting Check</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Assignment Status Breakdown -->
+<!-- Main 2-Column Intelligence Section -->
 <div class="dashboard-grid-2col margin-top-2rem">
-  <!-- Breakdown Mini Cards Grid -->
-  <div class="dashboard-panel">
-    <div class="panel-header">
-      <h3>Compliance Checklist Summary</h3>
-      <span class="panel-subtitle">Status count breakdown for assigned compliance packages</span>
-    </div>
-    <div class="panel-body">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem;">
-        <div class="card text-center p-3 cursor-pointer card-status-hover" *ngFor="let s of statusCards"
-             routerLink="/assignments"
-             style="margin: 0; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; min-height: 5.5rem;"
-             [ngStyle]="{'border-top': '4px solid ' + s.color}">
-          <p class="text-xs text-gray-500 font-semibold mb-2" style="margin: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em;">{{ s.label }}</p>
-          <p class="text-2xl font-bold m-0" [ngStyle]="{'color': s.color}" style="margin: 0; line-height: 1;">{{ s.value }}</p>
+  
+  <!-- Left Column: Compliance Progress & Quick Shortcuts -->
+  <div class="flex flex-column gap-4">
+    
+    <!-- 1. Compliance Health & Execution Score -->
+    <div class="dashboard-panel">
+      <div class="panel-header">
+        <div>
+          <h3>Department Compliance Health</h3>
+          <span class="panel-subtitle">Execution rate and milestone breakdown</span>
+        </div>
+        <div class="rate-pill font-bold" [ngClass]="{'bg-green-100 text-green-700': complianceRate >= 80, 'bg-amber-100 text-amber-700': complianceRate >= 50 && complianceRate < 80, 'bg-blue-100 text-blue-700': complianceRate < 50}">
+          {{ complianceRate }}% Overall
+        </div>
+      </div>
+      <div class="panel-body">
+        <!-- Visual Progress Bar -->
+        <div class="progress-bar-container mb-4">
+          <div class="progress-bar-fill" [style.width.%]="complianceRate"></div>
+        </div>
+
+        <!-- Mini Status Grid -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85rem;">
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'In_Progress'}" style="border-left: 4px solid #3b82f6;">
+            <span class="text-xs text-gray-500 font-bold uppercase">In Progress</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-blue-600">{{ inProgressAssignments }}</span>
+              <i class="pi pi-hourglass text-blue-400"></i>
+            </div>
+          </div>
+
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'REVIEW_PENDING'}" style="border-left: 4px solid #a855f7;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Review Pending</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-purple-600">{{ reviewPendingAssignments }}</span>
+              <i class="pi pi-eye text-purple-400"></i>
+            </div>
+          </div>
+
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'COMPLETED'}" style="border-left: 4px solid #22c55e;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Completed</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-green-600">{{ completedAssignments }}</span>
+              <i class="pi pi-check-circle text-green-400"></i>
+            </div>
+          </div>
+
+          <div class="status-summary-card" routerLink="/assignments" style="border-left: 4px solid #ef4444;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Re-Compliance</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-red-600">{{ recomplianceAssignments }}</span>
+              <i class="pi pi-exclamation-circle text-red-400"></i>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- 2. Quick Operations Shortcuts -->
+    <div class="dashboard-panel">
+      <div class="panel-header">
+        <h3>Quick Navigation & Workflows</h3>
+        <span class="panel-subtitle">Frequently accessed compliance tools</span>
+      </div>
+      <div class="panel-body">
+        <div class="shortcuts-grid">
+          <a routerLink="/assignments" [queryParams]="{view: 'my_assignments'}" class="shortcut-item">
+            <div class="shortcut-icon bg-indigo-50 text-indigo-600">
+              <i class="pi pi-list"></i>
+            </div>
+            <div class="shortcut-text">
+              <span class="font-bold text-sm text-gray-900 block">My Direct Tasks</span>
+              <span class="text-xs text-gray-500">Tasks assigned directly to you</span>
+            </div>
+            <i class="pi pi-arrow-right shortcut-arrow"></i>
+          </a>
+
+          <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks'}" class="shortcut-item">
+            <div class="shortcut-icon bg-blue-50 text-blue-600">
+              <i class="pi pi-sitemap"></i>
+            </div>
+            <div class="shortcut-text">
+              <span class="font-bold text-sm text-gray-900 block">Department & Sub-Dept Tasks</span>
+              <span class="text-xs text-gray-500">Review delegated submissions</span>
+            </div>
+            <i class="pi pi-arrow-right shortcut-arrow"></i>
+          </a>
+
+          <a routerLink="/task-sets" class="shortcut-item">
+            <div class="shortcut-icon bg-purple-50 text-purple-600">
+              <i class="pi pi-folder-open"></i>
+            </div>
+            <div class="shortcut-text">
+              <span class="font-bold text-sm text-gray-900 block">Task Sets Master</span>
+              <span class="text-xs text-gray-500">Create & schedule department checklists</span>
+            </div>
+            <i class="pi pi-arrow-right shortcut-arrow"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Recent Assignments List -->
+  <!-- Right Column: Recent Worksheets Feed -->
   <div class="dashboard-panel">
     <div class="panel-header">
       <div>
-        <h3>My Recent Compliance Assignments</h3>
-        <span class="panel-subtitle">Latest compliance checklists assigned to your branch</span>
+        <h3>Assigned Compliance Worksheets</h3>
+        <span class="panel-subtitle">Latest active checklists assigned to your department</span>
       </div>
-      <a routerLink="/assignments" class="text-primary hover:underline text-sm font-medium">View All →</a>
+      <a routerLink="/assignments" class="text-primary hover:underline text-sm font-semibold flex align-items-center gap-1">
+        View All <i class="pi pi-arrow-right" style="font-size: 0.75rem;"></i>
+      </a>
     </div>
+    
     <div class="panel-body" style="padding-top: 0.5rem;">
       <div class="progress-list" *ngIf="stats?.recentAssignments?.length > 0; else noAssignments">
-        <div *ngFor="let a of stats.recentAssignments" class="progress-item"
-             style="border: 1px solid var(--surface-border); border-radius: 10px; padding: 0.6rem 0.85rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem; background: var(--surface-card); box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-          <div style="width: 2rem; height: 2rem; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"
-               [ngStyle]="{
-                 'background-color': a.status === 'COMPLETED' ? '#dcfce7' :
-                                    (a.status === 'In_Progress' ? '#dbeafe' :
-                                    (a.status === 'Pending_Timeline' ? '#fef9c3' :
-                                    (a.status === 'REJECTED' ? '#fee2e2' : '#f3e8ff')))
+        <div *ngFor="let a of stats.recentAssignments" class="worksheet-card" [routerLink]="['/assignments', a.id]">
+          <div class="worksheet-icon"
+               [ngClass]="{
+                 'icon-completed': a.status === 'COMPLETED',
+                 'icon-progress': a.status === 'In_Progress',
+                 'icon-review': a.status === 'REVIEW_PENDING' || a.status === 'Timeline_Review',
+                 'icon-rejected': a.status === 'REJECTED' || a.status === 'PENDING_RECOMPLIANCE'
                }">
-            <i class="pi pi-briefcase" style="font-size: 0.9rem;"
-               [ngStyle]="{
-                 'color': a.status === 'COMPLETED' ? '#15803d' :
-                         (a.status === 'In_Progress' ? '#1d4ed8' :
-                         (a.status === 'Pending_Timeline' ? '#a16207' :
-                         (a.status === 'REJECTED' ? '#b91c1c' : '#6b21a8')))
-               }"></i>
+            <i class="pi pi-file-edit"></i>
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <span class="font-semibold text-gray-900 block" style="font-size: 0.85rem; line-height: 1.35; white-space: normal; overflow: hidden; text-overflow: ellipsis;">{{ a.task_set_name }}</span>
-            <span class="text-xs text-gray-500 block mt-0.5" style="font-size: 0.725rem;"><i class="pi pi-building mr-1" style="font-size: 0.65rem;"></i>{{ a.branch_name }}</span>
+
+          <div class="worksheet-info">
+            <div class="flex align-items-center gap-2">
+              <span class="worksheet-title">{{ a.task_set_name }}</span>
+            </div>
+            
+            <div class="worksheet-meta">
+              <span class="meta-item">
+                <i class="pi pi-building"></i> {{ a.branch_name }}
+              </span>
+              <span class="meta-item" *ngIf="a.proposed_timeline">
+                <i class="pi pi-calendar"></i> {{ a.proposed_timeline | date:'dd MMM yyyy' }}
+              </span>
+            </div>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded-full font-bold flex-shrink-0"
-                [ngClass]="{
-                  'bg-green-100 text-green-800': a.status === 'COMPLETED',
-                  'bg-blue-100 text-blue-800': a.status === 'In_Progress',
-                  'bg-yellow-100 text-yellow-800': a.status === 'Pending_Timeline',
-                  'bg-orange-100 text-orange-800': a.status === 'Timeline_Review',
-                  'bg-purple-100 text-purple-800': a.status === 'REVIEW_PENDING',
-                  'bg-red-100 text-red-800': a.status === 'REJECTED'
-                }" style="font-size: 0.725rem;">
-            {{ getStatusLabel(a.status) }}
-          </span>
+
+          <div class="worksheet-action">
+            <span class="status-chip"
+                  [ngClass]="{
+                    'chip-completed': a.status === 'COMPLETED',
+                    'chip-progress': a.status === 'In_Progress',
+                    'chip-pending': a.status === 'Pending_Timeline',
+                    'chip-review': a.status === 'REVIEW_PENDING' || a.status === 'Timeline_Review',
+                    'chip-rejected': a.status === 'REJECTED' || a.status === 'PENDING_RECOMPLIANCE'
+                  }">
+              {{ getStatusLabel(a.status) }}
+            </span>
+            <i class="pi pi-chevron-right action-arrow"></i>
+          </div>
         </div>
       </div>
+
       <ng-template #noAssignments>
-        <div class="text-center py-6 text-gray-400 font-medium">No assignments found for this branch.</div>
+        <div class="empty-feed text-center py-6">
+          <div class="empty-icon-box">
+            <i class="pi pi-inbox"></i>
+          </div>
+          <p class="font-bold text-gray-700 mt-2 mb-1">No Worksheets Found</p>
+          <span class="text-xs text-gray-500">All assigned checklists are up-to-date.</span>
+        </div>
       </ng-template>
     </div>
   </div>
+
 </div>
+

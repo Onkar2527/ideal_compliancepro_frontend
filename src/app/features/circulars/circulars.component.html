@@ -8,6 +8,7 @@
         [data]="circulars()"
         [columns]="tableColumns"
         [actions]="tableActions"
+        [loading]="loading()"
         [rowClass]="getCircularRowClass"
         (onAdd)="openUploadModal()"
         [showRefreshButton]="true"

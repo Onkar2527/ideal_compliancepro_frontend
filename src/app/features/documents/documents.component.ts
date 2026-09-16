@@ -18,6 +18,18 @@ import { ComplianceApiService, ComplianceDocument } from '../../core/services/ap
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 
+export interface DepartmentOption {
+  label: string;
+  value: number | null;
+  name: string;
+  type?: string;
+  isHead?: boolean;
+  isSub?: boolean;
+  isBranch?: boolean;
+  parentId?: number | null;
+  parentName?: string;
+}
+
 export interface UserOption {
   label: string;
   value: number;
@@ -58,7 +70,8 @@ export class DocumentsComponent implements OnInit {
   private sanitizer = inject(DomSanitizer);
 
   documents = signal<ComplianceDocument[]>([]);
-  departments = signal<{ label: string; value: number; name: string }[]>([]);
+  rawBranches = signal<any[]>([]);
+  departments = signal<DepartmentOption[]>([]);
   allUsers = signal<UserOption[]>([]);
   users = computed(() => this.allUsers());
   loading = signal<boolean>(true);
@@ -120,7 +133,7 @@ export class DocumentsComponent implements OnInit {
   // Department Options for Form (Including "All Branches / Departments")
   formDeptOptions = computed(() => {
     return [
-      { label: '🌐 All Branches / Departments (Company-wide)', value: null, name: 'All Branches' },
+      { label: '🌐 All Branches / Departments (Company-wide)', value: null, name: 'All Branches', isHead: false, isSub: false, isBranch: false },
       ...this.departments()
     ];
   });
@@ -128,12 +141,38 @@ export class DocumentsComponent implements OnInit {
   // Department Filter Options for Toolbar
   deptFilterOptions = computed(() => {
     return [
-      { label: 'All Departments / Branches', value: null },
+      { label: 'All Departments / Branches', value: null, name: 'All Departments', isHead: false, isSub: false, isBranch: false },
       ...this.departments()
     ];
   });
 
-  // User Options for Form (Dynamically filtered by selected Department/Branch)
+  // Get department info by ID
+  getDepartmentInfo(deptId: number | null | undefined): DepartmentOption | null {
+    if (deptId === null || deptId === undefined) return null;
+    const found = this.departments().find(d => Number(d.value) === Number(deptId));
+    if (found) return found;
+
+    // Fallback search in rawBranches
+    const raw = this.rawBranches().find(b => Number(b.id) === Number(deptId));
+    if (!raw) return null;
+    const parent = raw.parent_id ? this.rawBranches().find(b => Number(b.id) === Number(raw.parent_id)) : null;
+    return {
+      label: raw.name,
+      value: Number(raw.id),
+      name: raw.name,
+      isHead: raw.type === 'DEPARTMENT' && !raw.parent_id,
+      isSub: raw.type === 'DEPARTMENT' && !!raw.parent_id,
+      isBranch: raw.type === 'BRANCH',
+      parentId: raw.parent_id ? Number(raw.parent_id) : null,
+      parentName: parent ? parent.name : undefined
+    };
+  }
+
+  get selectedDepartmentInfo(): DepartmentOption | null {
+    return this.getDepartmentInfo(this.departmentId);
+  }
+
+  // User Options for Form (Dynamically filtered by selected Department/Branch & Sub-Departments)
   formUserOptions = computed<UserOption[]>(() => {
     const selectedDeptId = this.departmentId;
     const users = this.allUsers();
@@ -141,8 +180,20 @@ export class DocumentsComponent implements OnInit {
       // "All Branches" selected -> Show all users across company
       return users;
     }
-    // Specific branch selected -> Filter to users of this department
-    const deptUsers = users.filter(u => u.branch_id === selectedDeptId);
+    
+    const deptInfo = this.getDepartmentInfo(selectedDeptId);
+    if (deptInfo?.isHead) {
+      // If a Head Department is selected, include users in the Head Dept AND all its child Sub-Departments
+      const childDeptIds = this.rawBranches()
+        .filter(b => Number(b.parent_id) === Number(selectedDeptId))
+        .map(b => Number(b.id));
+      const targetIds = new Set([Number(selectedDeptId), ...childDeptIds]);
+      const filtered = users.filter(u => u.branch_id !== null && targetIds.has(Number(u.branch_id)));
+      return filtered.length > 0 ? filtered : users;
+    }
+
+    // Specific branch/sub-department selected -> Filter to users of this department
+    const deptUsers = users.filter(u => Number(u.branch_id) === Number(selectedDeptId));
     return deptUsers.length > 0 ? deptUsers : users;
   });
 
@@ -288,13 +339,37 @@ export class DocumentsComponent implements OnInit {
       return true;
     }
 
-    // Public document: visible if assigned to "All Branches" (null) or to the user's branch
+    // Public document: visible if assigned to "All Branches" (null) or to the user's branch / sub-dept
     if (doc.department_id === null || doc.department_id === undefined) {
       return true; // Company-wide
     }
 
-    if (this.currentUserBranchId !== null && Number(doc.department_id) === Number(this.currentUserBranchId)) {
-      return true; // User's department (Heads, Sub-heads, staff)
+    if (this.currentUserBranchId !== null && doc.department_id !== null && doc.department_id !== undefined) {
+      const docDeptId = Number(doc.department_id);
+      const userDeptId = Number(this.currentUserBranchId);
+      
+      // Exact match (same department or sub-department)
+      if (docDeptId === userDeptId) return true;
+
+      // 1. Head Department user viewing document from child Sub-Department
+      const subDeptIds = this.rawBranches()
+        .filter(b => Number(b.parent_id) === userDeptId)
+        .map(b => Number(b.id));
+      if (subDeptIds.includes(docDeptId)) return true;
+
+      // 2. Sub-Department user viewing document uploaded by / for parent Head Department
+      const userBranch = this.rawBranches().find(b => Number(b.id) === userDeptId);
+      if (userBranch && userBranch.parent_id && Number(userBranch.parent_id) === docDeptId) {
+        return true;
+      }
+
+      // 3. Sub-Department user viewing document from a sibling Sub-Department under the same Head Dept
+      if (userBranch && userBranch.parent_id) {
+        const docBranch = this.rawBranches().find(b => Number(b.id) === docDeptId);
+        if (docBranch && docBranch.parent_id && Number(docBranch.parent_id) === Number(userBranch.parent_id)) {
+          return true;
+        }
+      }
     }
 
     // Also allow if user is specifically assigned to it
@@ -333,7 +408,17 @@ export class DocumentsComponent implements OnInit {
     }
 
     if (dept !== null && dept !== undefined) {
-      list = list.filter(d => d.department_id === dept);
+      const deptInfo = this.getDepartmentInfo(dept);
+      if (deptInfo?.isHead) {
+        // If filtering by Head Department, show documents from this Head Dept and all its Sub-Departments
+        const childDeptIds = this.rawBranches()
+          .filter(b => Number(b.parent_id) === Number(dept))
+          .map(b => Number(b.id));
+        const targetIds = new Set([Number(dept), ...childDeptIds]);
+        list = list.filter(d => d.department_id !== null && d.department_id !== undefined && targetIds.has(Number(d.department_id)));
+      } else {
+        list = list.filter(d => Number(d.department_id) === Number(dept));
+      }
     }
 
     if (access !== null && access !== undefined) {
@@ -348,6 +433,10 @@ export class DocumentsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const cached = this.api.getCachedBranches();
+    if (cached && cached.length > 0) {
+      this.rawBranches.set(cached);
+    }
     this.loadCurrentUser();
     this.loadDepartments();
     this.loadUsers();
@@ -379,12 +468,79 @@ export class DocumentsComponent implements OnInit {
   loadDepartments(): void {
     this.api.getBranches().subscribe({
       next: (data) => {
-        const depts = (data || []).map((b: any) => ({
-          label: b.name,
-          value: Number(b.id),
-          name: b.name
-        }));
-        this.departments.set(depts);
+        const raw = data || [];
+        this.rawBranches.set(raw);
+        const deptMap = new Map(raw.map((b: any) => [Number(b.id), b.name]));
+
+        const mainDepts = raw.filter((b: any) => b.type === 'DEPARTMENT' && !b.parent_id);
+        const subDepts = raw.filter((b: any) => b.type === 'DEPARTMENT' && !!b.parent_id);
+        const branches = raw.filter((b: any) => b.type === 'BRANCH');
+
+        const options: DepartmentOption[] = [];
+
+        // 1. Head Departments with their Sub-Departments directly under them
+        for (const head of mainDepts) {
+          options.push({
+            label: `🏛️ ${head.name} (Head Dept)`,
+            value: Number(head.id),
+            name: head.name,
+            type: 'DEPARTMENT',
+            isHead: true,
+            isSub: false,
+            isBranch: false,
+            parentId: null
+          });
+
+          const children = subDepts.filter((s: any) => Number(s.parent_id) === Number(head.id));
+          for (const sub of children) {
+            options.push({
+              label: `　↳ ${sub.name} [Sub-Dept of ${head.name}]`,
+              value: Number(sub.id),
+              name: sub.name,
+              type: 'DEPARTMENT',
+              isHead: false,
+              isSub: true,
+              isBranch: false,
+              parentId: Number(head.id),
+              parentName: head.name
+            });
+          }
+        }
+
+        // 2. Any orphan sub-departments (parent_id points to something else or missing)
+        const handledSubIds = new Set(options.map(o => o.value));
+        for (const sub of subDepts) {
+          if (!handledSubIds.has(Number(sub.id))) {
+            const pName = deptMap.get(Number(sub.parent_id)) || 'Parent Dept';
+            options.push({
+              label: `　↳ ${sub.name} [Sub-Dept of ${pName}]`,
+              value: Number(sub.id),
+              name: sub.name,
+              type: 'DEPARTMENT',
+              isHead: false,
+              isSub: true,
+              isBranch: false,
+              parentId: Number(sub.parent_id),
+              parentName: pName
+            });
+          }
+        }
+
+        // 3. Branches
+        for (const branch of branches) {
+          options.push({
+            label: `📍 ${branch.name} (Branch)`,
+            value: Number(branch.id),
+            name: branch.name,
+            type: 'BRANCH',
+            isBranch: true,
+            isHead: false,
+            isSub: false,
+            parentId: null
+          });
+        }
+
+        this.departments.set(options);
       },
       error: () => {
         this.departments.set([]);

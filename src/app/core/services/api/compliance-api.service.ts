@@ -301,8 +301,16 @@ export class ComplianceApiService {
     return this.http.put<ComplianceTask>(`${this.baseUrl}/tasks/${id}`, payload);
   }
 
-  createManualTask(payload: Partial<ComplianceTask> & { circular_id: number; header_id?: number | null; file_url?: string | null }) {
-    return this.http.post<ComplianceTask>(`${this.baseUrl}/tasks/manual`, payload);
+  createManualTask(payload: Partial<ComplianceTask> & { circular_id?: number | null; header_id?: number | null; file_url?: string | null; [key: string]: any }) {
+    const meta = this.getCurrentUserMetadata();
+    const finalPayload = {
+      ...payload,
+      created_by: payload['created_by'] ?? meta.userId,
+      created_by_id: payload['created_by_id'] ?? (typeof meta.userId === 'number' ? meta.userId : (meta.userId && !isNaN(Number(meta.userId)) ? Number(meta.userId) : undefined)),
+      created_by_role: payload['created_by_role'] ?? meta.userRole,
+      created_by_name: payload['created_by_name'] ?? meta.userName,
+    };
+    return this.http.post<ComplianceTask>(`${this.baseUrl}/tasks/manual`, finalPayload);
   }
 
   uploadTaskFile(file: File) {
@@ -342,12 +350,52 @@ export class ComplianceApiService {
     return this.http.get<any>(`${this.baseUrl}/task-sets/${id}`);
   }
 
+  getCurrentUserMetadata(): { userId?: string | number; userName?: string; userRole?: string } {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      let userId = storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
+      let userName = storedUser?.name || storedUser?.full_name || storedUser?.fullName || storedUser?.username;
+      let userRole = storedUser?.role || storedUser?.designation;
+
+      if (!userId || !userName || !userRole) {
+        const token = localStorage.getItem('token');
+        if (token && token.includes('.')) {
+          const parts = token.split('.');
+          if (parts.length >= 2) {
+            const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+            const payload = JSON.parse(jsonPayload);
+            userId = userId || payload.sub || payload.id;
+            userName = userName || payload.fullName || payload.name || payload.username;
+            userRole = userRole || payload.role;
+          }
+        }
+      }
+
+      return {
+        userId: (!isNaN(Number(userId)) && userId !== null && userId !== '') ? Number(userId) : userId,
+        userName,
+        userRole
+      };
+    } catch {
+      return {};
+    }
+  }
+
   deleteTaskSet(id: number) {
     return this.http.delete<any>(`${this.baseUrl}/task-sets/${id}`);
   }
 
-  createTaskSet(data: { name: string, default_due_date?: string, start_date?: string, end_date?: string, frequency?: string, reporting_date?: string, taskIds?: number[] }) {
-    return this.http.post<any>(`${this.baseUrl}/task-sets`, data);
+  createTaskSet(data: { name: string, default_due_date?: string, start_date?: string, end_date?: string, frequency?: string, reporting_date?: string, taskIds?: number[], [key: string]: any }) {
+    const meta = this.getCurrentUserMetadata();
+    const finalPayload = {
+      ...data,
+      created_by: data['created_by'] ?? meta.userId,
+      created_by_id: data['created_by_id'] ?? (typeof meta.userId === 'number' ? meta.userId : (meta.userId && !isNaN(Number(meta.userId)) ? Number(meta.userId) : undefined)),
+      created_by_role: data['created_by_role'] ?? meta.userRole,
+      created_by_name: data['created_by_name'] ?? meta.userName,
+    };
+    return this.http.post<any>(`${this.baseUrl}/task-sets`, finalPayload);
   }
 
   updateTaskSet(id: number, data: { name?: string, default_due_date?: string, start_date?: string, end_date?: string, frequency?: string, reporting_date?: string }) {
@@ -420,6 +468,10 @@ export class ComplianceApiService {
 
   uploadTaskEvidence(assignmentId: number, taskId: number, formData: FormData) {
     return this.http.post<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/evidence`, formData);
+  }
+
+  deleteTaskEvidence(assignmentId: number, taskId: number, evidenceId: number) {
+    return this.http.delete<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/evidence/${evidenceId}`);
   }
 
   reviewAssignment(assignmentId: number, action: 'ACCEPT' | 'REJECT' | 'ESCALATE', remark: string) {

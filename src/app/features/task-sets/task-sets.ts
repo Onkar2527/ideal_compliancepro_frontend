@@ -62,7 +62,7 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
   styles: [`
     ::ng-deep .circular-dropdown-panel {
       max-width: 560px !important;
-      min-width: 400px !important;
+      min-width: 380px !important;
     }
     ::ng-deep .circular-dropdown-panel .p-select-option,
     ::ng-deep .circular-dropdown-panel .p-dropdown-item {
@@ -71,11 +71,67 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       text-overflow: ellipsis !important;
       max-width: 540px !important;
       line-height: 1.4 !important;
-      font-size: 0.875rem !important;
+      font-size: 0.825rem !important;
       display: block !important;
     }
 
-    /* ── Drawer Layout (mirrors Circular Master) ── */
+    ::ng-deep .header-dropdown-panel {
+      max-width: 320px !important;
+      min-width: 180px !important;
+      width: auto !important;
+    }
+    ::ng-deep .header-dropdown-panel .p-select-option,
+    ::ng-deep .header-dropdown-panel .p-dropdown-item {
+      font-size: 0.8rem !important;
+      padding: 0.45rem 0.75rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 300px !important;
+    }
+
+    ::ng-deep .subdept-dropdown-panel {
+      max-width: 260px !important;
+      min-width: 170px !important;
+      width: auto !important;
+    }
+    ::ng-deep .subdept-dropdown-panel .p-select-option,
+    ::ng-deep .subdept-dropdown-panel .p-dropdown-item {
+      font-size: 0.78rem !important;
+      padding: 0.35rem 0.65rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      max-width: 250px !important;
+    }
+
+    ::ng-deep .p-select-overlay {
+      max-width: 480px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    /* ── Drawer Modern Layout & Scrollbar ── */
+    ::ng-deep .p-drawer {
+      box-shadow: -8px 0 32px rgba(15, 23, 42, 0.12) !important;
+    }
+    ::ng-deep .p-drawer .p-drawer-header {
+      padding: 1.1rem 1.5rem !important;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    ::ng-deep .p-drawer .p-drawer-content {
+      padding: 1.25rem 1.5rem !important;
+      background: #f8fafc !important;
+      overflow-y: auto !important;
+    }
+    ::ng-deep .p-drawer .p-drawer-footer {
+      padding: 0.9rem 1.5rem !important;
+      background: #ffffff !important;
+      border-top: 1px solid #e2e8f0 !important;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04) !important;
+    }
+
     .drawer-header-row {
       display: flex;
       align-items: center;
@@ -85,31 +141,34 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     .drawer-title-wrap {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
     }
     .drawer-title-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 2.65rem;
-      height: 2.65rem;
-      border-radius: 8px;
-      color: var(--primary-color);
-      background: var(--primary-50, var(--surface-100));
-      border: 1px solid var(--primary-100, var(--surface-border));
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 10px;
+      color: var(--primary-600, #2563eb);
+      background: var(--primary-50, #eff6ff);
+      border: 1px solid var(--primary-200, #bfdbfe);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
       flex: 0 0 auto;
+      font-size: 1.15rem;
     }
     .drawer-content-shell {
       display: flex;
       flex-direction: column;
-      gap: 0.9rem;
-      padding: 1rem 1.35rem 1.25rem;
+      gap: 1.15rem;
+      padding-bottom: 1rem;
     }
     .drawer-section {
-      background: var(--surface-card);
-      border: 1px solid var(--surface-border);
-      border-radius: 8px;
-      padding: 1rem 1rem 0.35rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.2rem 1.25rem 0.6rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     .section-heading {
       display: flex;
@@ -118,17 +177,17 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       margin-bottom: 1.1rem;
     }
     .section-kicker {
-      color: var(--text-color);
-      font-size: 0.78rem;
+      color: #334155;
+      font-size: 0.8rem;
       font-weight: 700;
-      letter-spacing: 0;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       white-space: nowrap;
     }
     .section-line {
       flex: 1;
       height: 1px;
-      background: var(--surface-border);
+      background: #e2e8f0;
     }
     .drawer-form-grid {
       row-gap: 0.65rem;
@@ -142,10 +201,109 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       justify-content: flex-end;
       gap: 0.75rem;
       width: 100%;
-      padding: 1rem 1.35rem;
     }
     .drawer-footer-row button {
       min-width: 9.5rem;
+    }
+
+    /* ── Dual Transfer Panel Enhancements (Zero Horizontal Scroll) ── */
+    .dual-transfer-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+      gap: 1rem;
+      width: 100%;
+    }
+    @media (max-width: 1100px) {
+      .dual-transfer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .dual-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .dual-panel-header-available {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.65rem 0.85rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+    .dual-panel-header-selected {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.65rem 0.85rem;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border-bottom: 1px solid #bbf7d0;
+      flex-wrap: wrap;
+    }
+    .due-preset-btn {
+      border: 1.5px solid #10b981;
+      border-radius: 9999px;
+      padding: 0.22rem 0.6rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      line-height: 1.2;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .due-preset-btn:hover {
+      background: #047857 !important;
+      color: #ffffff !important;
+      border-color: #047857 !important;
+      transform: translateY(-1px);
+    }
+    .chip-subtle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      line-height: 1.3;
+      white-space: nowrap;
+    }
+
+    /* Enforce fixed table layout on dual panel tables to eliminate horizontal scroll */
+    ::ng-deep .dual-panel .p-datatable-table {
+      table-layout: fixed !important;
+      width: 100% !important;
+    }
+    ::ng-deep .dual-panel .p-datatable-thead > tr > th {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      font-size: 0.7rem !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    ::ng-deep .dual-panel .p-datatable-tbody > tr {
+      transition: background-color 0.15s ease;
+    }
+    ::ng-deep .dual-panel .p-datatable-tbody > tr:hover {
+      background: #f8fafc !important;
+    }
+    ::ng-deep .dual-panel .p-datatable-tbody > tr > td {
+      border-bottom: 1px solid #f1f5f9 !important;
+      overflow: hidden;
+      vertical-align: middle;
     }
 
     /* ── Bulk Upload Dialog ── */
@@ -383,6 +541,7 @@ export class TaskSetsComponent implements OnInit {
   }
 
   taskSets = signal<any[]>([]);
+  loading = signal<boolean>(true);
   loadingRowIds = signal<Set<string>>(new Set());
   generatedTaskSetIds = new Set<number>();
   saving = signal<boolean>(false);
@@ -677,11 +836,10 @@ export class TaskSetsComponent implements OnInit {
 
     this.savingInlineTask.set(true);
     const circularId = this.newTaskSetType() === 'REGULAR' ? (this.newTaskSetCircularId() || undefined) : undefined;
-    const user = this.auth.currentUser();
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const userId = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
-    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
-    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+    const meta = this.api.getCurrentUserMetadata();
+    const userId = meta.userId;
+    const userName = meta.userName;
+    const userRole = meta.userRole;
 
     const payload: any = {
       description: desc,
@@ -815,7 +973,10 @@ export class TaskSetsComponent implements OnInit {
     const tasks = this.allTasks();
     const headers = new Set<string>();
     tasks.forEach(t => {
-      if (t.header_name && t.header_name.trim()) headers.add(t.header_name.trim());
+      const h = (t.header_name || '').trim();
+      if (h && h !== '-' && h !== '—' && h.toLowerCase() !== 'null') {
+        headers.add(h);
+      }
     });
     return Array.from(headers).sort().map(h => ({ label: h, value: h }));
   });
@@ -949,6 +1110,17 @@ export class TaskSetsComponent implements OnInit {
   // Assigning
   branches = signal<any[]>([]);
   selectedBranches: any[] = [];
+  branchDropdownOptions = computed(() => {
+    const list = this.branches() || [];
+    return [
+      { label: 'Direct (Self-Compliance)', value: null },
+      ...list.map((b: any) => ({ label: b.name, value: b.id }))
+    ];
+  });
+  isBranchUser = computed(() => {
+    const role = String(this.auth.currentUser()?.role || '').toUpperCase();
+    return ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role);
+  });
   proposedDate = signal<Date | null>(null);
   parentPage: number | null = null;
   parentLimit: number | null = null;
@@ -968,14 +1140,32 @@ export class TaskSetsComponent implements OnInit {
     if (!val) return null;
     if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
     if (typeof val === 'string') {
-      const parts = val.split('T')[0].split('-');
+      const trimmed = val.trim();
+      if (!trimmed) return null;
+      const parts = trimmed.split('T')[0].split('-');
       if (parts.length === 3 && parts[0].length === 4) {
         return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
       }
-      const d = new Date(val);
+      const d = new Date(trimmed);
       return isNaN(d.getTime()) ? null : d;
     }
     return null;
+  }
+
+  private toDateString(val: any): string {
+    if (!val) return '';
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (!trimmed) return '';
+      return trimmed.split('T')[0];
+    }
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      const year = val.getFullYear();
+      const month = String(val.getMonth() + 1).padStart(2, '0');
+      const day = String(val.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return '';
   }
 
   onTaskTableAction(event: any) {
@@ -1115,6 +1305,7 @@ export class TaskSetsComponent implements OnInit {
   }
 
   loadData(isRefresh = false) {
+    this.loading.set(true);
     if (isRefresh) {
       this.api.getApprovedTasks({ limit: 1000 }).subscribe(res => this.rawTasks.set(res.data));
       this.loadBranches();
@@ -1123,22 +1314,44 @@ export class TaskSetsComponent implements OnInit {
 
     this.api.getTaskSets().subscribe({
       next: (data) => {
-        const mapped = data.map((row: any) => ({
-          ...row,
-          type: row.type || 'REGULAR',
-          circular_title: (row.type || 'REGULAR') === 'INTERNAL'
-            ? (row.authority_name ? `Authority: ${row.authority_name}` : 'Internal / Operational')
-            : (row.circular_title || '-'),
-          branch_names: row.branch_names || '—',
-          created_by_username: row.created_by_username || row.created_by_name || row.creator_name || (row.created_by ? `User #${row.created_by}` : '—'),
-          frequency: this.frequencyMap[row.frequency] ?? row.frequency
-        }));
+        const mapped = data.map((row: any) => {
+          const rawRole = (row.created_by_role || row.creator_role || '').toUpperCase();
+          const rawName = row.created_by_username || row.created_by_name || row.creator_name || (row.created_by ? `User #${row.created_by}` : '');
+          const isInternal = (row.type || 'REGULAR') === 'INTERNAL';
+          const isExplicitBranch = ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(rawRole) || rawName.toLowerCase().includes('branch') || rawName.toLowerCase().includes('department') || rawName.toLowerCase().includes('it_dept');
+          const isCCO = rawRole === 'CCO' || rawName.toLowerCase().includes('cco');
+
+          let originTag = 'CO';
+          if (isInternal) {
+            originTag = 'Branch';
+          } else if (isCCO) {
+            originTag = 'CCO';
+          } else if (isExplicitBranch) {
+            originTag = 'Branch';
+          } else {
+            originTag = 'CO';
+          }
+
+          const createdByDisplay = rawName ? `${rawName} (${originTag})` : originTag;
+          return {
+            ...row,
+            type: row.type || 'REGULAR',
+            circular_title: isInternal
+              ? (row.authority_name ? `Authority: ${row.authority_name}` : 'Internal / Operational')
+              : (row.circular_title || '-'),
+            branch_names: row.branch_names || '—',
+            created_by_username: createdByDisplay,
+            frequency: this.frequencyMap[row.frequency] ?? row.frequency
+          };
+        });
         this.taskSets.set(mapped);
+        this.loading.set(false);
         if (isRefresh) {
           this.messageService.add({ severity: 'info', summary: 'Refreshed', detail: 'Task sets list refreshed', life: 2500 });
         }
       },
       error: () => {
+        this.loading.set(false);
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load task sets' });
       }
     });
@@ -1222,7 +1435,9 @@ export class TaskSetsComponent implements OnInit {
     this.newTaskSetFrequency.set('');
     this.resetInternalFields();
     this.targetTasks = [];
-    if (this.branches().length === 1) {
+    if (this.isBranchUser()) {
+      this.selectedBranches = [];
+    } else if (this.branches().length === 1) {
       this.selectedBranches = [this.branches()[0]];
     } else {
       this.selectedBranches = [];
@@ -1263,8 +1478,12 @@ export class TaskSetsComponent implements OnInit {
     this.newTaskSetCircularId.set(row.circular_id || null);
     this.newTaskSetAuthorityId.set(row.authority_id || null);
     this.formCircularFilter.set(row.circular_id || null);
-    this.newTaskSetStartDate.set(row.start_date ? new Date(row.start_date) : null);
-    this.newTaskSetEndDate.set(row.end_date ? new Date(row.end_date) : null);
+
+    const rawStartDate = row.start_date || row.startDate;
+    const rawEndDate = row.end_date || row.endDate || row.due_date || row.dueDate;
+    this.newTaskSetStartDate.set(this.parseToDate(rawStartDate));
+    this.newTaskSetEndDate.set(this.parseToDate(rawEndDate));
+
     this.newTaskSetFrequency.set(this.getFrequencyKeyByLabel(row.frequency || ''));
     // INTERNAL & REGULAR schedule fields
     this.newTaskSetReferenceNo.set(row.reference_no || '');
@@ -1285,6 +1504,7 @@ export class TaskSetsComponent implements OnInit {
     this.selectionTick.set(this.selectionTick() + 1);
     this.showBranchAssignment.set(true);
     this.proposedDate.set(null);
+    this.loadBranches();
 
     // Open drawer immediately for instant response
     this.loadingFormDetails.set(true);
@@ -1292,26 +1512,59 @@ export class TaskSetsComponent implements OnInit {
 
     this.api.getTaskSet(row.id).subscribe({
       next: (details) => {
-        const dateMap = new Map<number, string | null>();
+        if (!details) {
+          this.loadingFormDetails.set(false);
+          return;
+        }
+
+        // Ensure dates are populated from full task set details if missing in row summary
+        const detailsStartDate = details.start_date || details.startDate || rawStartDate;
+        const detailsEndDate = details.end_date || details.endDate || details.due_date || details.dueDate || rawEndDate;
+        if (detailsStartDate) {
+          this.newTaskSetStartDate.set(this.parseToDate(detailsStartDate));
+        }
+        if (detailsEndDate) {
+          this.newTaskSetEndDate.set(this.parseToDate(detailsEndDate));
+        }
+
+        const dateMap = new Map<number, string>();
+        const subDeptMap = new Map<number, number | null>();
         (details.tasks || []).forEach((t: any) => {
-          const d = t.due_date ? t.due_date.split('T')[0] : null;
-          dateMap.set(t.id, d);
+          const dStr = this.toDateString(t.due_date);
+          dateMap.set(t.id, dStr);
+          subDeptMap.set(t.id, t.sub_dept_id || t.branch_id || null);
         });
 
         const mappedIds = new Set((details.tasks || []).map((t: any) => t.id));
         const mappedBranchIds = new Set((details.branches || []).map((b: any) => b.id));
 
         const applyMappedTasks = (tasksToMap: any[]) => {
-          const mappedRawTasks = tasksToMap.map((t: any) => {
+          const mappedRawTasks = (tasksToMap || []).map((t: any) => {
             const rawVal = dateMap.get(t.id);
+            const subDeptVal = subDeptMap.get(t.id);
             return {
               ...t,
-              due_date: this.parseToDate(rawVal) || null
+              due_date: rawVal || this.toDateString(t.due_date) || '',
+              sub_dept_id: subDeptVal ?? t.sub_dept_id ?? null
             };
           });
           this.rawTasks.set(mappedRawTasks);
-          this.targetTasks = mappedRawTasks.filter((t: any) => mappedIds.has(t.id));
+
+          // Build selected tasks list from details.tasks enriched with raw task properties
+          const selected = (details.tasks || []).map((t: any) => {
+            const rawVal = dateMap.get(t.id);
+            const subDeptVal = subDeptMap.get(t.id);
+            const existingRaw = mappedRawTasks.find((rt: any) => rt.id === t.id);
+            return {
+              ...(existingRaw || t),
+              due_date: rawVal || this.toDateString(t.due_date) || '',
+              sub_dept_id: subDeptVal ?? t.sub_dept_id ?? t.branch_id ?? null
+            };
+          });
+
+          this.targetTasks = selected.length > 0 ? selected : mappedRawTasks.filter((t: any) => mappedIds.has(t.id));
           this.selectedBranches = this.branches().filter((b: any) => mappedBranchIds.has(b.id));
+          this.selectionTick.set(this.selectionTick() + 1);
           this.loadingFormDetails.set(false);
         };
 
@@ -1321,11 +1574,50 @@ export class TaskSetsComponent implements OnInit {
         } else {
           this.api.getApprovedTasks({ limit: 1000 }).subscribe({
             next: (res) => {
-              applyMappedTasks(res.data);
+              applyMappedTasks(res?.data || []);
             },
-            error: () => this.loadingFormDetails.set(false)
+            error: () => {
+              applyMappedTasks(details.tasks || []);
+            }
           });
         }
+
+        // Also query active assignment tasks for this task set to recover sub-department delegations
+        this.api.getAssignments({ task_set_id: row.id, limit: 10 }).subscribe({
+          next: (asgRes) => {
+            const asgs = asgRes?.data || (Array.isArray(asgRes) ? asgRes : []);
+            const targetAsg = asgs.find((a: any) => Number(a.task_set_id) === Number(row.id)) || asgs[0];
+            if (targetAsg && targetAsg.id) {
+              this.api.getAssignmentTasks(targetAsg.id).subscribe({
+                next: (asgTasks) => {
+                  let changed = false;
+                  (asgTasks || []).forEach((at: any) => {
+                    const sId = at.sub_dept_id !== undefined && at.sub_dept_id !== null ? Number(at.sub_dept_id) : null;
+                    if (sId !== null) {
+                      subDeptMap.set(at.task_id, sId);
+                    }
+                    if (at.due_date && !dateMap.get(at.task_id)) {
+                      dateMap.set(at.task_id, this.toDateString(at.due_date));
+                    }
+                  });
+
+                  if (this.targetTasks.length > 0) {
+                    this.targetTasks = this.targetTasks.map((t: any) => {
+                      const recoveredSubDept = subDeptMap.get(t.id);
+                      const recoveredDueDate = dateMap.get(t.id);
+                      return {
+                        ...t,
+                        sub_dept_id: recoveredSubDept !== undefined ? recoveredSubDept : (t.sub_dept_id ?? null),
+                        due_date: recoveredDueDate || t.due_date || ''
+                      };
+                    });
+                    this.selectionTick.set(this.selectionTick() + 1);
+                  }
+                }
+              });
+            }
+          }
+        });
       },
       error: () => {
         this.loadingFormDetails.set(false);
@@ -1405,7 +1697,7 @@ export class TaskSetsComponent implements OnInit {
 
     const startDate = this.newTaskSetStartDate();
     const endDate = this.newTaskSetEndDate();
-    if (isRegular && startDate && endDate && startDate > endDate) {
+    if (startDate && endDate && startDate > endDate) {
       this.messageService.add({
         severity: 'error',
         summary: 'Invalid Date Range',
@@ -1417,18 +1709,17 @@ export class TaskSetsComponent implements OnInit {
 
     this.saving.set(true);
 
-    const user = this.auth.currentUser();
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const userIdRaw = user?.id ?? storedUser?.id ?? storedUser?.user_id ?? storedUser?.userId;
-    const userId = (!isNaN(Number(userIdRaw)) && userIdRaw !== null && userIdRaw !== '') ? Number(userIdRaw) : userIdRaw;
-    const userName = user?.name || user?.full_name || user?.fullName || user?.username || storedUser?.name || storedUser?.full_name || storedUser?.username;
-    const userRole = user?.role || user?.designation || storedUser?.role || storedUser?.designation;
+    const meta = this.api.getCurrentUserMetadata();
+    const userId = meta.userId;
+    const userName = meta.userName;
+    const userRole = meta.userRole;
 
     const payload: any = {
       name: this.newTaskSetName().trim(),
       type: this.newTaskSetType(),
       frequency: freq || undefined,
       start_date: this.formatDate(this.newTaskSetStartDate()),
+      end_date: this.formatDate(this.newTaskSetEndDate()),
       created_by: userId || undefined,
       created_by_id: userId || undefined,
       created_by_user_id: userId || undefined,
@@ -1441,7 +1732,6 @@ export class TaskSetsComponent implements OnInit {
       // REGULAR-only fields
       circular_id: isRegular ? (this.newTaskSetCircularId() || undefined) : undefined,
       authority_id: undefined,
-      end_date: isRegular ? this.formatDate(this.newTaskSetEndDate()) : undefined,
       // INTERNAL-only fields
       reference_no: isInternal ? (this.newTaskSetReferenceNo()?.trim() || undefined) : undefined,
       // Frequency schedule fields (apply to both REGULAR and INTERNAL if freq != '6')
@@ -1465,7 +1755,23 @@ export class TaskSetsComponent implements OnInit {
     const finalizeAssignments = (setId: number) => {
       // Map tasks
       const taskIds = this.targetTasks.map(t => t.id);
-      const branchIds = this.selectedBranches.map(b => b.id);
+
+      const user = this.auth.currentUser();
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const userBranchId = user?.branch_id ?? user?.branchId ?? storedUser?.branch_id ?? storedUser?.branchId;
+      const isBranch = this.isBranchUser();
+
+      // For Branch Users, the Task Set belongs strictly to their own department (1 task set with 1 assignment).
+      // Individual tasks are delegated to sub-departments via taskTimelines.sub_dept_id.
+      let branchIds: number[] = [];
+      if (isBranch && userBranchId) {
+        branchIds = [Number(userBranchId)];
+      } else if (this.selectedBranches && this.selectedBranches.length > 0) {
+        branchIds = this.selectedBranches.map(b => b.id);
+      } else if (userBranchId) {
+        branchIds = [Number(userBranchId)];
+      }
+      
       const d20 = new Date();
       d20.setDate(d20.getDate() + 20);
       const default20DaysStr = d20.toISOString().split('T')[0];
@@ -1473,7 +1779,9 @@ export class TaskSetsComponent implements OnInit {
 
       const taskTimelines = this.targetTasks.map(t => ({
         task_id: t.id,
-        due_date: (t.due_date ? this.formatDate(t.due_date) : fallbackDate) || default20DaysStr
+        due_date: (t.due_date ? this.formatDate(t.due_date) : fallbackDate) || default20DaysStr,
+        sub_dept_id: t.sub_dept_id || null,
+        branch_id: t.sub_dept_id || null
       }));
 
       this.api.updateTaskSetMapping(setId, taskIds, taskTimelines).subscribe({
@@ -1483,13 +1791,39 @@ export class TaskSetsComponent implements OnInit {
               if (branchIds && branchIds.length > 0) {
                 this.api.generateAssignments(setId).subscribe({
                   next: () => {
+                    // Auto-sync sub_dept delegations to generated assignment tasks
+                    const tasksWithSubDept = this.targetTasks.filter(t => !!t.sub_dept_id);
+                    if (tasksWithSubDept.length > 0) {
+                      const subDeptMap = new Map<number, number>();
+                      tasksWithSubDept.forEach(t => subDeptMap.set(t.id, t.sub_dept_id));
+
+                      this.api.getAssignments({ task_set_id: setId, limit: 50 }).subscribe({
+                        next: (asgRes) => {
+                          const asgs = asgRes.data || (Array.isArray(asgRes) ? asgRes : []);
+                          const targetAsg = asgs.find((a: any) => Number(a.task_set_id) === Number(setId)) || asgs[0];
+                          if (targetAsg && targetAsg.id) {
+                            this.api.getAssignmentTasks(targetAsg.id).subscribe({
+                              next: (asgTasks) => {
+                                (asgTasks || []).forEach((at: any) => {
+                                  const targetSubDept = subDeptMap.get(at.task_id);
+                                  if (targetSubDept) {
+                                    this.api.delegateTaskToSubDept(targetAsg.id, at.assignment_task_id, targetSubDept).subscribe();
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        }
+                      });
+                    }
+
                     this.saving.set(false);
                     this.showFormDrawer.set(false);
                     this.loadData();
                     this.messageService.add({
                       severity: 'success',
                       summary: 'Successful',
-                      detail: this.isEditMode ? 'Task set updated and assignments generated.' : 'Task set created and assignments generated for selected units.',
+                      detail: this.isEditMode ? 'Task set updated and assignments generated.' : 'Task set created and assignment generated with sub-department delegations.',
                       life: 3000
                     });
                   },

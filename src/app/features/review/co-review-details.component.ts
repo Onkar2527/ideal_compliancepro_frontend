@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from "@angular/core";
+import { Component, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -10,15 +10,19 @@ import { TextareaModule } from "primeng/textarea";
 import { TooltipModule } from "primeng/tooltip";
 import { DialogModule } from "primeng/dialog";
 import { InputTextModule } from "primeng/inputtext";
+import { ConfirmDialogModule } from "primeng/confirmdialog";
+import { ConfirmationService } from "primeng/api";
 
 @Component({
   selector: "app-co-review-details",
   standalone: true,
-  imports: [CommonModule, FormsModule, ButtonModule, TagModule, TextareaModule, TooltipModule, DialogModule, InputTextModule],
+  imports: [CommonModule, FormsModule, ButtonModule, TagModule, TextareaModule, TooltipModule, DialogModule, InputTextModule, ConfirmDialogModule],
+  providers: [ConfirmationService],
   templateUrl: "./co-review-details.component.html",
   styleUrls: ["../../shared/styles/checklist-shared.css", "./co-review-details.component.css"]
 })
 export class CoReviewDetailsComponent implements OnInit {
+  private confirmationService = inject(ConfirmationService);
   displayRemarkChainDialog = false;
   selectedTaskForChain: any = null;
   historyDialogMode: 'REMARK' | 'EVIDENCE' = 'REMARK';
@@ -61,20 +65,123 @@ export class CoReviewDetailsComponent implements OnInit {
     this.displayEvidenceSourceModal = true;
   }
 
+  cleanFileName(rawName: string): string {
+    if (!rawName) return 'Evidence Document.pdf';
+    let name = decodeURIComponent(rawName.trim().split('?')[0]);
+    // Remove leading timestamp e.g. 1726483920192-file.pdf
+    name = name.replace(/^\d{10,14}[-_]/, '');
+    // Remove trailing hex hash, uuid, or timestamp before .pdf extension
+    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.pdf$|$)/i, '');
+    if (!name.toLowerCase().endsWith('.pdf') && rawName.toLowerCase().includes('.pdf')) {
+      name = name + '.pdf';
+    }
+    return name || 'Evidence Document.pdf';
+  }
+
+  private getDeletedEvidenceKeys(): Set<string> {
+    try {
+      const stored = localStorage.getItem(`compliancepro_deleted_evidence_${this.assignmentId}`);
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  private markEvidenceAsDeleted(ev: any) {
+    try {
+      const keys = this.getDeletedEvidenceKeys();
+      if (ev.id) keys.add(`id_${ev.id}`);
+      if (ev.file_url) {
+        keys.add(`url_${ev.file_url}`);
+        const parts = ev.file_url.split('/');
+        const lastPart = parts[parts.length - 1];
+        keys.add(`part_${lastPart}`);
+      }
+      if (ev.url) {
+        keys.add(`url_${ev.url}`);
+        const parts = ev.url.split('/');
+        const lastPart = parts[parts.length - 1];
+        keys.add(`part_${lastPart}`);
+      }
+      if (ev.file_name) keys.add(`name_${ev.file_name}`);
+      if (ev.name) keys.add(`name_${ev.name}`);
+      localStorage.setItem(`compliancepro_deleted_evidence_${this.assignmentId}`, JSON.stringify(Array.from(keys)));
+    } catch (e) {
+      console.warn('Failed to save deleted evidence key:', e);
+    }
+  }
+
+  isEvidenceDeleted(ev: any): boolean {
+    if (!ev) return false;
+    const keys = this.getDeletedEvidenceKeys();
+    if (ev.id && keys.has(`id_${ev.id}`)) return true;
+    if (ev.file_url) {
+      if (keys.has(`url_${ev.file_url}`)) return true;
+      const parts = ev.file_url.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (keys.has(`part_${lastPart}`)) return true;
+    }
+    if (ev.url) {
+      if (keys.has(`url_${ev.url}`)) return true;
+      const parts = ev.url.split('/');
+      const lastPart = parts[parts.length - 1];
+      if (keys.has(`part_${lastPart}`)) return true;
+    }
+    if (ev.file_name && keys.has(`name_${ev.file_name}`)) return true;
+    if (ev.name && keys.has(`name_${ev.name}`)) return true;
+    return false;
+  }
+
   loadDepartmentPreviousEvidences() {
     const currentBranchId = this.assignmentMeta()?.branch_id || this.assignmentMeta()?.department_id;
     const currentBranchName = (this.assignmentMeta()?.branch_name || '').toLowerCase().trim();
 
     this.loadingDeptEvidences = true;
 
+    // Helper for robust deduplication by unique evidence name/url (avoids repetitive duplicates)
+    const deduplicateEvidences = (list: any[]) => {
+      const seen = new Map<string, any>();
+      list.forEach(item => {
+        if (!item) return;
+        let name = (item.name || '').trim();
+        if ((!name || name === 'Task Evidence Document.pdf') && item.url) {
+          const extracted = item.url.split('/').pop()?.split('?')[0];
+          if (extracted && extracted.toLowerCase().endsWith('.pdf')) {
+            name = decodeURIComponent(extracted);
+          }
+        }
+        name = this.cleanFileName(name);
+        item.name = name;
+        const url = (item.url || '').trim();
+        if (!name && !url) return;
+
+        // Key by unique cleaned document name so repeated documents don't show multiple times
+        const key = name.toLowerCase() || url.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, item);
+        } else {
+          const existing = seen.get(key);
+          if ((!existing.url && url) || (item.date && (!existing.date || new Date(item.date) > new Date(existing.date)))) {
+            seen.set(key, { ...existing, ...item, name });
+          }
+        }
+      });
+      return Array.from(seen.values());
+    };
+
     // Collect from current loaded tasks history
     const taskEvidences: any[] = [];
     (this.tasks() || []).forEach(t => {
       if (t.evidence_history && Array.isArray(t.evidence_history)) {
         t.evidence_history.forEach((eh: any) => {
+          if (this.isEvidenceDeleted(eh)) return;
           if (eh.file_url) {
+            let fname = eh.file_name || eh.filename;
+            if (!fname && eh.file_url) {
+              fname = eh.file_url.split('/').pop()?.split('?')[0];
+            }
             taskEvidences.push({
-              name: eh.file_name || eh.filename || 'Task Evidence Document.pdf',
+              name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
               url: eh.file_url,
               date: eh.uploaded_at || eh.created_at,
               source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -82,9 +189,13 @@ export class CoReviewDetailsComponent implements OnInit {
             });
           }
         });
-      } else if (t.evidence_url) {
+      } else if (t.evidence_url && !this.isEvidenceDeleted(t)) {
+        let fname = t.evidence_file_name;
+        if (!fname && t.evidence_url) {
+          fname = t.evidence_url.split('/').pop()?.split('?')[0];
+        }
         taskEvidences.push({
-          name: t.evidence_file_name || 'Task Evidence Document.pdf',
+          name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
           url: t.evidence_url,
           date: t.updated_at || t.created_at,
           source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -98,27 +209,25 @@ export class CoReviewDetailsComponent implements OnInit {
       next: (docs) => {
         const deptDocs = (docs || [])
           .filter(d => {
-            if (!d.file_url) return false;
+            if (!d.file_url || this.isEvidenceDeleted(d)) return false;
             if (currentBranchId && d.department_id && Number(d.department_id) === Number(currentBranchId)) return true;
             if (currentBranchName && d.department_name && d.department_name.toLowerCase().trim() === currentBranchName) return true;
             return false;
           })
           .map(d => ({
-            name: d.file_name || d.document_name,
+            name: this.cleanFileName(d.file_name || d.document_name),
             url: d.file_url,
             date: d.created_at || d.issue_date,
             source: `Asset Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
-        // Deduplicate by URL
         const combined = [...taskEvidences, ...deptDocs];
-        const unique = combined.filter((v, i, a) => a.findIndex(t => t.url === v.url) === i);
-        this.deptPreviousEvidences.set(unique);
+        this.deptPreviousEvidences.set(deduplicateEvidences(combined));
         this.loadingDeptEvidences = false;
       },
       error: () => {
-        this.deptPreviousEvidences.set(taskEvidences);
+        this.deptPreviousEvidences.set(deduplicateEvidences(taskEvidences));
         this.loadingDeptEvidences = false;
       }
     });
@@ -142,13 +251,13 @@ export class CoReviewDetailsComponent implements OnInit {
       .then(res => res.blob())
       .then(blob => {
         const file = new File([blob], item.name, { type: blob.type || 'application/pdf' });
-        this.selectedFilesMap.update(map => ({ ...map, [taskId]: file }));
+        this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Attached "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
       })
       .catch(() => {
         const file = new File([new Blob()], item.name, { type: 'application/pdf' });
-        this.selectedFilesMap.update(map => ({ ...map, [taskId]: file }));
+        this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Selected "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
       });
@@ -163,38 +272,31 @@ export class CoReviewDetailsComponent implements OnInit {
   savingTaskId = signal<number | null>(null);
   pendingStatus: string = ""; // tracks which button triggered the loading spinner
   activeFilter = signal<string>(""); // APPROVED | NEEDS_REDO | UNREVIEWED | ''
-  selectedFilesMap = signal<{ [key: number]: File }>({});
+  selectedFilesMap = signal<Record<number, File[]>>({});
 
   assignmentMeta = computed(() => this.tasks()[0] ?? null);
+  assignmentStatus = computed(() => this.assignmentMeta()?.status || this.assignmentMeta()?.assignment_status || '');
   compliedCount = computed(() => this.tasks().filter(t => t.compliance_status === "COMPLIED").length);
   notCompliedCount = computed(() => this.tasks().filter(t => t.compliance_status === "NOT_COMPLIED").length);
   approvedCount = computed(() => this.tasks().filter(t => t.review_status === "APPROVED").length);
   needsRedoCount = computed(() => this.tasks().filter(t => t.review_status === "NEEDS_REDO").length);
   unreviewedCount = computed(() => this.tasks().filter(t => !t.review_status).length);
-  isBranchCreated = computed(() => {
+  isInternalTaskSet = computed(() => {
     const meta = this.assignmentMeta();
     if (!meta) return false;
-    const role = (meta.created_by_role || meta.creator_role || meta.task_set_created_by_role || meta.user_role || '').toUpperCase();
-    if (role === 'BRANCH' || role === 'BRANCH_USER' || role === 'DEPARTMENT' || role === 'BRANCH USER' || role === 'SUB_DEPARTMENT') {
-      return true;
-    }
-    const createdBy = (meta.created_by_username || meta.created_by_name || meta.creator_name || meta.created_by || '').toLowerCase();
-    if (createdBy.includes('branch') || createdBy.includes('dept') || createdBy.includes('department') || createdBy.includes('user')) {
-      return true;
-    }
-    const branchName = (meta.branch_name || '').toLowerCase();
-    const taskSetName = (meta.task_set_name || '').toLowerCase();
-    if (!!meta.branch_parent_id) {
-      return true;
-    }
-    if (role && !['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      return true;
-    }
+    const type = (meta.task_set_type || meta.type || '').toUpperCase().trim();
+    if (type === 'INTERNAL') return true;
+    if (type === 'REGULAR') return false;
+    if (meta.circular_id || meta.circular_title || meta.circular_reference_no) return false;
     return false;
   });
 
+  isBranchCreated = computed(() => {
+    return this.isInternalTaskSet();
+  });
+
   isReviewActive(): boolean {
-    if (this.isBranchCreated()) return false;
+    if (this.isInternalTaskSet()) return false;
     const status = this.assignmentMeta()?.assignment_status?.toUpperCase();
     return status === 'REVIEW_PENDING' || status === 'TIMELINE_REVIEW';
   }
@@ -302,16 +404,15 @@ export class CoReviewDetailsComponent implements OnInit {
               (isSubDept ? 'BRANCH_USER' : '')
             ).toUpperCase();
 
-            const isBranch = (
+            const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(creatorRole);
+
+            const isBranch = !isCOOrAdmin && (
               creatorRole === 'BRANCH' ||
               creatorRole === 'BRANCH_USER' ||
               creatorRole === 'DEPARTMENT' ||
               creatorRole === 'SUB_DEPARTMENT' ||
               creatorRole === 'BRANCH USER' ||
-              isSubDept ||
-              (matchedTs?.type || '').toUpperCase() === 'INTERNAL' ||
-              (t.task_set_name || '').toLowerCase() === 'gfg' ||
-              (t.branch_name || '').toLowerCase().includes('network')
+              isSubDept
             );
 
             // Preserve unsaved draft review status if user changed it locally
@@ -353,16 +454,16 @@ export class CoReviewDetailsComponent implements OnInit {
 
           this.api.getAssignmentEvidence(this.assignmentId!).subscribe({
             next: (evidenceList) => {
+              const activeEvidenceList = (evidenceList || []).filter((e: any) => !this.isEvidenceDeleted(e));
               enriched.forEach((task: any) => {
-                const evidences = evidenceList.filter(e => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
+                const evidences = activeEvidenceList.filter(e => e.assignment_task_id === task.assignment_task_id || e.task_id === task.task_id);
                 task.evidence_history = evidences.map(e => {
                   let fileName = 'Evidence Document.pdf';
                   if (e.file_url) {
                     const parts = e.file_url.split('/');
                     const lastPart = parts[parts.length - 1];
-                  fileName = decodeURIComponent(lastPart.split('?')[0]);
-                  fileName = fileName.replace(/^\d{10,14}-/, '');
-                }
+                    fileName = this.cleanFileName(lastPart);
+                  }
                 let uName = e.uploader_name || '';
                 let uRole = e.uploader_role || '';
                 const r = (uRole || '').toUpperCase();
@@ -522,21 +623,34 @@ export class CoReviewDetailsComponent implements OnInit {
 
   onFileSelected(event: any, taskId: number | null) {
     if (!taskId) return;
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-        this.notification.warn('Only PDF files are accepted as compliance evidence.');
-        return;
+    const fileList: FileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+
+    const validFiles: File[] = [];
+    for (let i = 0; i < fileList.length; i++) {
+      const f = fileList[i];
+      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+        validFiles.push(f);
+      } else {
+        this.notification.warn(`Skipped "${f.name}": only PDF files are accepted.`);
       }
-      this.stagedFile = file;
-      this.originalFileName = file.name;
-      this.customDocName = file.name;
+    }
+
+    if (validFiles.length === 0) return;
+
+    if (validFiles.length === 1) {
+      this.stagedFile = validFiles[0];
+      this.originalFileName = validFiles[0].name;
+      this.customDocName = validFiles[0].name;
       this.activeEvidenceTaskId = taskId;
       this.evidenceSourceStep = 'RENAME_CONFIRM';
       this.displayEvidenceSourceModal = true;
-      // Reset input value so re-selecting same file triggers change event
-      event.target.value = '';
+    } else {
+      this.addSelectedFiles(taskId, validFiles);
+      this.notification.success(`${validFiles.length} evidence PDF documents attached.`);
+      this.displayEvidenceSourceModal = false;
     }
+    event.target.value = '';
   }
 
   resetToOriginalName() {
@@ -557,17 +671,51 @@ export class CoReviewDetailsComponent implements OnInit {
     }
 
     const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/pdf' });
-    this.selectedFilesMap.update(map => ({ ...map, [taskId]: renamedFile }));
-    this.notification.success(`Evidence PDF "${finalName}" selected.`);
+    this.addSelectedFiles(taskId, [renamedFile]);
+    this.notification.success(`Evidence PDF "${finalName}" attached.`);
     this.stagedFile = null;
     this.displayEvidenceSourceModal = false;
   }
 
-  getSelectedFileName(taskId: number): string | null {
-    return this.selectedFilesMap()[taskId]?.name || null;
+  getSelectedFiles(taskId: number): File[] {
+    return this.selectedFilesMap()[taskId] || [];
   }
 
-  removeSelectedFile(taskId: number) {
+  getSelectedFileName(taskId: number): string | null {
+    const files = this.getSelectedFiles(taskId);
+    if (files.length === 0) return null;
+    if (files.length === 1) return files[0].name;
+    return `${files.length} evidence documents`;
+  }
+
+  addSelectedFiles(taskId: number, files: File[]) {
+    this.selectedFilesMap.update(map => {
+      const existing = map[taskId] || [];
+      const newUnique = files.filter(f => !existing.some(e => e.name.toLowerCase() === f.name.toLowerCase() && e.size === f.size));
+      return { ...map, [taskId]: [...existing, ...newUnique] };
+    });
+  }
+
+  removeSelectedFile(taskId: number, fileIndex?: number) {
+    this.selectedFilesMap.update(map => {
+      const copy = { ...map };
+      if (fileIndex === undefined) {
+        delete copy[taskId];
+      } else {
+        const list = copy[taskId] || [];
+        const updated = list.filter((_, idx) => idx !== fileIndex);
+        if (updated.length === 0) {
+          delete copy[taskId];
+        } else {
+          copy[taskId] = updated;
+        }
+      }
+      return copy;
+    });
+    this.notification.info('Evidence file removed from staged upload list.');
+  }
+
+  removeAllSelectedFiles(taskId: number) {
     this.selectedFilesMap.update(map => {
       const copy = { ...map };
       delete copy[taskId];
@@ -575,11 +723,22 @@ export class CoReviewDetailsComponent implements OnInit {
     });
   }
 
+  previewSelectedFile(file: File) {
+    if (!file) return;
+    const blobUrl = URL.createObjectURL(file);
+    window.open(blobUrl, '_blank');
+  }
+
+  hasSavedEvidence(task: any): boolean {
+    if (task.evidence_url) return true;
+    if (task.has_evidence && task.evidence_history && task.evidence_history.length > 0) return true;
+    return false;
+  }
+
   previewFile(task: any) {
-    const file = this.selectedFilesMap()[task.assignment_task_id];
-    if (file) {
-      const blobUrl = URL.createObjectURL(file);
-      window.open(blobUrl, '_blank');
+    const files = this.getSelectedFiles(task.assignment_task_id);
+    if (files.length > 0) {
+      this.previewSelectedFile(files[0]);
       return;
     }
     if (task.evidence_url) {
@@ -594,32 +753,98 @@ export class CoReviewDetailsComponent implements OnInit {
     }
   }
 
+  canDeleteEvidence(ev: any, task: any, idx?: number): boolean {
+    if (!task || !ev) return false;
+    if (this.assignmentStatus() === 'COMPLETED') return false;
+    const role = (ev.uploader_role || '').toUpperCase();
+    if (!role.includes('CO') && !role.includes('REVIEW')) {
+      return false; // Department evidence is a protected audit record for CO reviewers
+    }
+    return this.isRecentEvidence(ev, task, idx);
+  }
+
+  isRecentEvidence(ev: any, task: any, idx?: number): boolean {
+    if (!task || !task.evidence_history || task.evidence_history.length === 0) return false;
+    if (idx === 0) return true;
+    if (!ev || !ev.submitted_at) return false;
+    const latestTime = new Date(task.evidence_history[0].submitted_at).getTime();
+    const evTime = new Date(ev.submitted_at).getTime();
+    return Math.abs(latestTime - evTime) < 120000;
+  }
+
+  deleteSavedEvidence(ev: any, task: any) {
+    if (!ev || !task) return;
+    const fileName = ev.file_name || 'Evidence Document.pdf';
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete the saved evidence "${fileName}"?`,
+      header: 'Confirm Evidence Deletion',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Yes, Delete',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-outlined p-button-secondary p-button-sm',
+      accept: () => {
+        const taskId = task.assignment_task_id;
+        this.markEvidenceAsDeleted(ev);
+
+        // Instantly update task & selectedTaskForChain objects in memory
+        if (task.evidence_history) {
+          task.evidence_history = task.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
+          task.has_evidence = task.evidence_history.length > 0;
+          task.evidence_url = task.evidence_history[0]?.file_url || null;
+        }
+        if (this.selectedTaskForChain && this.selectedTaskForChain.evidence_history) {
+          this.selectedTaskForChain.evidence_history = this.selectedTaskForChain.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
+        }
+
+        if (ev.id && this.assignmentId) {
+          this.api.deleteTaskEvidence(this.assignmentId, taskId, ev.id).subscribe({
+            next: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            },
+            error: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            }
+          });
+        } else {
+          this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+          this.loadDepartmentPreviousEvidences();
+        }
+      }
+    });
+  }
+
   hasFileToView(task: any): boolean {
-    if (this.selectedFilesMap()[task.assignment_task_id]) return true;
-    if (task.evidence_url) return true;
-    if (task.has_evidence && task.evidence_history && task.evidence_history.length > 0) return true;
-    return false;
+    if (this.getSelectedFiles(task.assignment_task_id).length > 0) return true;
+    return this.hasSavedEvidence(task);
   }
 
   uploadEvidenceOnly(task: any) {
     if (!this.assignmentId) return;
-    const file = this.selectedFilesMap()[task.assignment_task_id];
-    if (!file) {
-      this.notification.warn('Please select a PDF file first.');
+    const files = this.getSelectedFiles(task.assignment_task_id);
+    if (!files || files.length === 0) {
+      this.notification.warn('Please select at least one PDF file first.');
       return;
     }
 
     this.savingTaskId.set(task.assignment_task_id);
     const formData = new FormData();
-    formData.append('files', file);
+    files.forEach(f => {
+      formData.append('files', f, f.name);
+    });
     formData.append('remark', task.review_remark || '[CO] Evidence document uploaded');
     formData.append('compliance_status', task.compliance_status || 'COMPLIED');
 
     this.api.uploadTaskEvidence(this.assignmentId, task.assignment_task_id, formData).subscribe({
       next: () => {
-        this.removeSelectedFile(task.assignment_task_id);
+        this.removeAllSelectedFiles(task.assignment_task_id);
         this.savingTaskId.set(null);
-        this.notification.success('Evidence PDF uploaded successfully!');
+        this.notification.success(`${files.length > 1 ? files.length + ' evidence PDFs' : 'Evidence PDF'} uploaded successfully!`);
         this.loadTasks();
       },
       error: (err) => {
@@ -645,16 +870,18 @@ export class CoReviewDetailsComponent implements OnInit {
     this.tasks.update(ts => ts.map(t => t.assignment_task_id === task.assignment_task_id ? { ...t, review_status: status } : t));
     this.groupTasks(this.tasks());
 
-    const file = this.selectedFilesMap()[task.assignment_task_id];
-    if (file) {
+    const files = this.getSelectedFiles(task.assignment_task_id);
+    if (files && files.length > 0) {
       const formData = new FormData();
-      formData.append('files', file);
+      files.forEach(f => {
+        formData.append('files', f, f.name);
+      });
       formData.append('remark', task.review_remark || `[CO ${status}] Evidence attached`);
       formData.append('compliance_status', task.compliance_status || 'COMPLIED');
 
       this.api.uploadTaskEvidence(this.assignmentId, task.assignment_task_id, formData).subscribe({
         next: () => {
-          this.removeSelectedFile(task.assignment_task_id);
+          this.removeAllSelectedFiles(task.assignment_task_id);
           this.executeReviewStatusUpdate(task, status);
         },
         error: (err) => {

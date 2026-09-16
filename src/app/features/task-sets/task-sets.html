@@ -55,6 +55,7 @@
         [data]="filteredTaskSets()"
         [columns]="tableColumns"
         [actions]="tableActions"
+        [loading]="loading()"
         [loadingRowIds]="loadingRowIds()"
         (onRefresh)="loadData(true)"
         (onAdd)="openCreateModal()"
@@ -254,7 +255,7 @@
 
 <!-- Task Set Form Drawer -->
 
-<p-drawer [(visible)]="showFormDrawer" position="right" [style]="{ width: '88vw', maxWidth: '1440px' }" appendTo="body" [modal]="true" [showCloseIcon]="false">
+<p-drawer [(visible)]="showFormDrawer" position="right" [style]="{ width: '92vw', maxWidth: '1520px' }" appendTo="body" [modal]="true" [showCloseIcon]="false">
   <ng-template pTemplate="header">
     <div class="drawer-header-row">
       <div class="drawer-title-wrap">
@@ -464,38 +465,42 @@
               </div>
             }
 
-            <!-- QUARTERLY / SEMI-ANNUAL / YEARLY → Assignment Schedule + Due Schedule + Reporting Schedule -->
-            @if (newTaskSetFrequency() === '3' || newTaskSetFrequency() === '4' || newTaskSetFrequency() === '5') {
-              <div class="field col-12 md:col-4">
-                <label class="font-medium text-sm text-700 mb-1 block">
-                  Assignment Schedule <span class="text-red-500">*</span>
-                </label>
-                <input type="text" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetAssignmentSchedule()" (ngModelChange)="newTaskSetAssignmentSchedule.set($event)"
-                  placeholder="e.g. 1 Jan" />
-              </div>
-              <div class="field col-12 md:col-4">
-                <label class="font-medium text-sm text-700 mb-1 block">
-                  Due Schedule <span class="text-red-500">*</span>
-                </label>
-                <input type="text" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetDueSchedule()" (ngModelChange)="newTaskSetDueSchedule.set($event)"
-                  placeholder="e.g. 15 Jan" />
-              </div>
-              <div class="field col-12 md:col-4">
-                <label class="font-medium text-sm text-700 mb-1 block">
-                  Reporting Schedule <span class="text-red-500">*</span>
-                </label>
-                <input type="text" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetReportingSchedule()" (ngModelChange)="newTaskSetReportingSchedule.set($event)"
-                  placeholder="e.g. 28 Jan" />
+            <!-- QUARTERLY / SEMIANNUALLY / YEARLY → Month & Day of Schedule Dropdowns -->
+            @if (['3','4','5'].includes(newTaskSetFrequency())) {
+              <div class="field col-12">
+                <div class="grid formgrid">
+                  <div class="field col-12 md:col-4">
+                    <label class="font-medium text-sm text-700 mb-1 block">Assignment Schedule <span class="text-red-500">*</span></label>
+                    <app-text-field
+                      label=""
+                      [field]="newTaskSetAssignmentSchedule"
+                      placeholder="e.g. Day 1 of Month 1">
+                    </app-text-field>
+                  </div>
+                  <div class="field col-12 md:col-4">
+                    <label class="font-medium text-sm text-700 mb-1 block">Due Schedule <span class="text-red-500">*</span></label>
+                    <app-text-field
+                      label=""
+                      [field]="newTaskSetDueSchedule"
+                      placeholder="e.g. Day 15 of Month 1">
+                    </app-text-field>
+                  </div>
+                  <div class="field col-12 md:col-4">
+                    <label class="font-medium text-sm text-700 mb-1 block">Reporting Schedule <span class="text-red-500">*</span></label>
+                    <app-text-field
+                      label=""
+                      [field]="newTaskSetReportingSchedule"
+                      placeholder="e.g. Day 20 of Month 1">
+                    </app-text-field>
+                  </div>
+                </div>
               </div>
             }
 
             }
 
             @if (scheduleValidationError()) {
-              <div class="col-12 mt-2">
+              <div class="field col-12">
                 <div class="p-3 border-round bg-red-50 border-1 border-red-200 text-red-700 flex align-items-center gap-2 text-sm font-medium">
                   <i class="pi pi-exclamation-triangle"></i>
                   <span>{{ scheduleValidationError() }}</span>
@@ -506,47 +511,47 @@
         </div>
       </section>
 
-      <!-- Section: Map Tasks -->
       <!-- Section: Map Tasks (Side-by-Side Dual Transfer) -->
       <section class="drawer-section">
         <div class="section-heading">
           <span class="section-kicker">Map Tasks</span>
           <span class="section-line"></span>
-          <span class="text-xs font-bold text-primary px-2.5 py-1 border-round bg-primary-50 border-1 border-primary-100 flex-shrink-0">
+          <span class="text-xs font-bold text-emerald-700 px-2.5 py-1 border-round bg-emerald-50 border-1 border-emerald-200 flex-shrink-0">
             <i class="pi pi-check-circle mr-1"></i>{{ targetTasks.length }} Tasks Selected
           </span>
         </div>
         
-        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; width: 100%;">
+        <div class="dual-transfer-grid">
           
-          <!-- Available Tasks Panel -->
-          <div style="display: flex; flex-direction: column; min-width: 0; gap: 0.35rem;">
+          <!-- ══ Left Panel: Available Tasks ══ -->
+          <div class="dual-panel">
             
             <!-- Panel Header & Controls -->
-            <div class="flex align-items-center justify-content-between gap-2 flex-wrap" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0; padding: 0.5rem 0.75rem;">
+            <div class="dual-panel-header-available">
               <div class="flex align-items-center gap-2">
+                <i class="pi pi-list text-slate-600 font-bold text-sm"></i>
                 <span class="text-sm font-bold text-slate-800">Available Tasks</span>
-                <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-200 text-slate-700">
+                <span class="text-xs font-bold px-2 py-0.5 border-round bg-slate-200 text-slate-700">
                   {{ filteredAvailableTasks().length }}
                 </span>
               </div>
 
-              <div class="flex align-items-center gap-2">
+              <div class="flex align-items-center gap-1.5">
                 <button *ngIf="newTaskSetType() === 'INTERNAL'" 
                         pButton label="Add Task" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true"
-                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                        styleClass="h-1.85rem text-xs font-semibold px-2"
                         (click)="openInlineTaskDialog()"></button>
                 <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="primary"
                         [disabled]="filteredAvailableTasks().length === 0"
-                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                        styleClass="h-1.85rem text-xs font-semibold px-2.5"
                         (click)="addAllAvailableTasks()"
                         pTooltip="Add all filtered available tasks to selection" tooltipPosition="top"></button>
               </div>
             </div>
 
             <!-- Search & Filter Sub-Bar -->
-            <div class="flex align-items-center gap-2 flex-wrap px-2 py-1.5 bg-slate-50 border-left-1 border-right-1 border-slate-200">
-              <p-iconfield iconPosition="left" class="flex-1" style="min-width: 150px;">
+            <div class="flex align-items-center gap-2 flex-wrap px-2.5 py-1.5 bg-slate-50 border-bottom-1 border-slate-200">
+              <p-iconfield iconPosition="left" class="flex-1" style="min-width: 140px;">
                 <p-inputicon styleClass="pi pi-search text-xs" />
                 <input pInputText type="text" [ngModel]="availableSearchText()" (ngModelChange)="availableSearchText.set($event)" 
                        placeholder="Search available tasks..." 
@@ -564,7 +569,7 @@
                         optionValue="value"
                         [filter]="true"
                         filterBy="label"
-                        class="w-13rem"
+                        class="w-12rem"
                         styleClass="h-2rem text-xs flex align-items-center"
                         panelStyleClass="circular-dropdown-panel"
                         appendTo="body"></p-select>
@@ -577,11 +582,12 @@
                         [showClear]="true"
                         class="w-11rem"
                         styleClass="h-2rem text-xs flex align-items-center"
+                        panelStyleClass="header-dropdown-panel"
                         appendTo="body"></p-select>
             </div>
 
             <!-- Available Tasks Table -->
-            <div class="border-1 border-slate-200 border-top-none border-round-bottom overflow-hidden bg-white" style="height: 22.5rem; display: flex; flex-direction: column;">
+            <div style="height: 23rem; display: flex; flex-direction: column;">
               <p-table [value]="filteredAvailableTasks()" 
                        [paginator]="true" 
                        [rows]="7" 
@@ -592,39 +598,38 @@
                        scrollHeight="flex">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 50px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Add</th>
-                    <th style="width: 38px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">#</th>
-                    <th style="min-width: 180px; white-space: nowrap; padding: 0.45rem 0.55rem;">Description</th>
-                    <th *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; white-space: nowrap; padding: 0.45rem 0.55rem;">Header</th>
-                    <th style="width: 80px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Priority</th>
+                    <th style="width: 42px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Add</th>
+                    <th style="width: 34px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">#</th>
+                    <th style="white-space: nowrap; padding: 0.4rem 0.5rem;">Description</th>
+                    <th style="width: 72px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Priority</th>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-task let-i="rowIndex">
                   <tr>
-                    <td style="text-align: center; width: 50px; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 42px; padding: 0.35rem 0.25rem;">
                       <button pButton icon="pi pi-plus" size="small" [rounded]="true" severity="primary" 
                               styleClass="w-1.75rem h-1.75rem"
-                              pTooltip="Add Task" tooltipPosition="top"
+                              pTooltip="Add to Set" tooltipPosition="top"
                               (click)="addSingleTask(task)"></button>
                     </td>
-                    <td style="text-align: center; width: 38px; font-weight: 600; color: #64748b; font-size: 0.75rem; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 34px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.25rem;">
                       {{ i + 1 }}
                     </td>
-                    <td style="font-size: 0.78rem; color: #1e293b; line-height: 1.4; padding: 0.35rem 0.55rem;">
-                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" [title]="task.description">
+                    <td style="font-size: 0.775rem; color: #1e293b; line-height: 1.35; padding: 0.35rem 0.5rem;">
+                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;" [title]="task.description">
                         {{ task.description }}
                       </div>
-                      <small *ngIf="task.authority_name" style="color: #64748b; font-size: 0.68rem; display: block; margin-top: 0.1rem;">
-                        <i class="pi pi-shield" style="font-size: 0.62rem;"></i> {{ task.authority_name }}
-                      </small>
+                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                        <span *ngIf="task.header_name" class="chip-subtle" style="background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;">
+                          <i class="pi pi-tag" style="font-size: 0.58rem; color: #64748b;"></i> {{ task.header_name }}
+                        </span>
+                        <span *ngIf="task.authority_name" class="chip-subtle" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                          <i class="pi pi-shield" style="font-size: 0.58rem; color: #3b82f6;"></i> {{ task.authority_name }}
+                        </span>
+                      </div>
                     </td>
-                    <td *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; padding: 0.35rem 0.45rem;">
-                      <span *ngIf="task.header_name" style="background: #f1f5f9; color: #334155; padding: 0.12rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="task.header_name">
-                        {{ task.header_name }}
-                      </span>
-                    </td>
-                    <td style="text-align: center; width: 80px; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 72px; padding: 0.35rem 0.25rem;">
                       <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
                   </tr>
@@ -632,10 +637,10 @@
 
                 <ng-template pTemplate="emptymessage">
                   <tr>
-                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 5 : 4" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
-                      <i class="pi pi-inbox text-2xl text-slate-300 block mb-1.5"></i>
-                      <span class="text-xs font-semibold text-slate-700 block">No available tasks</span>
-                      <small class="text-xs text-slate-400">Try adjusting your search query or circular filter</small>
+                    <td colspan="4" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                      <i class="pi pi-inbox text-3xl text-slate-300 block mb-2"></i>
+                      <span class="text-xs font-semibold text-slate-700 block">No available tasks found</span>
+                      <small class="text-xs text-slate-400">Try adjusting your search filter</small>
                     </td>
                   </tr>
                 </ng-template>
@@ -644,69 +649,64 @@
 
           </div>
 
-          <!-- Selected Tasks Panel -->
-          <div style="display: flex; flex-direction: column; min-width: 0; gap: 0.35rem;">
+          <!-- ══ Right Panel: Selected Tasks ══ -->
+          <div class="dual-panel">
             
             <!-- Panel Header & Controls -->
-            <div class="flex align-items-center justify-content-between gap-2 flex-wrap" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px 8px 0 0; padding: 0.5rem 0.75rem;">
+            <div class="dual-panel-header-selected">
               <div class="flex align-items-center gap-2">
-                <span class="text-sm font-bold text-emerald-900">Selected Tasks</span>
-                <span class="text-xs font-bold px-2 py-0.5 border-round bg-emerald-200 text-emerald-800">
+                <i class="pi pi-check-square text-emerald-700 font-bold text-sm"></i>
+                <span class="text-sm font-bold text-emerald-950">Selected Tasks</span>
+                <span class="text-xs font-bold px-2 py-0.5 border-round bg-emerald-200 text-emerald-900">
                   {{ targetTasks.length }}
                 </span>
               </div>
 
               <!-- Quick Due Date Flag Buttons (10, 20, 30 days) -->
               <div class="flex align-items-center gap-1.5" *ngIf="targetTasks.length > 0">
-                <span class="text-xs font-bold text-emerald-900 flex align-items-center gap-1">
-                  <i class="pi pi-calendar-plus text-emerald-600 font-bold"></i> Due Date:
+                <span class="text-xs font-bold text-emerald-900 hidden sm:inline-flex align-items-center gap-1">
+                  Due:
                 </span>
                 
                 <button type="button"
                         (click)="applyDaysToAllSelectedTasks(10)"
+                        class="due-preset-btn"
                         [style.background]="activeDueDaysPreset() === 10 ? '#047857' : '#ffffff'"
                         [style.color]="activeDueDaysPreset() === 10 ? '#ffffff' : '#047857'"
-                        [style.borderColor]="activeDueDaysPreset() === 10 ? '#047857' : '#10b981'"
-                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
-                        pTooltip="Apply +10 days to all selected tasks" tooltipPosition="top">
-                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 10" style="font-size: 0.65rem;"></i>
-                  +10 Days
+                        pTooltip="Set +10 days for all tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 10" style="font-size: 0.6rem;"></i>
+                  +10D
                 </button>
 
                 <button type="button"
                         (click)="applyDaysToAllSelectedTasks(20)"
+                        class="due-preset-btn"
                         [style.background]="activeDueDaysPreset() === 20 ? '#047857' : '#ffffff'"
                         [style.color]="activeDueDaysPreset() === 20 ? '#ffffff' : '#047857'"
-                        [style.borderColor]="activeDueDaysPreset() === 20 ? '#047857' : '#10b981'"
-                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
-                        pTooltip="Apply +20 days to all selected tasks" tooltipPosition="top">
-                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 20" style="font-size: 0.65rem;"></i>
-                  +20 Days
+                        pTooltip="Set +20 days for all tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 20" style="font-size: 0.6rem;"></i>
+                  +20D
                 </button>
 
                 <button type="button"
                         (click)="applyDaysToAllSelectedTasks(30)"
+                        class="due-preset-btn"
                         [style.background]="activeDueDaysPreset() === 30 ? '#047857' : '#ffffff'"
                         [style.color]="activeDueDaysPreset() === 30 ? '#ffffff' : '#047857'"
-                        [style.borderColor]="activeDueDaysPreset() === 30 ? '#047857' : '#10b981'"
-                        style="border: 1.5px solid; border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease-in-out; display: inline-flex; align-items: center; gap: 0.25rem; box-shadow: 0 1px 2px rgba(0,0,0,0.08);"
-                        pTooltip="Apply +30 days to all selected tasks" tooltipPosition="top">
-                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 30" style="font-size: 0.65rem;"></i>
-                  +30 Days
+                        pTooltip="Set +30 days for all tasks" tooltipPosition="top">
+                  <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 30" style="font-size: 0.6rem;"></i>
+                  +30D
                 </button>
-              </div>
 
-              <div class="flex align-items-center gap-2">
-                <button pButton label="Clear All" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
-                        [disabled]="targetTasks.length === 0"
-                        styleClass="h-2rem text-xs font-semibold px-2.5"
+                <button pButton label="Clear" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
+                        styleClass="h-1.75rem text-xs font-semibold px-2 ml-1"
                         (click)="removeAllSelectedTasks()"
                         pTooltip="Remove all selected tasks" tooltipPosition="top"></button>
               </div>
             </div>
 
             <!-- Search Sub-Bar for Selected Tasks -->
-            <div class="flex align-items-center gap-2 px-2 py-1.5 bg-emerald-50 border-left-1 border-right-1 border-emerald-200">
+            <div class="flex align-items-center gap-2 px-2.5 py-1.5 bg-emerald-50 border-bottom-1 border-emerald-200">
               <p-iconfield iconPosition="left" class="w-full">
                 <p-inputicon styleClass="pi pi-search text-xs" />
                 <input pInputText type="text" [ngModel]="selectedSearchText()" (ngModelChange)="selectedSearchText.set($event)" 
@@ -716,7 +716,7 @@
             </div>
 
             <!-- Selected Tasks Table -->
-            <div class="border-1 border-slate-200 border-top-none border-round-bottom overflow-hidden bg-white" style="height: 22.5rem; display: flex; flex-direction: column;">
+            <div style="height: 23rem; display: flex; flex-direction: column;">
               <p-table [value]="filteredSelectedTasks()" 
                        [paginator]="true" 
                        [rows]="7" 
@@ -727,54 +727,67 @@
                        scrollHeight="flex">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 48px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Remove</th>
-                    <th style="width: 38px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">#</th>
-                    <th style="min-width: 180px; white-space: nowrap; padding: 0.45rem 0.55rem;">Description</th>
-                    <th *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; white-space: nowrap; padding: 0.45rem 0.55rem;">Header</th>
-                    <th style="width: 80px; text-align: center; white-space: nowrap; padding: 0.45rem 0.35rem;">Priority</th>
-                    <th style="width: 140px; white-space: nowrap; padding: 0.45rem 0.55rem;">Due Date</th>
+                    <th style="width: 42px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Remove</th>
+                    <th style="width: 34px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">#</th>
+                    <th style="white-space: nowrap; padding: 0.4rem 0.5rem;">Description</th>
+                    <th style="width: 72px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Priority</th>
+                    <th *ngIf="isBranchUser()" style="width: 135px; white-space: nowrap; padding: 0.4rem 0.35rem;">Assignee / Sub-Dept</th>
+                    <th style="width: 120px; white-space: nowrap; padding: 0.4rem 0.35rem;">Due Date</th>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-task let-i="rowIndex">
                   <tr>
-                    <td style="text-align: center; width: 48px; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 42px; padding: 0.35rem 0.25rem;">
                       <button pButton icon="pi pi-times" size="small" [rounded]="true" severity="danger" [text]="true"
                               styleClass="w-1.75rem h-1.75rem"
                               pTooltip="Remove from Set" tooltipPosition="top"
                               (click)="removeSingleTask(task)"></button>
                     </td>
-                    <td style="text-align: center; width: 38px; font-weight: 600; color: #64748b; font-size: 0.75rem; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 34px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.25rem;">
                       {{ i + 1 }}
                     </td>
-                    <td style="font-size: 0.78rem; color: #1e293b; line-height: 1.4; padding: 0.35rem 0.55rem;">
-                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" [title]="task.description">
+                    <td style="font-size: 0.775rem; color: #1e293b; line-height: 1.35; padding: 0.35rem 0.5rem;">
+                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;" [title]="task.description">
                         {{ task.description }}
                       </div>
-                      <small *ngIf="task.authority_name" style="color: #64748b; font-size: 0.68rem; display: block; margin-top: 0.1rem;">
-                        <i class="pi pi-shield" style="font-size: 0.62rem;"></i> {{ task.authority_name }}
-                      </small>
+                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                        <span *ngIf="task.header_name" class="chip-subtle" style="background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;">
+                          <i class="pi pi-tag" style="font-size: 0.58rem; color: #64748b;"></i> {{ task.header_name }}
+                        </span>
+                        <span *ngIf="task.authority_name" class="chip-subtle" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                          <i class="pi pi-shield" style="font-size: 0.58rem; color: #3b82f6;"></i> {{ task.authority_name }}
+                        </span>
+                      </div>
                     </td>
-                    <td *ngIf="newTaskSetType() === 'INTERNAL'" style="width: 110px; padding: 0.35rem 0.45rem;">
-                      <span *ngIf="task.header_name" style="background: #f1f5f9; color: #334155; padding: 0.12rem 0.35rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; display: inline-block; max-width: 105px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="task.header_name">
-                        {{ task.header_name }}
-                      </span>
-                    </td>
-                    <td style="text-align: center; width: 80px; padding: 0.3rem 0.25rem;">
+                    <td style="text-align: center; width: 72px; padding: 0.35rem 0.25rem;">
                       <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
-                    <td style="width: 140px; padding: 0.35rem 0.45rem;">
-                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-2rem text-xs" />
+                    <td *ngIf="isBranchUser()" style="width: 135px; padding: 0.35rem 0.35rem;">
+                      <p-select 
+                        [options]="branchDropdownOptions()" 
+                        [(ngModel)]="task.sub_dept_id" 
+                        optionLabel="label" 
+                        optionValue="value" 
+                        placeholder="Direct (Self)"
+                        styleClass="w-full h-1.85rem text-xs"
+                        panelStyleClass="subdept-dropdown-panel"
+                        appendTo="body"
+                        [showClear]="true">
+                      </p-select>
+                    </td>
+                    <td style="width: 120px; padding: 0.35rem 0.35rem;">
+                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-1.85rem text-xs" style="padding: 0.2rem 0.4rem;" />
                     </td>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="emptymessage">
                   <tr>
-                    <td [attr.colspan]="newTaskSetType() === 'INTERNAL' ? 6 : 5" style="text-align: center; padding: 2.5rem 1rem; color: #64748b;">
-                      <i class="pi pi-check-circle text-2xl text-emerald-300 block mb-1.5"></i>
+                    <td [attr.colspan]="4 + (isBranchUser() ? 2 : 1)" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                      <i class="pi pi-check-circle text-3xl text-emerald-300 block mb-2"></i>
                       <span class="text-xs font-semibold text-slate-700 block">No tasks selected yet</span>
-                      <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> or <strong>"Add All"</strong> from the Available Tasks on the left</small>
+                      <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> from the Available Tasks on the left</small>
                     </td>
                   </tr>
                 </ng-template>
@@ -786,8 +799,8 @@
         </div>
       </section>
 
-      <!-- Section: Assigned Branches -->
-      <section class="drawer-section">
+      <!-- Section: Assigned Branches (Admin / CO only) -->
+      <section class="drawer-section" *ngIf="!isBranchUser()">
         <div class="section-heading cursor-pointer" (click)="showBranchAssignment.set(!showBranchAssignment())">
           <i class="pi pi-sitemap text-primary"></i>
           <span class="section-kicker">Assigned Branches</span>

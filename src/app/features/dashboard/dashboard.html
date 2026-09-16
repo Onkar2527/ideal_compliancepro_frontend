@@ -15,12 +15,25 @@
       <!-- Welcome Header -->
       <div class="dashboard-hero">
         <div class="hero-left">
-          <div class="hero-tag">System Administration</div>
-          <h1>System Overview Dashboard</h1>
-          <p>Real-time metrics, checklist configurations, and user directories.</p>
+          <div class="hero-tag">
+            <i class="pi pi-cog"></i> System Administration & Master Control
+          </div>
+          <h1>Welcome, {{ userDisplayName }}</h1>
+          <p>Enterprise platform configuration, master directories, regulatory circular feeds, and organizational structure.</p>
         </div>
-        <div class="hero-right">
-          <span class="role-badge"><i class="pi pi-shield"></i> {{ role }}</span>
+        <div class="hero-right flex flex-wrap gap-2">
+          <a routerLink="/admin/users" class="hero-action-btn primary-btn">
+            <i class="pi pi-users"></i> Users Directory
+          </a>
+          <a routerLink="/admin/branches" class="hero-action-btn outline-btn">
+            <i class="pi pi-sitemap"></i> Branch Master
+          </a>
+          <a routerLink="/admin/authorities" class="hero-action-btn outline-btn">
+            <i class="pi pi-shield"></i> Authorities
+          </a>
+          <a routerLink="/circulars" class="hero-action-btn outline-btn">
+            <i class="pi pi-file-pdf"></i> Ingest Circular
+          </a>
         </div>
       </div>
 
@@ -30,26 +43,23 @@
           <div class="card-glow"></div>
           <div class="card-icon"><i class="pi pi-file-pdf"></i></div>
           <div class="card-details">
-            <span class="card-title">Circulars Ingested</span>
-            <span class="card-value">{{ stats?.circulars || 0 }}</span>
+            <span class="card-title">Circulars Master</span>
+            <div class="flex align-items-baseline gap-2">
+              <span class="card-value">{{ stats?.circulars || 0 }}</span>
+              <span class="text-xs text-blue-600 font-semibold">Active Ingestions</span>
+            </div>
           </div>
         </div>
 
-        <div class="metric-card theme-amber cursor-pointer" routerLink="/tasks">
+        <div class="metric-card theme-purple cursor-pointer" routerLink="/tasks">
           <div class="card-glow"></div>
           <div class="card-icon"><i class="pi pi-check-square"></i></div>
           <div class="card-details">
             <span class="card-title">Compliance Tasks</span>
-            <span class="card-value">{{ stats?.tasks || 0 }}</span>
-          </div>
-        </div>
-
-        <div class="metric-card theme-purple cursor-pointer" routerLink="/task-sets">
-          <div class="card-glow"></div>
-          <div class="card-icon"><i class="pi pi-server"></i></div>
-          <div class="card-details">
-            <span class="card-title">Task Sets</span>
-            <span class="card-value">{{ stats?.taskSets || 0 }}</span>
+            <div class="flex align-items-baseline gap-2">
+              <span class="card-value">{{ stats?.tasks || 0 }}</span>
+              <span class="text-xs text-purple-600 font-semibold">{{ stats?.taskSets || 0 }} Task Sets</span>
+            </div>
           </div>
         </div>
 
@@ -58,72 +68,97 @@
           <div class="card-icon"><i class="pi pi-sitemap"></i></div>
           <div class="card-details">
             <span class="card-title">Registered Units</span>
-            <span class="card-value">{{ stats?.branches || 0 }}</span>
+            <div class="flex align-items-baseline gap-2">
+              <span class="card-value">{{ stats?.branches || 0 }}</span>
+              <span class="text-xs text-emerald-600 font-semibold">Branches & HO</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card theme-amber cursor-pointer" routerLink="/assignments">
+          <div class="card-glow"></div>
+          <div class="card-icon"><i class="pi pi-list-check"></i></div>
+          <div class="card-details">
+            <span class="card-title">Total Assignments</span>
+            <div class="flex align-items-baseline gap-2">
+              <span class="card-value">{{ stats?.assignments?.total || 0 }}</span>
+              <span class="badge-rate bg-green-100 text-green-800">{{ stats?.assignments?.completed || 0 }} Done</span>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Detail Grid -->
       <div class="dashboard-grid-2col">
-        <!-- Master Configuration -->
+        <!-- Master Configuration Hub -->
         <div class="dashboard-panel">
           <div class="panel-header">
-            <h3>Master Configuration Directory</h3>
-            <span class="panel-subtitle">Manage branches, departments, authorities and user mapping groups</span>
+            <div>
+              <h3>Master Configuration Directory</h3>
+              <span class="panel-subtitle">Manage branches, departments, authorities, users, and taxonomy</span>
+            </div>
           </div>
           <div class="panel-body">
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div class="admin-dir-grid">
               <!-- User Accounts -->
-              <div class="progress-item cursor-pointer" routerLink="/admin/users" 
-                   style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-card); display: flex; align-items: center; justify-content: space-between; transition: all 0.2s;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <i class="pi pi-users text-blue" style="font-size: 1.25rem;"></i>
-                  <div style="display: flex; flex-direction: column;">
-                    <span class="font-semibold text-gray-900" style="font-size: 0.9rem;">User Accounts</span>
-                    <span class="text-xs text-gray-500">Manage platform users, roles and credentials</span>
-                  </div>
+              <a class="admin-dir-card" routerLink="/admin/users">
+                <div class="dir-icon icon-blue"><i class="pi pi-users"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">User Accounts & Roles</span>
+                  <span class="dir-desc">Manage system users, login credentials, and roles</span>
                 </div>
-                <i class="pi pi-chevron-right text-gray-400"></i>
-              </div>
-
-              <!-- Compliance Authorities -->
-              <div class="progress-item cursor-pointer" routerLink="/admin/authorities" 
-                   style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-card); display: flex; align-items: center; justify-content: space-between; transition: all 0.2s;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <i class="pi pi-shield text-emerald" style="font-size: 1.25rem;"></i>
-                  <div style="display: flex; flex-direction: column;">
-                    <span class="font-semibold text-gray-900" style="font-size: 0.9rem;">Compliance Authorities</span>
-                    <span class="text-xs text-gray-500">Manage regulatory bodies and penalties</span>
-                  </div>
-                </div>
-                <i class="pi pi-chevron-right text-gray-400"></i>
-              </div>
-
-              <!-- Task Tag Headers -->
-              <div class="progress-item cursor-pointer" routerLink="/admin/task-headers" 
-                   style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-card); display: flex; align-items: center; justify-content: space-between; transition: all 0.2s;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <i class="pi pi-tags text-pink" style="font-size: 1.25rem;"></i>
-                  <div style="display: flex; flex-direction: column;">
-                    <span class="font-semibold text-gray-900" style="font-size: 0.9rem;">Task Tag Headers</span>
-                    <span class="text-xs text-gray-500">Manage tagging categories and headers</span>
-                  </div>
-                </div>
-                <i class="pi pi-chevron-right text-gray-400"></i>
-              </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
 
               <!-- Branch / Dept Master -->
-              <div class="progress-item cursor-pointer" routerLink="/admin/branches" 
-                   style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 12px; background: var(--surface-card); display: flex; align-items: center; justify-content: space-between; transition: all 0.2s;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <i class="pi pi-sitemap text-amber" style="font-size: 1.25rem;"></i>
-                  <div style="display: flex; flex-direction: column;">
-                    <span class="font-semibold text-gray-900" style="font-size: 0.9rem;">Branch / Department Master</span>
-                    <span class="text-xs text-gray-500">Configure branches, departments and mapped COs</span>
-                  </div>
+              <a class="admin-dir-card" routerLink="/admin/branches">
+                <div class="dir-icon icon-amber"><i class="pi pi-sitemap"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">Branch & Department Master</span>
+                  <span class="dir-desc">Configure operational units, types, and mapped officers</span>
                 </div>
-                <i class="pi pi-chevron-right text-gray-400"></i>
-              </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
+
+              <!-- Compliance Authorities -->
+              <a class="admin-dir-card" routerLink="/admin/authorities">
+                <div class="dir-icon icon-emerald"><i class="pi pi-shield"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">Compliance Authorities</span>
+                  <span class="dir-desc">Manage regulatory bodies, circular links, and penalties</span>
+                </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
+
+              <!-- Task Tag Headers -->
+              <a class="admin-dir-card" routerLink="/admin/task-headers">
+                <div class="dir-icon icon-pink"><i class="pi pi-tags"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">Task Tag Headers</span>
+                  <span class="dir-desc">Standardize checklist categorization headers and tags</span>
+                </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
+
+              <!-- Task Sets Master -->
+              <a class="admin-dir-card" routerLink="/task-sets">
+                <div class="dir-icon icon-purple"><i class="pi pi-server"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">Task Sets & Templates</span>
+                  <span class="dir-desc">Create reusable periodic checklist packages</span>
+                </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
+
+              <!-- Assignments & Worksheets -->
+              <a class="admin-dir-card" routerLink="/assignments">
+                <div class="dir-icon icon-cyan"><i class="pi pi-file-edit"></i></div>
+                <div class="dir-info">
+                  <span class="dir-title">Worksheets & Assignments</span>
+                  <span class="dir-desc">Monitor operational checklist assignments across units</span>
+                </div>
+                <i class="pi pi-chevron-right dir-arrow"></i>
+              </a>
             </div>
           </div>
         </div>
@@ -135,40 +170,80 @@
               <h3>Recent Circular Ingestions</h3>
               <span class="panel-subtitle">Latest regulatory updates pushed to platform</span>
             </div>
-            <a routerLink="/circulars" class="text-primary hover:underline text-sm font-medium">View All →</a>
+            <a routerLink="/circulars" class="text-primary hover:underline text-sm font-semibold flex align-items-center gap-1">
+              View All <i class="pi pi-arrow-right" style="font-size: 0.75rem;"></i>
+            </a>
           </div>
-          <div class="panel-body">
+          <div class="panel-body" style="padding-top: 0.5rem;">
             <div class="progress-list" *ngIf="stats?.recentCirculars?.length > 0; else noRecentCirculars">
               <ng-container *ngFor="let c of stats.recentCirculars">
-                <a *ngIf="c.pdf_url; else noPdfAdmin" [href]="getFileUrl(c.pdf_url)" target="_blank" class="progress-item circular-item-link" style="border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; flex-direction: row; gap: 0.75rem; text-decoration: none; cursor: pointer; transition: all 0.2s;">
-                  <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background-color: #fee2e2; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i class="pi pi-file-pdf" style="color: #ef4444; font-size: 1.1rem;"></i>
+                <a *ngIf="c.pdf_url; else noPdfAdmin" [href]="getFileUrl(c.pdf_url)" target="_blank" class="circular-card">
+                  <div class="circular-icon">
+                    <i class="pi pi-file-pdf"></i>
                   </div>
-                  <div style="flex: 1; min-width: 0;">
-                    <span class="font-semibold text-gray-900 block" style="font-size: 0.9rem; line-height: 1.4; white-space: normal; color: var(--text-color);">{{ c.title }}</span>
-                    <span class="text-xs text-gray-500 block mt-1">{{ c.authority_name }} · {{ c.published_date | date:'mediumDate' }}</span>
+                  <div class="circular-info">
+                    <span class="circular-title">{{ c.title }}</span>
+                    <div class="circular-meta">
+                      <span class="authority-badge" *ngIf="c.authority_name">{{ c.authority_name }}</span>
+                      <span class="meta-date">{{ c.published_date | date:'dd MMM yyyy' }}</span>
+                    </div>
                   </div>
+                  <i class="pi pi-external-link text-gray-400" style="font-size: 0.85rem;"></i>
                 </a>
                 <ng-template #noPdfAdmin>
-                  <div class="progress-item" style="border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; flex-direction: row; gap: 0.75rem;">
-                    <div style="width: 2.25rem; height: 2.25rem; border-radius: 8px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                      <i class="pi pi-file-pdf" style="color: #9ca3af; font-size: 1.1rem;"></i>
+                  <div class="circular-card">
+                    <div class="circular-icon no-pdf">
+                      <i class="pi pi-file"></i>
                     </div>
-                    <div style="flex: 1; min-width: 0;">
-                      <span class="font-semibold text-gray-900 block" style="font-size: 0.9rem; line-height: 1.4; white-space: normal; color: var(--text-color);">{{ c.title }}</span>
-                      <span class="text-xs text-gray-500 block mt-1">{{ c.authority_name }} · {{ c.published_date | date:'mediumDate' }}</span>
+                    <div class="circular-info">
+                      <span class="circular-title">{{ c.title }}</span>
+                      <div class="circular-meta">
+                        <span class="authority-badge" *ngIf="c.authority_name">{{ c.authority_name }}</span>
+                        <span class="meta-date">{{ c.published_date | date:'dd MMM yyyy' }}</span>
+                      </div>
                     </div>
                   </div>
                 </ng-template>
               </ng-container>
             </div>
             <ng-template #noRecentCirculars>
-              <div class="text-center py-6 text-gray-400 font-medium">No recent circulars ingested yet.</div>
+              <div class="empty-feed text-center py-6">
+                <div class="empty-icon-box">
+                  <i class="pi pi-inbox"></i>
+                </div>
+                <p class="font-bold text-gray-700 mt-2 mb-1">No Recent Circulars</p>
+                <span class="text-xs text-gray-500">No new guidelines ingested recently.</span>
+              </div>
             </ng-template>
           </div>
         </div>
       </div>
+
+      <!-- System Assignment Status Breakdown Panel -->
+      <div class="dashboard-panel margin-top-2rem">
+        <div class="panel-header">
+          <div>
+            <h3>System-Wide Assignment Lifecycle Overview</h3>
+            <span class="panel-subtitle">Current status breakdown across all branch and department compliance worksheets</span>
+          </div>
+          <a routerLink="/assignments" class="text-primary hover:underline text-sm font-semibold flex align-items-center gap-1">
+            Open Assignments Manager <i class="pi pi-arrow-right" style="font-size: 0.75rem;"></i>
+          </a>
+        </div>
+        <div class="panel-body">
+          <div class="status-cards-grid">
+            <div class="status-summary-card" *ngFor="let sc of statusCards" routerLink="/assignments">
+              <div class="status-indicator-dot" [style.background-color]="sc.color"></div>
+              <div class="status-info">
+                <span class="status-name">{{ sc.label }}</span>
+                <span class="status-count" [style.color]="sc.color">{{ sc.value }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
 
     <!-- 2. CCO DASHBOARD VIEW -->
     <app-cco-dashboard
