@@ -348,6 +348,127 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     tr.preview-set-start td { border-top: 2px solid var(--primary-200, #bfdbfe) !important; }
     .badge-branch { background: #dbeafe; color: #1d4ed8; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; }
     .badge-dept { background: #fae8ff; color: #7e22ce; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; }
+
+    /* ── Circular Recommendation Panel Styles ── */
+    .circular-rec-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 0.95rem 1.15rem;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.09);
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s ease-in-out;
+    }
+    .rec-card-header {
+      border-bottom: 1px dashed #cbd5e1;
+      padding-bottom: 0.65rem;
+      margin-bottom: 0.65rem;
+    }
+    .rec-sparkle-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.725rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.28rem 0.65rem;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+    }
+    .rec-header-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #0f172a;
+      max-width: 560px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rec-task-count-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.22rem 0.6rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .rec-apply-btn {
+      font-size: 0.75rem !important;
+      padding: 0.3rem 0.75rem !important;
+      font-weight: 600 !important;
+    }
+    .rec-data-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .rec-box-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .rec-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1.3;
+    }
+    .rec-pill-dept {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .rec-pill-freq {
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+    }
+    .rec-pill-critical {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      font-size: 0.7rem;
+    }
+    .rec-pill-high {
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fde68a;
+      font-size: 0.7rem;
+    }
+    .rec-pill-medium {
+      background: #f0fdf4;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+      font-size: 0.7rem;
+    }
+    .rec-pill-subject {
+      background: #f3e8ff;
+      color: #7e22ce;
+      border: 1px solid #e9d5ff;
+      font-size: 0.7rem;
+    }
   `]
 })
 export class TaskSetsComponent implements OnInit {
@@ -1130,6 +1251,143 @@ export class TaskSetsComponent implements OnInit {
   });
 
   circularFilterOptions = signal<{ label: string; value: any }[]>([]);
+
+  /**
+   * Computed Recommendation Details for the selected Circular
+   * Evaluates Primary Department (Software Assignment), Frequency, Responsible Entities, and Priority breakdown.
+   */
+  circularRecommendation = computed(() => {
+    const type = this.newTaskSetType();
+    if (type !== 'REGULAR') return null;
+
+    const circularId = this.newTaskSetCircularId() || this.formCircularFilter();
+    if (!circularId) return null;
+
+    const circulars = this.circulars();
+    const currentCirc = circulars.find(c => c.id === circularId);
+
+    // Look in rawTasks + sessionCreatedTasks + targetTasks
+    const all = [...this.rawTasks(), ...this.sessionCreatedTasks(), ...this.targetTasks];
+    const circTasks = all.filter(t => t.circular_id === circularId);
+
+    // Unique Primary Departments (Software Assignment)
+    const primaryDepts = Array.from(
+      new Set(
+        circTasks
+          .map(t => (t.risk_category || '').trim())
+          .filter((d) => !!d && d !== '—' && d !== '-')
+      )
+    );
+
+    // Unique Frequencies
+    const frequencies = Array.from(
+      new Set(
+        circTasks
+          .map(t => (t.control_risk || '').trim())
+          .filter((f) => !!f && f !== '—' && f !== '-')
+      )
+    );
+
+    // Unique Responsible entities / stakeholders
+    const responsibleDepts = Array.from(
+      new Set(
+        circTasks
+          .map(t => (t.business_risk || '').trim())
+          .filter((b) => !!b && b !== '—' && b !== '-')
+      )
+    );
+
+    // Unique Headers / Subjects
+    const headers = Array.from(
+      new Set(
+        circTasks
+          .map(t => (t.header_name || '').trim())
+          .filter((h) => !!h && h !== '—' && h !== '-')
+      )
+    );
+
+    // Priority breakdown
+    const priorityCount = { critical: 0, high: 0, medium: 0, low: 0 };
+    circTasks.forEach(t => {
+      const p = (t.priority || '').toUpperCase();
+      if (p.includes('CRIT')) priorityCount.critical++;
+      else if (p.includes('HIGH')) priorityCount.high++;
+      else if (p.includes('MED')) priorityCount.medium++;
+      else if (p.includes('LOW')) priorityCount.low++;
+    });
+
+    let suggestedFreq = null;
+    if (frequencies.length > 0) {
+      suggestedFreq = this.mapFrequencyStringToCode(frequencies[0]);
+    }
+
+    if (!circTasks.length && !currentCirc) return null;
+
+    return {
+      hasData: true,
+      circularTitle: currentCirc?.title || 'Selected Circular',
+      circularRef: currentCirc?.reference_no || '',
+      circularCategory: currentCirc?.category || '',
+      totalTasks: circTasks.length,
+      primaryDepartments: primaryDepts,
+      frequencies: frequencies,
+      responsibleDepartments: responsibleDepts,
+      headers: headers,
+      priorityCount,
+      suggestedFrequencyCode: suggestedFreq?.code || null,
+      suggestedFrequencyLabel: suggestedFreq?.label || (frequencies.length ? frequencies[0] : null)
+    };
+  });
+
+  mapFrequencyStringToCode(freqStr: string): { code: string; label: string } | null {
+    if (!freqStr) return null;
+    const s = freqStr.toLowerCase();
+    if (s.includes('annual') || s.includes('year')) return { code: '5', label: 'Yearly / Annual' };
+    if (s.includes('quarter')) return { code: '3', label: 'Quarterly' };
+    if (s.includes('month')) return { code: '2', label: 'Monthly' };
+    if (s.includes('fortnight')) return { code: '1', label: 'Fortnight (15 Days)' };
+    if (s.includes('week')) return { code: '7', label: 'Weekly' };
+    if (s.includes('dai')) return { code: '0', label: 'Daily' };
+    if (s.includes('semi') || s.includes('half')) return { code: '4', label: 'Semi-Annually' };
+    if (s.includes('event') || s.includes('1 time') || s.includes('one time')) return { code: '6', label: '1 Time Use' };
+    return null;
+  }
+
+  applyRecommendedFrequency(code: string) {
+    if (!code) return;
+    this.newTaskSetFrequency.set(code);
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Frequency Applied',
+      detail: `Applied recommended frequency: ${this.frequencyMap[code] || code}`,
+      life: 2500
+    });
+  }
+
+  onCircularSelected(circularId: any) {
+    this.newTaskSetCircularId.set(circularId || null);
+    this.formCircularFilter.set(circularId || null);
+
+    if (circularId) {
+      // Auto-load approved tasks for this circular into available tasks
+      this.api.getApprovedTasks({ circular_id: circularId, limit: 1000 }).subscribe({
+        next: (res: any) => {
+          const tasks = res?.data || [];
+          const currentRaw = this.rawTasks();
+          const filteredOther = currentRaw.filter((t: any) => t.circular_id !== circularId);
+          this.rawTasks.set([...tasks, ...filteredOther]);
+          this.selectionTick.set(this.selectionTick() + 1);
+        }
+      });
+
+      // Auto-suggest name if empty
+      const found = this.circulars().find(c => c.id === circularId);
+      if (found && !this.newTaskSetName()?.trim()) {
+        const titleStr = found.title || found.reference_no || '';
+        this.newTaskSetName.set(titleStr);
+      }
+    }
+  }
 
   targetTasks: any[] = [];
   selectionTick = signal<number>(0);

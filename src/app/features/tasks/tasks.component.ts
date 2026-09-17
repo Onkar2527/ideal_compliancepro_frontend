@@ -1028,7 +1028,9 @@ export class TasksComponent implements OnInit {
     this.editingTaskId = task.id;
     this.editTaskDescription.set(task.description || '');
     this.editTaskHeaderId.set(task.header_id || null);
-    this.editTaskPriority.set(task.priority || null);
+    const rawPriority = (task.priority || '').trim();
+    const matchedPriority = this.priorityOptions.find(p => p.value.toLowerCase() === rawPriority.toLowerCase());
+    this.editTaskPriority.set(matchedPriority ? matchedPriority.value : (task.priority || null));
     this.editTaskRiskCategory.set(task.risk_category || null);
     this.editTaskBusinessRisk.set(task.business_risk || null);
     this.editTaskControlRisk.set(task.control_risk || null);

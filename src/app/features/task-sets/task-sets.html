@@ -309,9 +309,78 @@
                 [virtualScrollItemSize]="38"
                 placeholder="Select Circular"
                 (onShow)="ensureCircularsLoaded()"
-                (onChange)="formCircularFilter.set($event)">
+                (onChange)="onCircularSelected($event)">
               </app-select-field>
             </div>
+
+            <!-- Recommendation Panel for Selected Circular -->
+            @if (circularRecommendation(); as rec) {
+              <div class="field col-12 p-0">
+                <div class="circular-rec-card">
+                  <div class="rec-card-header flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="flex align-items-center gap-2">
+                      <span class="rec-sparkle-badge">
+                        <i class="pi pi-sparkles"></i> Circular Guidelines & Recommendation
+                      </span>
+                      <span class="rec-header-title">
+                        {{ rec.circularRef ? (rec.circularRef + ' — ') : '' }}{{ rec.circularTitle }}
+                      </span>
+                    </div>
+                    <div class="flex align-items-center gap-2">
+                      <span class="rec-task-count-pill">
+                        <i class="pi pi-check-square"></i> {{ rec.totalTasks }} Checklist Item{{ rec.totalTasks > 1 ? 's' : '' }}
+                      </span>
+                      @if (rec.suggestedFrequencyCode && newTaskSetFrequency() !== rec.suggestedFrequencyCode) {
+                        <button 
+                          pButton 
+                          type="button" 
+                          icon="pi pi-bolt" 
+                          [label]="'Apply Frequency (' + rec.suggestedFrequencyLabel + ')'" 
+                          class="p-button-sm p-button-success p-button-outlined rec-apply-btn"
+                          (click)="applyRecommendedFrequency(rec.suggestedFrequencyCode)">
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="rec-card-body grid m-0">
+                    <!-- Primary Department (Software Assignment) -->
+                    <div class="col-12 md:col-6 p-1">
+                      <div class="rec-data-box">
+                        <div class="rec-box-label">
+                          <i class="pi pi-building text-primary"></i> Primary Department (Software Assignment)
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
+                          @for (dept of rec.primaryDepartments; track dept) {
+                            <span class="rec-pill rec-pill-dept">{{ dept }}</span>
+                          }
+                          @if (!rec.primaryDepartments.length) {
+                            <span class="text-500 text-xs italic">Not specified in sheet</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Recommended Frequency -->
+                    <div class="col-12 md:col-6 p-1">
+                      <div class="rec-data-box">
+                        <div class="rec-box-label">
+                          <i class="pi pi-clock text-orange-500"></i> Recommended Frequency
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
+                          @for (freq of rec.frequencies; track freq) {
+                            <span class="rec-pill rec-pill-freq">{{ freq }}</span>
+                          }
+                          @if (!rec.frequencies.length) {
+                            <span class="text-500 text-xs italic">Not specified in sheet</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
           }
 
           <!-- INTERNAL: Reference Number text field instead -->
