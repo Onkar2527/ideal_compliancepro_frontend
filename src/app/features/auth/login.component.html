@@ -91,6 +91,25 @@
               {{ loading() ? 'Logging in...' : 'Login' }}
             </button>
 
+            <!-- Quick Demo Login Section -->
+            <div class="demo-section animate-item delay-4">
+              <div class="demo-divider">
+                <span>Demo Auto Login</span>
+              </div>
+              <div class="demo-buttons-grid">
+                <button
+                  *ngFor="let user of demoUsers"
+                  type="button"
+                  class="demo-user-btn"
+                  [attr.data-role]="user.label.toLowerCase()"
+                  (click)="quickLogin(user.username, user.password)"
+                  [disabled]="loading()"
+                >
+                  {{ user.label }}
+                </button>
+              </div>
+            </div>
+
             <!-- Language Selector (Segmented Control matching ideal-auditpro) -->
             <div class="login-language-selector animate-item delay-4">
               <div class="segmented-control">

@@ -398,6 +398,9 @@
   border: 1.5px solid transparent; transition: all 0.18s;
 }
 .decision-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.decision-btn i, .decision-btn .pi { display: none !important; }
+.p-button:not(.p-button-icon-only) .p-button-icon { display: none !important; }
+.p-button:not(.p-button-icon-only) .p-button-label { margin: 0 !important; }
 
 /* ── Decision Result Banners ── */
 .decision-banner-approved {

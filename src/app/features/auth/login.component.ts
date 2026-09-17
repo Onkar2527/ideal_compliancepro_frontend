@@ -58,9 +58,30 @@ export class LoginComponent {
   }
 
   demoUsers = [
-    { label: 'CO', icon: 'pi pi-shield', username: 'co', password: 'password123', color: '#4f46e5' },
-    { label: 'CCO', icon: 'pi pi-star', username: 'cco', password: 'password123', color: '#0891b2' },
-    { label: 'Dept', icon: 'pi pi-building', username: 'advances_dept', password: '123456', color: '#059669' }
+    {
+      label: 'CO',
+      title: 'Compliance Officer',
+      icon: 'pi pi-shield',
+      username: 'co',
+      password: 'Emp@2026',
+      color: '#4f46e5'
+    },
+    {
+      label: 'CCO',
+      title: 'Chief Compliance Officer',
+      icon: 'pi pi-star-fill',
+      username: 'cco',
+      password: 'Emp@2026',
+      color: '#0891b2'
+    },
+    {
+      label: 'Dept',
+      title: 'Department User',
+      icon: 'pi pi-building',
+      username: 'it_dept',
+      password: 'Emp@2026',
+      color: '#059669'
+    }
   ];
 
   @HostListener('document:keydown', ['$event'])

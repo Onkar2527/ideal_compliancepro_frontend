@@ -1186,3 +1186,29 @@ body {
   max-width: min(700px, 90vw) !important;
 }
 
+/* ==========================================================================
+   GLOBAL: Remove icons from all labeled buttons across the software
+   (Accept, Reject, Excel / Export, Assign, Submit, Save, Cancel, Add, etc.)
+   Icon-only buttons (close X, chevrons, pagination, standalone icon buttons)
+   retain their icons properly.
+   ========================================================================== */
+.p-button:not(.p-button-icon-only) > .p-button-icon,
+.p-button:not(.p-button-icon-only) > i.pi,
+.p-button:not(.p-button-icon-only) > span.pi,
+.p-button:not(.p-button-icon-only) > svg,
+button.p-button:not(.p-button-icon-only) .p-button-icon,
+.decision-btn i,
+.decision-btn .pi,
+.btn-accept i,
+.btn-reject i,
+.btn-escalate i,
+button:not(.p-button-icon-only):not(.icon-only-btn):not(.p-row-toggler):not(.p-column-filter-menu-button):not(.p-paginator-page):not(.p-paginator-next):not(.p-paginator-prev):not(.p-paginator-first):not(.p-paginator-last):not(.p-splitbutton-menubutton) > i.pi:not(:only-child),
+button:not(.p-button-icon-only):not(.icon-only-btn):not(.p-row-toggler):not(.p-column-filter-menu-button):not(.p-paginator-page):not(.p-paginator-next):not(.p-paginator-prev):not(.p-paginator-first):not(.p-paginator-last):not(.p-splitbutton-menubutton) > span.pi:not(:only-child) {
+  display: none !important;
+}
+
+.p-button:not(.p-button-icon-only) .p-button-label {
+  margin: 0 !important;
+}
+
+

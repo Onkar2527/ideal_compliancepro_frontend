@@ -841,6 +841,8 @@ export class TaskSetsComponent implements OnInit {
 
   // Mapping
   rawTasks = signal<any[]>([]);
+  sessionCreatedTasks = signal<any[]>([]);
+  internalPreviousTasksLoaded = signal<boolean>(false);
   authorities = signal<any[]>([]);
   selectedCircularFilter = signal<number | null>(null);
   formCircularFilter = signal<number | null>(null);
@@ -922,6 +924,8 @@ export class TaskSetsComponent implements OnInit {
         this.loadingPreviousTasks.set(false);
         const tasks = res?.data || [];
         this.rawTasks.set(tasks);
+        this.internalPreviousTasksLoaded.set(true);
+        this.selectionTick.set(this.selectionTick() + 1);
         this.messageService.add({
           severity: 'success',
           summary: 'Tasks Loaded',
@@ -982,22 +986,37 @@ export class TaskSetsComponent implements OnInit {
         this.savingInlineTask.set(false);
         this.showInlineTaskDrawer.set(false);
 
-        if (this.inlineTaskHeaderId() && !createdTask.header_name) {
-          const found = this.taskHeaders().find(h => h.id === this.inlineTaskHeaderId());
-          if (found) createdTask.header_name = found.name;
-        }
+        const raw = createdTask?.data || createdTask || {};
+        const headerId = this.inlineTaskHeaderId() || raw.header_id || null;
+        const headerName = raw.header_name || (headerId ? this.taskHeaders().find(h => h.id === headerId)?.name : null) || '-';
+        const authId = this.inlineTaskAuthorityId() || raw.authority_id || null;
+        const authName = raw.authority_name || (authId ? this.authorities().find(a => a.id === authId)?.name : null) || 'Bank Internal';
 
-        createdTask.due_date = null;
+        const normalizedTask: any = {
+          ...raw,
+          id: raw.id || Date.now(),
+          description: desc,
+          circular_id: circularId || null,
+          header_id: headerId,
+          header_name: headerName,
+          authority_id: authId,
+          authority_name: authName,
+          priority: this.inlineTaskPriority() || raw.priority || 'Medium',
+          due_date: null
+        };
+
+        const currentSession = this.sessionCreatedTasks();
+        this.sessionCreatedTasks.set([normalizedTask, ...currentSession]);
 
         const currentRaw = this.rawTasks();
-        this.rawTasks.set([createdTask, ...currentRaw]);
-        this.targetTasks = [createdTask, ...this.targetTasks];
+        this.rawTasks.set([normalizedTask, ...currentRaw]);
+
         this.selectionTick.set(this.selectionTick() + 1);
 
         this.messageService.add({
           severity: 'success',
-          summary: 'Task Created & Added',
-          detail: 'New task created and automatically added to this task set.',
+          summary: 'Task Created',
+          detail: 'New task created and added to Available Tasks.',
           life: 3000
         });
       },
@@ -1009,27 +1028,57 @@ export class TaskSetsComponent implements OnInit {
   }
 
   allTasks = computed(() => {
-    const tasks = this.rawTasks();
+    const raw = this.rawTasks();
+    const session = this.sessionCreatedTasks();
     const type = this.newTaskSetType();
     const circularId = this.formCircularFilter() || this.newTaskSetCircularId();
     const authorities = this.authorities();
     const authMap = new Map<number, string>(authorities.map(a => [a.id, a.name]));
 
     if (type === 'REGULAR') {
+      const combined = [...session, ...raw];
       if (!circularId) return [];
-      return tasks.filter(t => t.circular_id === circularId);
+      return combined.filter(t => t.circular_id === circularId);
     }
 
     if (type === 'INTERNAL') {
-      const internalTasks = tasks.filter(t => !t.circular_id);
+      let internalTasks: any[] = [];
+      if (this.internalPreviousTasksLoaded()) {
+        const seenIds = new Set<number>();
+        const list: any[] = [];
+        for (const t of [...session, ...raw]) {
+          if (!t.circular_id) {
+            const id = t.id;
+            if (!id || !seenIds.has(id)) {
+              if (id) seenIds.add(id);
+              list.push(t);
+            }
+          }
+        }
+        internalTasks = list;
+      } else {
+        const seenIds = new Set<number>();
+        const list: any[] = [];
+        for (const t of [...session, ...this.targetTasks]) {
+          if (!t.circular_id) {
+            const id = t.id;
+            if (!id || !seenIds.has(id)) {
+              if (id) seenIds.add(id);
+              list.push(t);
+            }
+          }
+        }
+        internalTasks = list;
+      }
+
       return internalTasks.map(t => ({
         ...t,
-        header_name: t.header_name || '-',
+        header_name: t.header_name || (t.header_id ? (this.taskHeaders().find(h => h.id === t.header_id)?.name || '-') : '-'),
         authority_name: t.authority_name || (t.authority_id ? (authMap.get(t.authority_id) || `Authority #${t.authority_id}`) : 'Bank Internal')
       }));
     }
 
-    return tasks;
+    return raw;
   });
 
   selectedFrequencyFilter = signal<string | null>(null);
@@ -1529,12 +1578,14 @@ export class TaskSetsComponent implements OnInit {
       this.formCircularFilter.set(null);
       // clear REGULAR-only date fields
       this.newTaskSetEndDate.set(null);
+      this.internalPreviousTasksLoaded.set(false);
     } else if (type === 'REGULAR') {
       this.ensureCircularsLoaded();
       this.newTaskSetAuthorityId.set(null);
       // clear INTERNAL-only fields
       this.resetInternalFields();
     }
+    this.selectionTick.set(this.selectionTick() + 1);
   }
 
   private resetInternalFields() {
@@ -1563,6 +1614,8 @@ export class TaskSetsComponent implements OnInit {
     this.newTaskSetFrequency.set('');
     this.resetInternalFields();
     this.targetTasks = [];
+    this.sessionCreatedTasks.set([]);
+    this.internalPreviousTasksLoaded.set(false);
     if (this.isBranchUser()) {
       this.selectedBranches = [];
     } else if (this.branches().length === 1) {
@@ -1598,6 +1651,8 @@ export class TaskSetsComponent implements OnInit {
   openFormDrawer(row: any) {
     this.isEditMode = true;
     this.selectedTaskSet = row;
+    this.sessionCreatedTasks.set([]);
+    this.internalPreviousTasksLoaded.set(true);
     this.newTaskSetType.set(row.type || 'REGULAR');
     if ((row.type || 'REGULAR') === 'INTERNAL') {
       this.ensureAuthoritiesLoaded();

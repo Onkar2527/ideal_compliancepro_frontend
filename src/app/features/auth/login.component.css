@@ -6,6 +6,35 @@
     position: relative;
 }
 
+.login-theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 100;
+}
+
+.login-theme-toggle button,
+.login-theme-toggle ::ng-deep .p-button {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.login-theme-toggle button:hover,
+.login-theme-toggle ::ng-deep .p-button:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    transform: scale(1.06);
+}
+
 /* Fixed Banner */
 .top-banner {
     position: fixed;
@@ -180,46 +209,89 @@
     margin-bottom: 0;
 }
 
-.user-types:empty {
-    display: none;
+/* Quick Demo Login Section */
+.demo-section {
+    margin-top: 18px;
+    margin-bottom: 2px;
 }
 
-/* Role Buttons */
-.user-types {
+.demo-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.demo-divider::before,
+.demo-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.demo-divider span {
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #64748b;
+    background: transparent;
+}
+
+.demo-buttons-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-top: 14px;
 }
 
-.user-btn {
-    height: 40px;
+.demo-user-btn {
+    height: 38px;
     border-radius: 8px;
     border: 1px solid #cfd6e4;
     background: #ffffff;
-    color: #656d7b;
+    color: #475569;
     cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    font-size: 13.5px;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.user-btn:hover:not(:disabled) {
-    background: #f5f7fb;
-    border-color: #3f51b5;
-    color: #3f51b5;
+.demo-user-btn:hover:not(:disabled) {
     transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
-.user-btn.active {
-    background: #e8eaf6;
-    border-color: #3f51b5;
-    color: #3f51b5;
+.demo-user-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
-.user-btn:disabled {
-    opacity: 0.65;
+.demo-user-btn:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
+}
+
+/* Specific role styling */
+.demo-user-btn[data-role="co"]:hover:not(:disabled) {
+    background: #eef2ff;
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.demo-user-btn[data-role="cco"]:hover:not(:disabled) {
+    background: #ecfeff;
+    border-color: #0891b2;
+    color: #0891b2;
+}
+
+.demo-user-btn[data-role="dept"]:hover:not(:disabled) {
+    background: #ecfdf5;
+    border-color: #059669;
+    color: #059669;
 }
 
 /* PrimeNG */
@@ -355,12 +427,16 @@
         border-radius: 12px;
     }
 
-    .user-types {
-        grid-template-columns: 1fr;
+    .demo-buttons-grid {
+        gap: 6px;
     }
-
-    .user-btn {
-        width: 100%;
+    
+    .demo-card-desc {
+        display: none;
+    }
+    
+    .demo-user-card {
+        padding: 8px 4px;
     }
 }
 
