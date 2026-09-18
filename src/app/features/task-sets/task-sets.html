@@ -383,13 +383,28 @@
             }
           }
 
-          <!-- INTERNAL: Reference Number text field instead -->
+          <!-- INTERNAL: Main Header & Reference Number -->
           @if (newTaskSetType() === 'INTERNAL') {
+            <div class="field col-12 md:col-6">
+              <label class="font-medium text-sm text-700 mb-1 block">Main Header <span class="text-red-500">*</span></label>
+              <p-select
+                [options]="mainHeadersList()"
+                optionLabel="display_name"
+                optionValue="id"
+                placeholder="Select Main Header..."
+                [ngModel]="newTaskSetMainHeaderId()"
+                (ngModelChange)="onMainHeaderSelected($event)"
+                [filter]="true"
+                filterBy="display_name,name"
+                [showClear]="true"
+                styleClass="w-full">
+              </p-select>
+            </div>
             <div class="field col-12 md:col-6">
               <app-text-field
                 label="Reference Number"
                 [field]="newTaskSetReferenceNo"
-                placeholder="e.g. RBI/2024/001">
+                placeholder="e.g. IT-CYBER-2026">
               </app-text-field>
             </div>
           }

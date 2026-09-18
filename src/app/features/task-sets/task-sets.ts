@@ -827,13 +827,45 @@ export class TaskSetsComponent implements OnInit {
   uploadingInlineTaskFile = signal<boolean>(false);
   savingInlineTask = signal<boolean>(false);
 
-  // Quick Add Header in Task Set Modal
-  showAddHeaderModal = false;
-  newHeaderName = '';
-
   taskHeaders = signal<any[]>([]);
   auditAreas = signal<any[]>([]);
   loadingPreviousTasks = signal<boolean>(false);
+
+  showAddHeaderModal = false;
+  newHeaderName = '';
+
+  newTaskSetMainHeaderId = signal<number | null>(null);
+
+  mainHeadersList = computed(() => {
+    const allHeaders = this.taskHeaders() || [];
+    const branches = this.branches() || [];
+    const branchMap = new Map<number, string>(branches.map((b: any) => [b.id, b.name]));
+
+    const user = this.auth.currentUser();
+    const userRole = String(user?.role || '').toUpperCase();
+    const userBranchId = user?.branch_id ?? user?.branchId;
+    const isBranchUser = ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(userRole);
+
+    // Only main headers (where parent_id is null or empty)
+    let mainHeaders = allHeaders.filter((h: any) => !h.parent_id);
+
+    // If logged-in user belongs to a specific department/branch, show headers mapped to that department
+    if (isBranchUser && userBranchId) {
+      const branchMapped = mainHeaders.filter((h: any) => String(h.default_branch_id) === String(userBranchId));
+      if (branchMapped.length > 0) {
+        mainHeaders = branchMapped;
+      }
+    }
+
+    return mainHeaders.map((h: any) => {
+      const deptName = h.default_branch_id ? branchMap.get(h.default_branch_id) : null;
+      return {
+        ...h,
+        display_name: deptName ? `${h.name} — (${deptName})` : h.name,
+        department_name: deptName || 'Unassigned'
+      };
+    });
+  });
 
   priorityOptions = [
     { label: 'Critical', value: 'Critical' },
@@ -1035,22 +1067,41 @@ export class TaskSetsComponent implements OnInit {
 
   loadPreviousTasks() {
     this.loadingPreviousTasks.set(true);
+    const type = this.newTaskSetType();
     const circularId = this.newTaskSetCircularId() || this.formCircularFilter();
+    const mainHeaderId = this.newTaskSetMainHeaderId();
     const params: any = { limit: 1000 };
-    if (this.newTaskSetType() === 'REGULAR' && circularId) {
+
+    if (type === 'REGULAR' && circularId) {
       params.circular_id = circularId;
     }
+
     this.api.getApprovedTasks(params).subscribe({
       next: (res: any) => {
         this.loadingPreviousTasks.set(false);
-        const tasks = res?.data || [];
+        let tasks = res?.data || [];
+
+        if (type === 'INTERNAL' && mainHeaderId) {
+          const subHeaderIds = new Set(
+            (this.taskHeaders() || [])
+              .filter((h: any) => h.parent_id === mainHeaderId || h.id === mainHeaderId)
+              .map((h: any) => h.id)
+          );
+          const filtered = tasks.filter((t: any) => subHeaderIds.has(t.header_id) || t.header_id === mainHeaderId);
+          tasks = filtered;
+        }
+
         this.rawTasks.set(tasks);
         this.internalPreviousTasksLoaded.set(true);
         this.selectionTick.set(this.selectionTick() + 1);
+
+        const headerName = mainHeaderId ? (this.mainHeadersList().find((h: any) => h.id === mainHeaderId)?.name || 'Selected Header') : null;
         this.messageService.add({
           severity: 'success',
           summary: 'Tasks Loaded',
-          detail: `Loaded ${tasks.length} task(s) into Available Tasks.`,
+          detail: headerName
+            ? `Loaded ${tasks.length} task(s) under "${headerName}".`
+            : `Loaded ${tasks.length} task(s) into Available Tasks.`,
           life: 3000
         });
       },
@@ -1205,14 +1256,59 @@ export class TaskSetsComponent implements OnInit {
   selectedFrequencyFilter = signal<string | null>(null);
   selectedBranchFilter = signal<string | null>(null);
 
+  /**
+   * Visible Task Sets computed based on current user's role:
+   * - Branch/Department Users: ONLY see task sets created by Branch/Department users (or their own). CCO/CO/Admin sets are hidden.
+   * - CCO, CO, Admin: See ALL task sets across the organization (both Head-Office and Branch created).
+   */
+  visibleTaskSets = computed(() => {
+    let sets = this.taskSets();
+
+    const user = this.auth.currentUser();
+    const role = String(user?.role || '').toUpperCase();
+    const userId = user?.id;
+    const userBranchName = user?.branch_name || user?.branchName || (user as any)?.department_name;
+
+    const isBranchRole = ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role);
+
+    if (isBranchRole) {
+      sets = sets.filter(s => {
+        // If current user explicitly created it, always show
+        if (userId && String(s.created_by) === String(userId)) {
+          return true;
+        }
+
+        const origin = s.origin_tag || '';
+        const creatorRole = (s.created_by_role || s.creator_role || '').toUpperCase();
+
+        // Hide task sets created by CO, CCO, or ADMIN from branch master
+        if (origin === 'CO' || origin === 'CCO' || creatorRole === 'CO' || creatorRole === 'CCO' || creatorRole === 'ADMIN') {
+          return false;
+        }
+
+        // Show task sets created by Branch/Department
+        if (origin === 'Branch' || ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(creatorRole)) {
+          if (userBranchName && s.branch_names && s.branch_names !== '—') {
+            return s.branch_names.toLowerCase().includes(userBranchName.toLowerCase());
+          }
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    return sets;
+  });
+
   frequencyFilterOptions = computed(() => {
-    const list = this.taskSets();
+    const list = this.visibleTaskSets();
     const freqs = new Set(list.map((s: any) => s.frequency).filter((f: any) => !!f));
     return Array.from(freqs).sort().map(f => ({ label: f, value: f }));
   });
 
   branchFilterOptions = computed(() => {
-    const list = this.taskSets();
+    const list = this.visibleTaskSets();
     const branches = new Set<string>();
     list.forEach(s => {
       if (s.branch_names && s.branch_names !== '—') {
@@ -1223,7 +1319,7 @@ export class TaskSetsComponent implements OnInit {
   });
 
   filteredTaskSets = computed(() => {
-    let sets = this.taskSets();
+    let sets = this.visibleTaskSets();
     
     const filterId = this.selectedCircularFilter();
     if (filterId) {
@@ -1385,6 +1481,31 @@ export class TaskSetsComponent implements OnInit {
       if (found && !this.newTaskSetName()?.trim()) {
         const titleStr = found.title || found.reference_no || '';
         this.newTaskSetName.set(titleStr);
+      }
+    }
+  }
+
+  onMainHeaderSelected(headerId: any) {
+    this.newTaskSetMainHeaderId.set(headerId || null);
+    if (headerId) {
+      // Auto-suggest name and auto-assign department if mapped
+      const found = this.mainHeadersList().find((h: any) => h.id === headerId);
+      if (found) {
+        if (!this.newTaskSetName()?.trim()) {
+          this.newTaskSetName.set(found.name);
+        }
+        if (found.default_branch_id) {
+          const matchingBranch = (this.branches() || []).find((b: any) => b.id === found.default_branch_id);
+          if (matchingBranch) {
+            this.selectedBranches = [matchingBranch];
+            this.messageService.add({
+              severity: 'info',
+              summary: 'Department Auto-Assigned',
+              detail: `Auto-assigned "${matchingBranch.name}" to this Task Set.`,
+              life: 3000
+            });
+          }
+        }
       }
     }
   }
@@ -1770,6 +1891,7 @@ export class TaskSetsComponent implements OnInit {
           const createdByDisplay = rawName ? `${rawName} (${originTag})` : originTag;
           return {
             ...row,
+            origin_tag: originTag,
             type: row.type || 'REGULAR',
             circular_title: isInternal
               ? (row.authority_name ? `Authority: ${row.authority_name}` : 'Internal / Operational')
@@ -2365,7 +2487,7 @@ export class TaskSetsComponent implements OnInit {
     }
 
     const loadingKey = `${row.id}:generate`;
-    this.loadingRowIds.update(set => {
+    this.loadingRowIds.update((set: Set<string>) => {
       const newSet = new Set(set);
       newSet.add(loadingKey);
       return newSet;
@@ -2373,7 +2495,7 @@ export class TaskSetsComponent implements OnInit {
 
     this.api.generateAssignments(row.id).subscribe({
       next: (res) => {
-        this.loadingRowIds.update(set => {
+        this.loadingRowIds.update((set: Set<string>) => {
           const newSet = new Set(set);
           newSet.delete(loadingKey);
           return newSet;
@@ -2405,8 +2527,8 @@ export class TaskSetsComponent implements OnInit {
           });
         }
       },
-      error: (err) => {
-        this.loadingRowIds.update(set => {
+      error: (err: any) => {
+        this.loadingRowIds.update((set: Set<string>) => {
           const newSet = new Set(set);
           newSet.delete(loadingKey);
           return newSet;

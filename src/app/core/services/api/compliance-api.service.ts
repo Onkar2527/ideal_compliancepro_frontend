@@ -336,12 +336,12 @@ export class ComplianceApiService {
     return this.http.get<any[]>(`${this.baseUrl}/task-headers`);
   }
 
-  createTaskHeader(name: string) {
-    return this.http.post<any>(`${this.baseUrl}/task-headers`, { name });
+  createTaskHeader(name: string, parent_id?: number | null, default_branch_id?: number | null) {
+    return this.http.post<any>(`${this.baseUrl}/task-headers`, { name, parent_id: parent_id || null, default_branch_id: default_branch_id || null });
   }
 
-  updateTaskHeader(id: number, name: string) {
-    return this.http.put<any>(`${this.baseUrl}/task-headers/${id}`, { name });
+  updateTaskHeader(id: number, name: string, parent_id?: number | null, default_branch_id?: number | null) {
+    return this.http.put<any>(`${this.baseUrl}/task-headers/${id}`, { name, parent_id: parent_id || null, default_branch_id: default_branch_id || null });
   }
 
   deleteTaskHeader(id: number) {

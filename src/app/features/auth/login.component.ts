@@ -88,7 +88,7 @@ export class LoginComponent {
   handleKeyboardEvent(event: KeyboardEvent) {
     if (event.ctrlKey && event.key.toLowerCase() === 'k') {
       event.preventDefault();
-      this.quickLogin('admin', 'password123');
+      this.quickLogin('ADMIN', 'Emp@2026');
     }
   }
 

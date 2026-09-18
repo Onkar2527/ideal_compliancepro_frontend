@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
@@ -10,16 +10,21 @@ import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-task-headers',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableComponent, TextFieldComponent, DialogModule, DrawerModule, ButtonModule, ToastModule, ConfirmDialogModule],
+  imports: [CommonModule, FormsModule, TableComponent, TextFieldComponent, DialogModule, DrawerModule, ButtonModule, ToastModule, ConfirmDialogModule, SelectModule, TagModule],
   template: `
     <div class="card">
       <div class="flex align-items-center justify-content-between mb-4">
-        <h5 class="m-0 text-xl font-semibold">Task Headers Master</h5>
+        <div>
+          <h5 class="m-0 text-xl font-semibold">Task Headers Master</h5>
+          <p class="text-sm text-500 m-0 mt-1">Manage Main Domains and Sub-Headers hierarchy</p>
+        </div>
       </div>
         <app-table
           [data]="headers()"
@@ -34,7 +39,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
         [visible]="showModal()"
         (visibleChange)="showModal.set($event)"
         position="right"
-        [style]="{ width: '450px', maxWidth: '96vw' }"
+        [style]="{ width: '480px', maxWidth: '96vw' }"
         [modal]="true"
         [dismissible]="true"
         [showCloseIcon]="false"
@@ -48,8 +53,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
                 <i class="pi pi-tags"></i>
               </span>
               <div>
-                <div class="text-900 font-semibold text-xl">Task Header Details</div>
-                <div class="text-600 text-sm mt-1">Manage header category</div>
+                <div class="text-900 font-semibold text-xl">{{ editingId ? 'Edit Task Header' : 'New Task Header' }}</div>
+                <div class="text-600 text-sm mt-1">Configure Main Domain or Sub-Header</div>
               </div>
             </div>
             <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded" (click)="showModal.set(false)"></button>
@@ -66,11 +71,44 @@ import { ConfirmationService, MessageService } from 'primeng/api';
               <div class="grid formgrid p-fluid drawer-form-grid">
                 <div class="field col-12">
                   <app-text-field
-                    label="Name"
+                    label="Header Name"
                     [field]="headerName"
                     [required]="true"
+                    placeholder="e.g. IT Asset Management"
                     [error]="submitted() && !headerName() ? 'Name is required' : ''">
                   </app-text-field>
+                </div>
+                <div class="field col-12">
+                  <label class="font-medium text-sm text-700 mb-1 block">Parent Header (Main Domain)</label>
+                  <p-select
+                    [options]="mainHeaderOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select Parent Header (or None for Main Header)"
+                    [ngModel]="parentId()"
+                    (ngModelChange)="parentId.set($event)"
+                    [filter]="true"
+                    filterBy="label"
+                    [showClear]="true"
+                    styleClass="w-full">
+                  </p-select>
+                  <small class="text-500 text-xs mt-1 block">Leave empty if this is a top-level Main Header (Domain).</small>
+                </div>
+                <div class="field col-12">
+                  <label class="font-medium text-sm text-700 mb-1 block">Assigned Department / Branch</label>
+                  <p-select
+                    [options]="departmentOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select Assigned Department / Branch"
+                    [ngModel]="defaultBranchId()"
+                    (ngModelChange)="defaultBranchId.set($event)"
+                    [filter]="true"
+                    filterBy="label"
+                    [showClear]="true"
+                    styleClass="w-full">
+                  </p-select>
+                  <small class="text-500 text-xs mt-1 block">Auto-selects this department when creating task sets for this header.</small>
                 </div>
               </div>
             </section>
@@ -198,17 +236,40 @@ export class TaskHeadersComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
 
   headers = signal<any[]>([]);
+  departments = signal<any[]>([]);
   showModal = signal(false);
   saving = signal(false);
   
   headerName = signal('');
+  parentId = signal<number | null>(null);
+  defaultBranchId = signal<number | null>(null);
   submitted = signal(false);
   editingId: number | null = null;
 
+  mainHeaderOptions = computed(() => {
+    const list = this.headers() || [];
+    const mainOnly = list.filter((h: any) => !h.parent_id);
+    return [
+      { label: 'None (Top-Level Main Domain)', value: null },
+      ...mainOnly.map((h: any) => ({ label: h.name, value: h.id }))
+    ];
+  });
+
+  departmentOptions = computed(() => {
+    const list = this.departments() || [];
+    return [
+      { label: 'None (No Default Assigned)', value: null },
+      ...list.map((d: any) => ({ label: `${d.name} (${d.type || 'DEPT'})`, value: d.id }))
+    ];
+  });
+
   columns: TableColumn[] = [
-    { field: 'id', header: 'ID', width: '10%' },
-    { field: 'name', header: 'Name', width: '60%' },
-    { field: 'created_at', header: 'Created', type: 'date', pipeFormat: 'mediumDate', width: '30%' }
+    { field: 'id', header: 'ID', width: '70px' },
+    { field: 'name', header: 'Header Name', width: '30%' },
+    { field: 'header_type', header: 'Type', type: 'badge', width: '120px' },
+    { field: 'parent_name', header: 'Parent Domain', width: '22%' },
+    { field: 'default_department', header: 'Assigned Dept / Branch', width: '22%' },
+    { field: 'created_at', header: 'Created', type: 'date', pipeFormat: 'mediumDate', width: '110px' }
   ];
 
   actions: TableAction[] = [
@@ -227,25 +288,51 @@ export class TaskHeadersComponent implements OnInit {
 
   ngOnInit() {
     this.loadHeaders();
+    this.loadDepartments();
+  }
+
+  loadDepartments() {
+    this.api.getBranches().subscribe({
+      next: (data: any[]) => this.departments.set(data || []),
+      error: (err) => console.error('Failed to load branches in task headers:', err)
+    });
   }
 
   loadHeaders(isRefresh = false) {
-    this.api.getTaskHeaders().subscribe({
-      next: (data: any) => {
-        this.headers.set(data);
-        if (isRefresh) {
-          this.messageService.add({ severity: 'info', summary: 'Refreshed', detail: 'Task headers list refreshed', life: 2500 });
+    this.api.getBranches().subscribe((branches: any[]) => {
+      const branchList = branches || [];
+      this.departments.set(branchList);
+      const branchMap = new Map<number, string>(branchList.map((b: any) => [b.id, b.name]));
+
+      this.api.getTaskHeaders().subscribe({
+        next: (data: any[]) => {
+          const raw = data || [];
+          const nameMap = new Map<number, string>(raw.map((h: any) => [h.id, h.name]));
+
+          const enriched = raw.map((h: any) => ({
+            ...h,
+            header_type: h.parent_id ? 'Sub-Header' : 'Main Domain',
+            parent_name: h.parent_id ? (nameMap.get(h.parent_id) || 'Parent #' + h.parent_id) : '—',
+            default_department: h.default_branch_id ? (branchMap.get(h.default_branch_id) || 'Dept #' + h.default_branch_id) : '—'
+          }));
+
+          this.headers.set(enriched);
+          if (isRefresh) {
+            this.messageService.add({ severity: 'info', summary: 'Refreshed', detail: 'Task headers list refreshed', life: 2500 });
+          }
+        },
+        error: () => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load task headers' });
         }
-      },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load task headers' });
-      }
+      });
     });
   }
 
   openModal() {
     this.editingId = null;
     this.headerName.set('');
+    this.parentId.set(null);
+    this.defaultBranchId.set(null);
     this.submitted.set(false);
     this.showModal.set(true);
   }
@@ -253,6 +340,8 @@ export class TaskHeadersComponent implements OnInit {
   editHeader(row: any) {
     this.editingId = row.id;
     this.headerName.set(row.name);
+    this.parentId.set(row.parent_id || null);
+    this.defaultBranchId.set(row.default_branch_id || null);
     this.submitted.set(false);
     this.showModal.set(true);
   }
@@ -283,8 +372,11 @@ export class TaskHeadersComponent implements OnInit {
     }
 
     this.saving.set(true);
+    const parentIdVal = this.parentId();
+    const branchIdVal = this.defaultBranchId();
+
     if (this.editingId) {
-      this.api.updateTaskHeader(this.editingId, this.headerName()).subscribe({
+      this.api.updateTaskHeader(this.editingId, this.headerName().trim(), parentIdVal, branchIdVal).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Task Header Updated', life: 3000 });
@@ -297,7 +389,7 @@ export class TaskHeadersComponent implements OnInit {
         }
       });
     } else {
-      this.api.createTaskHeader(this.headerName()).subscribe({
+      this.api.createTaskHeader(this.headerName().trim(), parentIdVal, branchIdVal).subscribe({
         next: () => {
           this.saving.set(false);
           this.messageService.add({ severity: 'success', summary: 'Successful', detail: 'Task Header Created', life: 3000 });
