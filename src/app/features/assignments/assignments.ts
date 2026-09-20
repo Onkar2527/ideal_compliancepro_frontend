@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
+import { forkJoin, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { DateFieldComponent } from '../../shared/components/form/date-field/date-field.component';
@@ -244,6 +246,22 @@ export class AssignmentsComponent implements OnInit {
     return this.userRole === 'CCO' || this.userRole === 'CO' || this.userRole === 'ADMIN';
   }
 
+  get isSubDepartmentUser(): boolean {
+    const user: any = this.auth.currentUser();
+    if (!user) return false;
+    const role = (user.role || '').toLowerCase();
+    if (user.is_sub_department || user.branch_parent_id || user.parent_id) return true;
+    const userName = String(user.username || user.name || '').toLowerCase();
+    if (role === 'sub_department' || role.includes('sub_dept') || role.includes('subdepartment')) return true;
+    if (userName.includes('sub_') || userName.includes('subdept') || userName.includes('sub_dep')) return true;
+    const userBId = user.branch_id || user.branchId;
+    if (!userBId) return false;
+    const branches = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+    if (!branches.length) return false;
+    const userBranch = branches.find((b: any) => String(b.id) === String(userBId));
+    return !!(userBranch && userBranch.parent_id);
+  }
+
   assignmentColumns: TableColumn[] = [
     { field: 'task_set_name', header: 'Task Set', type: 'text', width: '22%' },
     { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
@@ -452,7 +470,43 @@ export class AssignmentsComponent implements OnInit {
         const subDeptNames = new Set(mySubDepts.map((b: any) => (b.name || '').trim().toLowerCase()));
 
         const view = this.activeView();
-        if (view === 'dept_tasks') {
+        const isSubDeptUser = this.isSubDepartmentUser;
+
+        if (isSubDeptUser) {
+          // Check for any task sets where this sub-department has delegated tasks but no assignment row was returned by API
+          (this.taskSets() || []).forEach((ts: any) => {
+            const matchingSubTasks = (ts.tasks || []).filter((t: any) =>
+              (t.sub_dept_id && userBranchId && String(t.sub_dept_id) === String(userBranchId)) ||
+              (t.sub_dept_name && userBranchName && t.sub_dept_name.trim().toLowerCase() === userBranchName)
+            );
+            if (matchingSubTasks.length > 0) {
+              const alreadyPresent = data.some((a: any) => Number(a.task_set_id) === Number(ts.id));
+              if (!alreadyPresent) {
+                const totalT = matchingSubTasks.length;
+                const completedT = matchingSubTasks.filter((t: any) => t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED' || t.status === 'COMPLETED' || !!t.remarks?.trim() || t.has_evidence).length;
+                data.push({
+                  id: -(ts.id * 1000 + Number(userBranchId || 1)),
+                  task_set_id: ts.id,
+                  task_set_name: ts.name,
+                  task_set_type: ts.type || 'INTERNAL',
+                  circular_id: ts.circular_id,
+                  frequency: ts.frequency,
+                  due_time: ts.due_time,
+                  due_schedule: ts.due_schedule,
+                  branch_id: userBranchId,
+                  branch_name: user?.branch_name || user?.branchName,
+                  is_overdue: false,
+                  total_tasks: totalT,
+                  completed_tasks: completedT,
+                  proposed_timeline: ts.start_date || ts.default_due_date,
+                  status: (totalT > 0 && completedT === totalT) ? 'COMPLETED' : 'In_Progress',
+                  tasks: matchingSubTasks,
+                  is_synthetic: true
+                });
+              }
+            }
+          });
+        } else if (view === 'dept_tasks') {
           const filteredAssignments = data.filter((r: any) => {
             const rBranchName = (r.branch_name || '').trim().toLowerCase();
             const isForMySubDept = (r.branch_id && subDeptIds.has(r.branch_id)) ||
@@ -471,7 +525,8 @@ export class AssignmentsComponent implements OnInit {
 
             const matchingBranches = mySubDepts.filter((sub: any) => {
               const sName = (sub.name || '').trim().toLowerCase();
-              return bNamesList.includes(sName) || (ts.branch_id && sub.id === ts.branch_id);
+              const hasSubTasks = (ts.tasks || []).some((t: any) => String(t.sub_dept_id) === String(sub.id) || String(t.branch_id) === String(sub.id) || (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() === sName));
+              return bNamesList.includes(sName) || (ts.branch_id && sub.id === ts.branch_id) || hasSubTasks;
             });
 
             if (matchingBranches.length > 0) {
@@ -481,9 +536,11 @@ export class AssignmentsComponent implements OnInit {
                   a.task_set_id === ts.id && (a.branch_id === sub.id || (a.branch_name || '').trim().toLowerCase() === (sub.name || '').trim().toLowerCase())
                 );
                 if (!alreadyAssigned) {
-                  const tasksList = (ts.tasks || []);
-                  const totalT = tasksList.length;
-                  const completedT = tasksList.filter((t: any) => t.remarks || t.status === 'COMPLETED').length;
+                  const sName = (sub.name || '').trim().toLowerCase();
+                  const subTasks = (ts.tasks || []).filter((t: any) => String(t.sub_dept_id) === String(sub.id) || String(t.branch_id) === String(sub.id) || (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() === sName));
+                  const targetTasksList = subTasks.length > 0 ? subTasks : (ts.tasks || []);
+                  const totalT = targetTasksList.length;
+                  const completedT = targetTasksList.filter((t: any) => t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED' || t.status === 'COMPLETED' || !!t.remarks?.trim() || t.has_evidence).length;
                   syntheticAssignments.push({
                     id: -(ts.id * 1000 + sub.id),
                     task_set_id: ts.id,
@@ -500,7 +557,7 @@ export class AssignmentsComponent implements OnInit {
                     completed_tasks: completedT,
                     proposed_timeline: ts.start_date || ts.default_due_date,
                     status: (totalT > 0 && completedT === totalT) ? 'COMPLETED' : 'In_Progress',
-                    tasks: ts.tasks,
+                    tasks: targetTasksList,
                     is_synthetic: true
                   });
                 }
@@ -534,8 +591,43 @@ export class AssignmentsComponent implements OnInit {
         const startIndex = (this.page - 1) * this.limit;
         const paginatedData = data.slice(startIndex, startIndex + this.limit);
 
-        this.assignments.set(this.transformAssignments(paginatedData));
-        this.loading.set(false);
+        // Fetch assignment tasks for visible rows so sub-department delegations and actual task counts are 100% accurate
+        const realAssignmentRows = paginatedData.filter((r: any) => r.id && Number(r.id) > 0 && !r.is_synthetic);
+        if (realAssignmentRows.length > 0) {
+          const taskRequests = realAssignmentRows.map((r: any) =>
+            this.api.getAssignmentTasks(Number(r.id)).pipe(
+              map(tasks => ({ id: r.id, tasks })),
+              catchError(() => of({ id: r.id, tasks: [] }))
+            )
+          );
+
+          forkJoin(taskRequests).subscribe({
+            next: (results) => {
+              const tasksByAsgId = new Map<number, any[]>();
+              results.forEach((res: any) => {
+                if (res && res.id) {
+                  tasksByAsgId.set(Number(res.id), res.tasks || []);
+                }
+              });
+
+              paginatedData.forEach((r: any) => {
+                if (r.id && tasksByAsgId.has(Number(r.id))) {
+                  r.tasks = tasksByAsgId.get(Number(r.id));
+                }
+              });
+
+              this.assignments.set(this.transformAssignments(paginatedData));
+              this.loading.set(false);
+            },
+            error: () => {
+              this.assignments.set(this.transformAssignments(paginatedData));
+              this.loading.set(false);
+            }
+          });
+        } else {
+          this.assignments.set(this.transformAssignments(paginatedData));
+          this.loading.set(false);
+        }
       },
       error: (err) => {
         console.error('Failed to load assignments:', err);
@@ -545,9 +637,99 @@ export class AssignmentsComponent implements OnInit {
   }
 
   private transformAssignments(rows: any[]): any[] {
+    const user: any = this.auth.currentUser();
+    const userBranchId = user?.branch_id ?? user?.branchId;
+    const userBranchName = (user?.branch_name || user?.branchName || '').trim().toLowerCase();
+    const isSubDeptUser = this.isSubDepartmentUser;
+    const view = this.activeView();
+    const allBranchesList = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+    const userBranchObj = (allBranchesList || []).find((b: any) => userBranchId && String(b.id) === String(userBranchId));
+    const userBranchActualName = (userBranchObj?.name || '').trim().toLowerCase();
+
     return rows.map(row => {
-      const total = parseInt(row.total_tasks, 10) || 0;
-      const completed = parseInt(row.completed_tasks, 10) || 0;
+      const ts = (this.taskSets() || []).find((s: any) => Number(s.id) === Number(row.task_set_id));
+      const tsTasks = (row.tasks && row.tasks.length > 0) ? row.tasks : (ts?.tasks || []);
+
+      let total = parseInt(row.total_tasks, 10) || (tsTasks.length || 0);
+      let completed = parseInt(row.completed_tasks, 10) || 0;
+
+      // Calculate task count based on sub-department delegation
+      if (isSubDeptUser && tsTasks.length > 0) {
+        const mySubTasks = tsTasks.filter((t: any) => {
+          // 1. Match on sub_dept_id
+          if (t.sub_dept_id && userBranchId && String(t.sub_dept_id) === String(userBranchId)) {
+            return true;
+          }
+          // 2. Match on sub_dept_name
+          if (t.sub_dept_name) {
+            const sdn = String(t.sub_dept_name).trim().toLowerCase();
+            if (userBranchName && sdn === userBranchName) return true;
+            if (userBranchActualName && sdn === userBranchActualName) return true;
+            const cleanSdn = sdn.replace(/[^a-z0-9]/g, '');
+            const cleanUbn = userBranchName.replace(/[^a-z0-9]/g, '');
+            const cleanUban = userBranchActualName.replace(/[^a-z0-9]/g, '');
+            if (cleanUbn && (cleanSdn.includes(cleanUbn) || cleanUbn.includes(cleanSdn))) return true;
+            if (cleanUban && (cleanSdn.includes(cleanUban) || cleanUban.includes(cleanSdn))) return true;
+          }
+          // 3. If direct assignment created for this sub-department and not delegated to another sub-dept
+          const taskBranchId = t.branch_id || (tsTasks.length > 0 ? tsTasks[0].branch_id : row.branch_id);
+          if (taskBranchId && userBranchId && String(taskBranchId) === String(userBranchId)) {
+            return !t.sub_dept_id || String(t.sub_dept_id) === String(userBranchId);
+          }
+          return false;
+        });
+
+        if (mySubTasks.length > 0) {
+          total = mySubTasks.length;
+          completed = mySubTasks.filter((t: any) =>
+            t.compliance_status === 'COMPLIED' ||
+            t.compliance_status === 'NOT_COMPLIED' ||
+            t.status === 'COMPLETED' ||
+            !!t.remarks?.trim() ||
+            !!t.temp_remarks?.trim() ||
+            t.has_evidence ||
+            !!t.evidence_file_name
+          ).length;
+        }
+      } else if (view === 'dept_tasks' && tsTasks.length > 0) {
+        const targetSubId = row.branch_id;
+        const targetSubName = (row.branch_name || '').trim().toLowerCase();
+        const subTasks = tsTasks.filter((t: any) =>
+          (t.sub_dept_id && targetSubId && String(t.sub_dept_id) === String(targetSubId)) ||
+          (t.branch_id && targetSubId && String(t.branch_id) === String(targetSubId)) ||
+          (t.sub_dept_name && targetSubName && t.sub_dept_name.trim().toLowerCase() === targetSubName)
+        );
+        if (subTasks.length > 0) {
+          total = subTasks.length;
+          completed = subTasks.filter((t: any) =>
+            t.compliance_status === 'COMPLIED' ||
+            t.compliance_status === 'NOT_COMPLIED' ||
+            t.status === 'COMPLETED' ||
+            !!t.remarks?.trim() ||
+            !!t.temp_remarks?.trim() ||
+            t.has_evidence ||
+            !!t.evidence_file_name
+          ).length;
+        }
+      } else if (view === 'my_assignments' && tsTasks.length > 0) {
+        const hasDelegated = tsTasks.some((t: any) => !!t.sub_dept_id);
+        if (hasDelegated) {
+          const myHeadTasks = tsTasks.filter((t: any) => !t.sub_dept_id || (userBranchId && String(t.branch_id) === String(userBranchId) && !t.sub_dept_id));
+          if (myHeadTasks.length > 0) {
+            total = myHeadTasks.length;
+            completed = myHeadTasks.filter((t: any) =>
+              t.compliance_status === 'COMPLIED' ||
+              t.compliance_status === 'NOT_COMPLIED' ||
+              t.status === 'COMPLETED' ||
+              !!t.remarks?.trim() ||
+              !!t.temp_remarks?.trim() ||
+              t.has_evidence ||
+              !!t.evidence_file_name
+            ).length;
+          }
+        }
+      }
+
       const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
       const typeStr = (row.task_set_type || row.type || row.task_set?.type || '').toUpperCase();
       const isInternal = typeStr === 'INTERNAL' || (!row.circular_id && !row.circular_name && !row.circular_no);
@@ -558,6 +740,14 @@ export class AssignmentsComponent implements OnInit {
       if (isInternal) {
         const uStatus = String(rowStatus).toUpperCase();
         if (uStatus === 'PENDING_TIMELINE' || uStatus === 'PENDING TIMELINE' || uStatus === 'PENDING') {
+          rowStatus = 'In_Progress';
+        }
+      }
+
+      if (isSubDeptUser && total > 0) {
+        if (completed === total) {
+          rowStatus = 'COMPLETED';
+        } else if (completed < total && String(rowStatus).toUpperCase() === 'COMPLETED') {
           rowStatus = 'In_Progress';
         }
       }
@@ -578,7 +768,6 @@ export class AssignmentsComponent implements OnInit {
       }
 
       // Format created_by with origin tag
-      const ts = (this.taskSets() || []).find((s: any) => Number(s.id) === Number(row.task_set_id));
       const rawRole = (row.created_by_role || row.creator_role || ts?.created_by_role || ts?.creator_role || '').toUpperCase();
       const rawName = row.created_by_username || row.created_by_name || row.creator_name || ts?.created_by_username || ts?.created_by_name || ts?.creator_name || (row.created_by ? `User #${row.created_by}` : '');
 
@@ -663,9 +852,7 @@ export class AssignmentsComponent implements OnInit {
   loadTaskSets() {
     this.api.getTaskSets().subscribe(data => {
       this.taskSets.set(data || []);
-      if (this.activeView()) {
-        this.loadAssignments();
-      }
+      this.loadAssignments();
     });
   }
 
@@ -704,7 +891,7 @@ export class AssignmentsComponent implements OnInit {
   }
 
   goToDetails(row: any) {
-    const id = row?.id ?? row;
+    const id = (row?.is_synthetic || (typeof row?.id === 'number' && row.id < 0)) ? (row.task_set_id || row.id) : (row?.id ?? row);
     if (id) {
       const queryParams: any = {};
       if (row?.branch_id) queryParams.branch_id = row.branch_id;

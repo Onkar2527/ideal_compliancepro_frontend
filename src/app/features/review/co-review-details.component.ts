@@ -295,11 +295,58 @@ export class CoReviewDetailsComponent implements OnInit {
   });
 
   isBranchCreated = computed(() => {
-    return this.isInternalTaskSet();
+    const meta = this.assignmentMeta();
+    if (!meta) return false;
+    if (meta.is_branch_created !== undefined) return !!meta.is_branch_created;
+    const role = (
+      meta.created_by_role ||
+      meta.creator_role ||
+      meta.task_set_created_by_role ||
+      meta.user_role ||
+      ''
+    ).toUpperCase().trim();
+    if (['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(role)) {
+      return false;
+    }
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'DEPARTMENT_USER', 'SUB_DEPARTMENT', 'USER', 'STAFF', 'BRANCH USER'].includes(role)) {
+      return true;
+    }
+    const name = String(
+      meta.created_by_username ||
+      meta.created_by_name ||
+      meta.creator_name ||
+      meta.created_by ||
+      ''
+    ).toLowerCase().trim();
+    if (
+      name.startsWith('co_') ||
+      name.startsWith('cco_') ||
+      name.startsWith('co ') ||
+      name.startsWith('cco ') ||
+      name === 'co' ||
+      name === 'cco' ||
+      name === 'admin' ||
+      name.includes('(co)') ||
+      name.includes('(cco)') ||
+      name.includes('compliance')
+    ) {
+      return false;
+    }
+    if (
+      name.includes('branch') ||
+      name.includes('department') ||
+      name.includes('branch_user') ||
+      name.includes('it_dept') ||
+      name.includes('it department') ||
+      name.includes('(branch)')
+    ) {
+      return true;
+    }
+    return false;
   });
 
   isReviewActive(): boolean {
-    if (this.isInternalTaskSet()) return false;
+    if (this.isBranchCreated()) return false;
     const status = this.assignmentMeta()?.assignment_status?.toUpperCase();
     return status === 'REVIEW_PENDING' || status === 'TIMELINE_REVIEW';
   }
@@ -404,18 +451,43 @@ export class CoReviewDetailsComponent implements OnInit {
               t.created_by_role || 
               t.creator_role || 
               matchedTs?.created_by_role || 
-              (isSubDept ? 'BRANCH_USER' : '')
-            ).toUpperCase();
+              matchedTs?.creator_role || 
+              ''
+            ).toUpperCase().trim();
 
-            const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(creatorRole);
+            const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(creatorRole);
 
-            const isBranch = !isCOOrAdmin && (
+            const creatorName = String(
+              t.created_by_name ||
+              t.created_by_username ||
+              t.creator_name ||
+              matchedTs?.created_by_name ||
+              matchedTs?.created_by_username ||
+              matchedTs?.created_by ||
+              ''
+            ).toLowerCase().trim();
+
+            const isCOUserByName = (
+              creatorName.startsWith('co_') ||
+              creatorName.startsWith('cco_') ||
+              creatorName.startsWith('co ') ||
+              creatorName.startsWith('cco ') ||
+              creatorName === 'co' ||
+              creatorName === 'cco' ||
+              creatorName === 'admin' ||
+              creatorName.includes('(co)') ||
+              creatorName.includes('(cco)') ||
+              creatorName.includes('compliance')
+            );
+
+            const isBranch = !isCOOrAdmin && !isCOUserByName && (
               creatorRole === 'BRANCH' ||
               creatorRole === 'BRANCH_USER' ||
               creatorRole === 'DEPARTMENT' ||
               creatorRole === 'SUB_DEPARTMENT' ||
               creatorRole === 'BRANCH USER' ||
-              isSubDept
+              creatorName.includes('branch') ||
+              creatorName.includes('dept')
             );
 
             // Preserve unsaved draft review status if user changed it locally

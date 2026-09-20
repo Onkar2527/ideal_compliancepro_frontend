@@ -180,12 +180,20 @@ export class CcoReviewComponent implements OnInit {
     if (!row) return false;
     const type = (row.task_set_type || row.type || '').toUpperCase().trim();
     if (type === 'INTERNAL') return true;
-    const role = (row.created_by_role || row.creator_role || '').toUpperCase().trim();
-    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role)) return true;
-    const name = (row.created_by_username || row.created_by_name || row.creator_name || '').toLowerCase().trim();
-    if (name.includes('branch') || name.includes('department')) return true;
     if (type === 'REGULAR') return false;
     if (row.circular_id || row.circular_name || row.circular_no || row.circular_title) return false;
+    return false;
+  }
+
+  isBranchCreated(row: any): boolean {
+    if (!row) return false;
+    if (row.is_branch_created !== undefined) return !!row.is_branch_created;
+    const role = (row.created_by_role || row.creator_role || '').toUpperCase().trim();
+    if (['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(role)) return false;
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'DEPARTMENT_USER', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role)) return true;
+    const name = String(row.created_by_username || row.created_by_name || row.creator_name || '').toLowerCase().trim();
+    if (name.startsWith('co_') || name.startsWith('cco_') || name === 'co' || name === 'cco' || name === 'admin' || name.includes('compliance')) return false;
+    if (name.includes('branch') || name.includes('department')) return true;
     return false;
   }
 
@@ -193,19 +201,19 @@ export class CcoReviewComponent implements OnInit {
     {
       label: "Review Timeline",
       icon: "pi pi-calendar-plus",
-      visible: (row: any) => !this.isInternalTaskSet(row) && row.status?.toUpperCase() === 'TIMELINE_REVIEW',
+      visible: (row: any) => !this.isBranchCreated(row) && row.status?.toUpperCase() === 'TIMELINE_REVIEW',
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "Review Compliance",
       icon: "pi pi-shield",
-      visible: (row: any) => !this.isInternalTaskSet(row) && ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => !this.isBranchCreated(row) && ['REVIEW_PENDING', 'ESCALATED_TO_CCO'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
       label: "View Compliance",
       icon: "pi pi-eye",
-      visible: (row: any) => this.isInternalTaskSet(row) || ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
+      visible: (row: any) => this.isBranchCreated(row) || ['PENDING_TIMELINE', 'IN_PROGRESS', 'PENDING_RECOMPLIANCE', 'COMPLETED', 'REJECTED', 'OVERDUE'].includes(row.status?.toUpperCase()),
       command: (row: any) => this.router.navigate(["/cco-review", row.id], { queryParams: { type: this.taskSetType() } })
     },
     {
@@ -326,15 +334,29 @@ export class CcoReviewComponent implements OnInit {
                 const bName = (a.branch_name || '').toLowerCase();
                 const tsName = (a.task_set_name || '').toLowerCase();
 
-                const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN'].includes(role);
+                const isCOOrAdmin = ['CO', 'CCO', 'ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CHIEF_COMPLIANCE_OFFICER'].includes(role);
 
-                const isBranch = !isCOOrAdmin && (
+                const isCOUserByName = (
+                  username.startsWith('co_') ||
+                  username.startsWith('cco_') ||
+                  username.startsWith('co ') ||
+                  username.startsWith('cco ') ||
+                  username === 'co' ||
+                  username === 'cco' ||
+                  username === 'admin' ||
+                  username.includes('(co)') ||
+                  username.includes('(cco)') ||
+                  username.includes('compliance')
+                );
+
+                const isBranch = !isCOOrAdmin && !isCOUserByName && (
                   role === 'BRANCH' ||
                   role === 'BRANCH_USER' ||
                   role === 'DEPARTMENT' ||
                   role === 'BRANCH USER' ||
                   role === 'SUB_DEPARTMENT' ||
-                  (a.branch_parent_id ? true : false)
+                  username.includes('branch') ||
+                  username.includes('dept')
                 );
 
                 // Format standard Date string dd/MM/yyyy

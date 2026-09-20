@@ -21,6 +21,9 @@ export interface User {
   user_type_id?: string | number | null;
   managed_branch_ids?: number[];
   managedBranchIds?: number[];
+  is_sub_department?: boolean;
+  branch_parent_id?: string | number | null;
+  parent_id?: string | number | null;
 }
 
 export interface AuthResponse {
