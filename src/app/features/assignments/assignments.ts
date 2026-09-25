@@ -263,7 +263,7 @@ export class AssignmentsComponent implements OnInit {
   }
 
   assignmentColumns: TableColumn[] = [
-    { field: 'task_set_name', header: 'Task Set', type: 'text', width: '22%' },
+    { field: 'task_set_display', header: 'Task Set', type: 'html', width: '22%', sortField: 'task_set_name' },
     { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
     { field: 'created_by_display', header: 'Created By', type: 'text', width: '140px' },
     { field: 'frequency_label', header: 'Frequency', type: 'text', width: '100px' },
@@ -309,17 +309,55 @@ export class AssignmentsComponent implements OnInit {
       command: (row) => this.goToDetails(row)
     },
     {
+      label: 'Review Compliance',
+      icon: 'pi pi-shield',
+      visible: (row) => {
+        if (this.isSubDepartmentUser) return false;
+        const s = (row.status || '').toUpperCase();
+        if (s !== 'REVIEW_PENDING' && s !== 'REVIEW PENDING') return false;
+
+        // If created by CO (Regular Circular task set): ONLY Reviewers (CO/CCO) review compliance!
+        // Branch user only views the submitted task set.
+        if (!this.isBranchCreated(row)) {
+          return this.isReviewerUser;
+        }
+
+        // If created by Branch / Internal: Branch user reviews sub-department compliance
+        return this.isBranchUser;
+      },
+      command: (row) => this.goToDetails(row)
+    },
+    {
       label: 'Timeline Details',
       icon: 'pi pi-list',
       visible: (row) => {
-        if (this.isRowInternal(row) && this.isBranchUser) {
-          return true;
-        }
+        const s = (row.status || '').toUpperCase();
+        if (s === 'REVIEW_PENDING' || s === 'REVIEW PENDING' || s === 'COMPLETED') return false;
+
         return row.status !== 'Pending_Timeline' && row.status !== 'Timeline_Review';
       },
       command: (row) => this.goToDetails(row)
     }
   ];
+
+  isBranchCreated(row: any): boolean {
+    if (!row) return false;
+    const rawRole = (row.created_by_role || row.creator_role || '').toUpperCase();
+    const rawName = (row.created_by_username || row.created_by_name || row.creator_name || '').toLowerCase();
+    const createdByDisplay = row.created_by_display || '';
+
+    // If explicitly created by CO, CCO or Admin:
+    if (rawRole === 'CO' || rawRole === 'CCO' || rawRole === 'ADMIN') return false;
+    if (rawName === 'co' || rawName === 'cco' || rawName === 'admin') return false;
+    if (createdByDisplay.includes('(CO)') || createdByDisplay.includes('(CCO)')) return false;
+
+    // If created by Branch / Department:
+    if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(rawRole)) return true;
+    if (rawName.includes('branch') || rawName.includes('department') || rawName.includes('it_dept')) return true;
+    if (createdByDisplay.includes('(Branch)')) return true;
+
+    return false;
+  }
 
   isPendingTimeline(status: string | undefined | null): boolean {
     const s = (status || '').toUpperCase();
@@ -711,44 +749,51 @@ export class AssignmentsComponent implements OnInit {
             !!t.evidence_file_name
           ).length;
         }
-      } else if (view === 'my_assignments' && tsTasks.length > 0) {
-        const hasDelegated = tsTasks.some((t: any) => !!t.sub_dept_id);
-        if (hasDelegated) {
-          const myHeadTasks = tsTasks.filter((t: any) => !t.sub_dept_id || (userBranchId && String(t.branch_id) === String(userBranchId) && !t.sub_dept_id));
-          if (myHeadTasks.length > 0) {
-            total = myHeadTasks.length;
-            completed = myHeadTasks.filter((t: any) =>
-              t.compliance_status === 'COMPLIED' ||
-              t.compliance_status === 'NOT_COMPLIED' ||
-              t.status === 'COMPLETED' ||
-              !!t.remarks?.trim() ||
-              !!t.temp_remarks?.trim() ||
-              t.has_evidence ||
-              !!t.evidence_file_name
-            ).length;
-          }
-        }
+      } else if (tsTasks.length > 0) {
+        total = tsTasks.length;
+        completed = tsTasks.filter((t: any) =>
+          t.compliance_status === 'COMPLIED' ||
+          t.compliance_status === 'NOT_COMPLIED' ||
+          t.status === 'COMPLETED' ||
+          !!t.remarks?.trim() ||
+          !!t.temp_remarks?.trim() ||
+          t.has_evidence ||
+          !!t.evidence_file_name
+        ).length;
       }
 
       const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
       const typeStr = (row.task_set_type || row.type || row.task_set?.type || '').toUpperCase();
       const isInternal = typeStr === 'INTERNAL' || (!row.circular_id && !row.circular_name && !row.circular_no);
 
+      const isHeadUser = !isSubDeptUser && this.isBranchUser;
+      const subDeptTasks = tsTasks.filter((t: any) => !!t.sub_dept_id);
+      const submittedSubDeptTasks = subDeptTasks.filter((t: any) =>
+        (t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED' || !!t.remarks?.trim() || !!t.temp_remarks?.trim() || t.has_evidence || !!t.evidence_file_name || t.status === 'COMPLETED') &&
+        t.review_status !== 'APPROVED'
+      );
+
       let rowStatus = row.status || (isInternal ? 'In_Progress' : 'Pending_Timeline');
 
-      // Internal tasks do not require timeline proposals:
+      // Internal tasks do not require timeline proposals or CO review (completed directly within department):
       if (isInternal) {
         const uStatus = String(rowStatus).toUpperCase();
-        if (uStatus === 'PENDING_TIMELINE' || uStatus === 'PENDING TIMELINE' || uStatus === 'PENDING') {
+        if (uStatus === 'PENDING_TIMELINE' || uStatus === 'PENDING TIMELINE' || uStatus === 'PENDING' || uStatus === 'REVIEW_PENDING' || uStatus === 'REVIEW PENDING') {
+          rowStatus = (row.status?.toUpperCase() === 'COMPLETED') ? 'COMPLETED' : 'REVIEW_PENDING';
+        }
+      } else if (tsTasks.length > 0 && isHeadUser) {
+        // For circular task sets: if sub-department tasks are still pending Head review/acceptance, keep status In_Progress
+        const hasUnapprovedSubTasks = tsTasks.some((t: any) => !!t.sub_dept_id && t.review_status !== 'APPROVED');
+        if (hasUnapprovedSubTasks && (String(rowStatus).toUpperCase() === 'REVIEW_PENDING' || String(rowStatus).toUpperCase() === 'REVIEW PENDING')) {
           rowStatus = 'In_Progress';
         }
       }
 
-      if (isSubDeptUser && total > 0) {
-        if (completed === total) {
-          rowStatus = 'COMPLETED';
-        } else if (completed < total && String(rowStatus).toUpperCase() === 'COMPLETED') {
-          rowStatus = 'In_Progress';
+      // Check delegated tasks status (re-compliance flags):
+      if (tsTasks.length > 0) {
+        const hasNeedsRedo = tsTasks.some((t: any) => t.review_status === 'NEEDS_REDO');
+        if (hasNeedsRedo) {
+          rowStatus = 'PENDING_RECOMPLIANCE';
         }
       }
 
@@ -778,11 +823,13 @@ export class AssignmentsComponent implements OnInit {
       const isCCO = rawRole === 'CCO' || rawName.toLowerCase().includes('cco');
 
       let originTag = 'CO';
-      if (isInternal) {
-        originTag = 'Branch';
-      } else if (isCCO) {
+      if (isCCO) {
         originTag = 'CCO';
+      } else if (rawRole === 'CO' || rawName.toLowerCase() === 'co') {
+        originTag = 'CO';
       } else if (isExplicitBranch) {
+        originTag = 'Branch';
+      } else if (isInternal) {
         originTag = 'Branch';
       } else {
         // Regular circular compliance tasks default to CO
@@ -790,9 +837,28 @@ export class AssignmentsComponent implements OnInit {
       }
 
       const createdByDisplay = rawName ? `${rawName} (${originTag})` : originTag;
+      const hasSubDeptSubmission = isHeadUser && submittedSubDeptTasks.length > 0 && rowStatus !== 'COMPLETED';
+
+      const baseName = row.task_set_name || ts?.name || 'Task Set';
+      let taskSetDisplay = `<span style="font-weight: 500; color: #1e293b;">${baseName}</span>`;
+
+      if (hasSubDeptSubmission) {
+        const count = submittedSubDeptTasks.length;
+        const badgeLabel = count === 1 ? 'Sub-Dept Submitted' : `${count} Sub-Depts Submitted`;
+        taskSetDisplay = `
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+            <span style="font-weight: 600; color: #0f172a; line-height: 1.3;">${baseName}</span>
+            <span class="subdept-pulse-badge" title="Sub-department compliance has been submitted and is awaiting your review">
+              <span class="pulse-dot"></span>
+              <span>${badgeLabel}</span>
+            </span>
+          </div>
+        `;
+      }
 
       return {
         ...row,
+        task_set_display: taskSetDisplay,
         status: rowStatus,
         task_set_type: isInternal ? 'INTERNAL' : (row.task_set_type || row.type || 'REGULAR'),
         created_by_display: createdByDisplay,

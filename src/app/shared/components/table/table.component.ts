@@ -22,7 +22,7 @@ export interface TableColumn {
   /** Header label */
   header: string;
   /** Data type for formatting */
-  type?: 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'status' | 'status_inv' | 'badge' | 'action' | 'boolean_action' | 'boolean_toggle' | 'date_input';
+  type?: 'text' | 'number' | 'date' | 'boolean' | 'currency' | 'status' | 'status_inv' | 'badge' | 'action' | 'boolean_action' | 'boolean_toggle' | 'date_input' | 'html';
   /** Action icon (for action type only) */
   actionIcon?: string;
   /** Action name (default is field name) */
@@ -644,26 +644,59 @@ export class TableComponent implements OnDestroy {
     }
 
     const val = String(value).toUpperCase();
-    const base = 'border-round px-2.5 py-1 font-semibold text-xs inline-block white-space-nowrap ';
+    const base = 'border-round px-2.5 py-1 font-semibold text-xs inline-flex align-items-center gap-1 white-space-nowrap ';
     
     if (val === 'ORIGINAL') return base + 'bg-gray-100 text-gray-600 border-1 border-gray-300';
     if (val === 'AMENDMENT') return base + 'bg-blue-100 text-blue-700';
-    if (val.includes('RECOMPLIANCE') || val === 'REJECTED') {
+    if (val.includes('RECOMPLIANCE') || val === 'REJECTED' || val === 'NEEDS_REDO') {
       return base + 'bg-purple-100 text-purple-700 font-bold';
     }
     if (val.includes('NOT_FOUND') || val.includes('ERROR') || val.includes('FAILED') || val.includes('INACTIVE') || val.includes('ESCALATED')) {
       return base + 'bg-red-100 text-red-700';
     }
     if (val === 'COMPLETED' || val === 'SUCCESS' || val === 'APPROVED' || val === 'ACTIVE') {
-      return base + 'bg-green-100 text-green-700';
+      return base + 'bg-green-100 text-green-700 font-bold';
     }
     if (val.includes('PENDING') || val === 'PROCESSING' || val === 'QUEUED' || val.includes('REVIEW')) {
-      return base + 'bg-orange-100 text-orange-700';
+      return base + 'bg-orange-100 text-orange-700 font-semibold';
     }
     if (val.includes('PROGRESS')) {
       return base + 'bg-blue-100 text-blue-700';
     }
     return base + 'bg-indigo-100 text-indigo-700';
+  }
+
+  getStatusIcon(value: any, col?: TableColumn): string {
+    if (value === null || value === undefined) return '';
+    if (col && col.field !== 'status' && col.field !== 'task_set_type' && col.field !== 'type' && col.type !== 'status') {
+      return '';
+    }
+    const val = String(value).toUpperCase();
+    if (val.includes('RECOMPLIANCE') || val === 'REJECTED' || val === 'NEEDS_REDO') {
+      return 'pi pi-refresh';
+    }
+    if (val === 'REVIEW_PENDING' || val === 'TIMELINE_REVIEW' || val.includes('REVIEW')) {
+      return 'pi pi-clock';
+    }
+    if (val === 'PENDING_TIMELINE' || val === 'PENDING') {
+      return 'pi pi-calendar-plus';
+    }
+    if (val === 'COMPLETED' || val === 'APPROVED' || val === 'SUCCESS' || val === 'ACTIVE') {
+      return 'pi pi-check-circle';
+    }
+    if (val.includes('PROGRESS')) {
+      return 'pi pi-spin pi-spinner';
+    }
+    if (val.includes('ESCALATED')) {
+      return 'pi pi-arrow-up-right';
+    }
+    if (val === 'INTERNAL') {
+      return 'pi pi-briefcase';
+    }
+    if (val === 'REGULAR') {
+      return 'pi pi-file';
+    }
+    return '';
   }
 
   /**

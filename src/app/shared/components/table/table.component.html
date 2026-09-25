@@ -393,13 +393,15 @@
                 <!-- Badge / Status Type -->
                 <ng-container *ngSwitchCase="'badge'">
                   <span [class]="getBadgeClass(rowData[col.field])">
-                    {{ formatValue(rowData[col.field], col) }}
+                    <i *ngIf="getStatusIcon(rowData[col.field], col)" [class]="getStatusIcon(rowData[col.field], col) + ' text-xs'"></i>
+                    <span>{{ formatValue(rowData[col.field], col) }}</span>
                   </span>
                 </ng-container>
                 
                 <ng-container *ngSwitchCase="'status'">
                   <span [class]="getBadgeClass(rowData[col.field])">
-                    {{ formatValue(rowData[col.field], col) }}
+                    <i *ngIf="getStatusIcon(rowData[col.field], col)" [class]="getStatusIcon(rowData[col.field], col) + ' text-xs'"></i>
+                    <span>{{ formatValue(rowData[col.field], col) }}</span>
                   </span>
                 </ng-container>
 
@@ -457,6 +459,11 @@
                       [style]="{ width: '135px' }"
                     ></p-datepicker>
                   </div>
+                </ng-container>
+
+                <!-- HTML Content Type -->
+                <ng-container *ngSwitchCase="'html'">
+                  <span [innerHTML]="rowData[col.field]"></span>
                 </ng-container>
 
                 <!-- Default Text -->

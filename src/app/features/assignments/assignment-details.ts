@@ -135,6 +135,25 @@ import { ConfirmationService } from 'primeng/api';
       </div>
     </div>
 
+    <!-- Sub-Department Submission Notification Banner for Head Department -->
+    <div *ngIf="isHeadDepartmentUser() && !isReviewer() && pendingSubDeptReviewCount() > 0 && assignmentStatus() !== 'COMPLETED'" 
+         style="margin-bottom: 1rem; padding: 0.75rem 1.25rem; background: #ecfdf5; border: 1.5px solid #a7f3d0; border-left: 4px solid #10b981; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <span class="subdept-pulse-badge" style="padding: 0.25rem 0.6rem;">
+          <span class="pulse-dot"></span>
+          <span>New Submission</span>
+        </span>
+        <div>
+          <span style="font-size: 0.85rem; font-weight: 700; color: #065f46; display: block;">
+            Sub-Department Compliance Ready for Review ({{ pendingSubDeptReviewCount() }} Task{{ pendingSubDeptReviewCount() > 1 ? 's' : '' }})
+          </span>
+          <span style="font-size: 0.75rem; color: #047857;">
+            Sub-department has submitted compliance declarations & documents. Please review each item below and click <strong>Accept</strong> or <strong>Reject</strong>.
+          </span>
+        </div>
+      </div>
+    </div>
+
     <!-- Bulk Assign All Tasks Bar (Visible to Head Department) -->
     <div *ngIf="availableSubDepts().length > 1 && isHeadDepartmentUser() && !isReviewer() && assignmentStatus() !== 'COMPLETED'" 
          style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.85rem 1.25rem; background: var(--surface-card, #ffffff); border: 1px solid var(--surface-border, #cbd5e1); border-left: 4px solid var(--primary-color, #0f2942); border-radius: 10px; margin-top: 0.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,41,66,0.04);">
@@ -476,13 +495,19 @@ import { ConfirmationService } from 'primeng/api';
                       <span class="subdept-submission-title" style="display: flex; align-items: center; gap: 0.35rem;">
                         <i class="pi pi-users" style="color: #3b82f6;"></i> {{ t.sub_dept_name || 'Sub-Department' }} Submission:
                       </span>
-                      <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
-                            [style.background]="t.compliance_status === 'COMPLIED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'"
-                            [style.color]="t.compliance_status === 'COMPLIED' ? '#10b981' : '#ef4444'"
-                            [style.border]="t.compliance_status === 'COMPLIED' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)'"
-                            style="font-size: 0.68rem; font-weight: 800;">
-                        {{ t.compliance_status || 'COMPLIED' }}
-                      </span>
+                      <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span class="subdept-pulse-badge" *ngIf="t.review_status !== 'APPROVED' && t.review_status !== 'NEEDS_REDO'" title="Submitted by sub-department, awaiting your review">
+                          <span class="pulse-dot"></span>
+                          <span>Awaiting Review</span>
+                        </span>
+                        <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
+                              [style.background]="t.compliance_status === 'COMPLIED' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'"
+                              [style.color]="t.compliance_status === 'COMPLIED' ? '#10b981' : '#ef4444'"
+                              [style.border]="t.compliance_status === 'COMPLIED' ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)'"
+                              style="font-size: 0.68rem; font-weight: 800;">
+                          {{ t.compliance_status || 'COMPLIED' }}
+                        </span>
+                      </div>
                     </div>
 
                     <div class="subdept-submission-remarks" *ngIf="t.remarks">
@@ -1754,6 +1779,15 @@ export class AssignmentDetailsComponent implements OnInit {
     return !this.isSubDepartmentUser();
   });
 
+  pendingSubDeptReviewCount = computed(() => {
+    if (!this.isHeadDepartmentUser() || this.isReviewer()) return 0;
+    return this.tasks().filter(t =>
+      t.sub_dept_id &&
+      (t.remarks?.trim() || t.temp_remarks?.trim() || t.has_evidence || !!t.evidence_file_name || t.status === 'COMPLETED') &&
+      t.review_status !== 'APPROVED'
+    ).length;
+  });
+
   visibleTasks = computed(() => {
     const all = this.tasks();
     const isSubDept = this.isSubDepartmentUser();
@@ -1932,7 +1966,18 @@ export class AssignmentDetailsComponent implements OnInit {
       if (taskBranchId && userBId && String(taskBranchId) !== String(userBId)) {
         return false;
       }
-      return assignmentStatus !== 'REVIEW_PENDING' && assignmentStatus !== 'COMPLETED';
+      // For Direct Tasks (Self-Compliance):
+      if (assignmentStatus === 'COMPLETED') {
+        return false;
+      }
+      if (assignmentStatus === 'REVIEW_PENDING') {
+        // If all sub-dept tasks are approved AND direct task is filled AND already submitted to CO
+        if (this.allTasksApprovedByHead() && (task.remarks?.trim() || task.has_evidence)) {
+          return false;
+        }
+        return true;
+      }
+      return true;
     }
 
     return assignmentStatus !== 'REVIEW_PENDING' && assignmentStatus !== 'COMPLETED';
@@ -2081,7 +2126,7 @@ export class AssignmentDetailsComponent implements OnInit {
           });
 
           const firstItem = (data && data.length > 0) ? data[0] : {};
-          const matchedTs = taskSetList.find((s: any) => 
+          const matchedTs = taskSetList.find((s: any) =>
             (matchedAsg?.task_set_id && Number(s.id) === Number(matchedAsg.task_set_id)) ||
             (firstItem.task_set_id && Number(s.id) === Number(firstItem.task_set_id)) ||
             (firstItem.task_set_name && (s.name || '').toLowerCase().trim() === (firstItem.task_set_name || '').toLowerCase().trim()) ||
@@ -2713,14 +2758,15 @@ export class AssignmentDetailsComponent implements OnInit {
         task.review_remark = remark;
         this.rejectingTaskId.set(null);
         this.headRejectionRemark.set('');
-        // Ensure assignment status is set back to IN_PROGRESS so sub-department can re-comply
-        this.api.updateAssignmentStatus(this.assignmentId!, 'IN_PROGRESS').subscribe({
+        // Update assignment status to PENDING_RECOMPLIANCE so sub-department and branch manager see it as re-compliance
+        this.api.updateAssignmentStatus(this.assignmentId!, 'PENDING_RECOMPLIANCE').subscribe({
           next: () => {
-            this.assignmentStatus.set('IN_PROGRESS');
+            this.assignmentStatus.set('PENDING_RECOMPLIANCE');
             this.notification.warn(`Task rejected & sent back to ${task.sub_dept_name || 'Sub-Department'} for re-compliance.`);
             this.loadTasks();
           },
           error: () => {
+            this.assignmentStatus.set('PENDING_RECOMPLIANCE');
             this.notification.warn(`Task rejected & sent back to ${task.sub_dept_name || 'Sub-Department'} for re-compliance.`);
             this.loadTasks();
           }
@@ -3026,28 +3072,6 @@ export class AssignmentDetailsComponent implements OnInit {
       }
     };
 
-    const checkDirectAutoSubmit = () => {
-      if (this.isDirectSubDeptAssignment() && this.assignmentId) {
-        const currentTasks = this.tasks();
-        const otherIncomplete = currentTasks.filter(t => t.assignment_task_id !== taskId && !t.remarks?.trim() && !t.has_evidence && t.status !== 'COMPLETED');
-        if (otherIncomplete.length === 0) {
-          const isInternal = this.isInternalTaskSet();
-          const targetStatus = isInternal ? 'COMPLETED' : 'REVIEW_PENDING';
-          this.api.updateAssignmentStatus(this.assignmentId, targetStatus).subscribe({
-            next: () => {
-              if (isInternal) {
-                this.notification.success('All department tasks completed! Internal assignment marked as Completed.');
-              } else {
-                this.notification.success('All department tasks completed! Submissions routed directly to CO Review Queue.');
-              }
-              this.loadTasks();
-            },
-            error: (err) => console.warn('Could not auto-submit assignment to review:', err)
-          });
-        }
-      }
-    };
-
     return new Promise((resolve) => {
       const files = this.getSelectedFiles(taskId);
 
@@ -3071,7 +3095,6 @@ export class AssignmentDetailsComponent implements OnInit {
                 if (showNotification) {
                   this.notification.success(`${files.length > 1 ? files.length + ' evidence documents' : 'Evidence document'} and compliance saved successfully!`);
                 }
-                checkDirectAutoSubmit();
                 resolve(true);
               });
             },
@@ -3096,7 +3119,6 @@ export class AssignmentDetailsComponent implements OnInit {
                 if (showNotification) {
                   this.notification.success('Task compliance saved successfully!');
                 }
-                checkDirectAutoSubmit();
                 resolve(true);
               });
             },
@@ -3208,21 +3230,20 @@ export class AssignmentDetailsComponent implements OnInit {
     }
 
     this.submitting = true;
-    const isDirect = this.isDirectSubDeptAssignment();
-    const newStatus = isDirect ? 'REVIEW_PENDING' : 'In_Progress';
+    const newStatus = 'REVIEW_PENDING';
     this.api.updateAssignmentStatus(this.assignmentId, newStatus).subscribe({
       next: () => {
         this.submitting = false;
         this.assignmentStatus.set(newStatus);
         this.subDeptSubmittedSignal.set(true);
-        this.notification.success(isDirect ? 'Compliance submitted successfully to Compliance Officer!' : 'Compliance submitted successfully to Head Department for review and acceptance!');
+        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
         this.loadTasks();
       },
       error: () => {
         this.submitting = false;
         this.assignmentStatus.set(newStatus);
         this.subDeptSubmittedSignal.set(true);
-        this.notification.success(isDirect ? 'Compliance submitted successfully to Compliance Officer!' : 'Compliance submitted successfully to Head Department for review and acceptance!');
+        this.notification.success('Compliance submitted successfully to Head Department for review and acceptance!');
         this.loadTasks();
       }
     });
