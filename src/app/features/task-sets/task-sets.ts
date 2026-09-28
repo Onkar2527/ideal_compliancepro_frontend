@@ -1072,8 +1072,23 @@ export class TaskSetsComponent implements OnInit {
     const mainHeaderId = this.newTaskSetMainHeaderId();
     const params: any = { limit: 1000 };
 
-    if (type === 'REGULAR' && circularId) {
-      params.circular_id = circularId;
+    if (type === 'REGULAR') {
+      if (circularId) {
+        params.circular_id = circularId;
+      }
+      params.is_internal = false;
+    } else if (type === 'INTERNAL') {
+      params.is_internal = true;
+      if (mainHeaderId) {
+        const subHeaderIds = (this.taskHeaders() || [])
+          .filter((h: any) => h.parent_id === mainHeaderId || h.id === mainHeaderId)
+          .map((h: any) => h.id);
+        if (subHeaderIds.length > 0) {
+          params.header_ids = subHeaderIds.join(',');
+        } else {
+          params.header_id = mainHeaderId;
+        }
+      }
     }
 
     this.api.getApprovedTasks(params).subscribe({
