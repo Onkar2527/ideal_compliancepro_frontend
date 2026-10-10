@@ -32,7 +32,7 @@
       <div class="login-card animate-item delay-1">
         <h2>Login to Your Account</h2>
 
-        <div class="company-name">Compliance Pro Access</div>
+        <div class="company-name">{{ bankName }}</div>
 
         <div class="divider"></div>
 
@@ -78,6 +78,14 @@
                 >
                 </p-password>
               </div>
+            </div>
+
+            <!-- Forgot Password Link -->
+            <div class="reset-link-container animate-item delay-3"
+              style="text-align: right; margin-bottom: 12px; margin-top: -6px;">
+              <a href="javascript:void(0)" (click)="goToForgotPassword()" class="reset-pass-link"
+                style="font-size: 0.85rem; color: #0e52a4; text-decoration: none; font-weight: 600;">Forgot/Reset
+                Password?</a>
             </div>
 
             <!-- Login Button -->

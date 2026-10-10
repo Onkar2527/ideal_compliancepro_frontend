@@ -31,6 +31,10 @@ export class BranchDashboardComponent {
     return u?.branch_name || u?.branchName || 'Department / Branch Unit';
   }
 
+  get totalTasks(): number {
+    return this.stats?.tasks || 0;
+  }
+
   get totalAssignments(): number {
     return this.stats?.assignments?.total || 0;
   }

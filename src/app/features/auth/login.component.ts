@@ -11,6 +11,7 @@ import { LayoutService } from '../../shell/layout/service/layout.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { OfflineTranslationService } from '../../core/services/offline-translation.service';
+import { APP_CONFIG } from '../../core/services/config/config.token';
 
 @Component({
   selector: 'app-login',
@@ -31,8 +32,11 @@ export class LoginComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private messageService = inject(MessageService);
+  private config = inject(APP_CONFIG);
   layoutService = inject(LayoutService);
   translationService = inject(OfflineTranslationService);
+
+  bankName = this.config.bank_name || 'Compliance Pro Access';
 
   username = '';
   password = '';
@@ -151,5 +155,9 @@ export class LoginComponent {
 
       this.router.navigate(['/home']);
     }, 700);
+  }
+
+  goToForgotPassword() {
+    this.router.navigate(['/forgot-password']);
   }
 }

@@ -19,15 +19,15 @@
 
 <!-- Quick Metrics Grid -->
 <div class="metrics-grid">
-  <!-- 1. Total Assignments -->
+  <!-- 1. Total Tasks -->
   <div class="metric-card theme-purple cursor-pointer" routerLink="/assignments">
     <div class="card-glow"></div>
-    <div class="card-icon"><i class="pi pi-briefcase"></i></div>
+    <div class="card-icon"><i class="pi pi-check-square"></i></div>
     <div class="card-details">
-      <span class="card-title">Total Worksheets</span>
+      <span class="card-title">Total Tasks</span>
       <div class="flex align-items-baseline gap-2">
-        <span class="card-value">{{ totalAssignments }}</span>
-        <span class="text-xs text-purple-600 font-semibold">Active & Assigned</span>
+        <span class="card-value">{{ totalTasks }}</span>
+        <span class="text-xs text-purple-600 font-semibold">{{ totalAssignments }} Worksheets</span>
       </div>
     </div>
   </div>

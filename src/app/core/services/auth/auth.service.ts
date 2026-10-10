@@ -74,6 +74,18 @@ export class AuthService {
     );
   }
 
+  sendResetPasswordOtp(username: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/forgot-password/send-otp`, { username });
+  }
+
+  verifyResetPasswordOtpAndReset(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/forgot-password/verify-otp-and-reset`, payload);
+  }
+
+  resetPasswordByLastPassword(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/forgot-password/reset-by-last-password`, payload);
+  }
+
   logout(): void {
     const user = this.currentUser();
     if (user && user.id) {
