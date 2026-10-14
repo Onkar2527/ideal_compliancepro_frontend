@@ -35,6 +35,29 @@ export class BranchDashboardComponent {
     return this.stats?.tasks || 0;
   }
 
+  get pendingTasks(): number {
+    if (this.stats?.pendingTasks !== undefined && this.stats?.pendingTasks !== null) {
+      return this.stats.pendingTasks;
+    }
+    const derived = this.totalTasks - this.completedTasks;
+    return derived > 0 ? derived : 0;
+  }
+
+  get completedTasks(): number {
+    if (this.stats?.completedTasks !== undefined && this.stats?.completedTasks !== null) {
+      return this.stats.completedTasks;
+    }
+    if (this.stats?.approvedTasks !== undefined && this.stats?.approvedTasks !== null) {
+      return this.stats.approvedTasks;
+    }
+    const derived = this.totalTasks - this.pendingTasks;
+    return derived > 0 ? derived : 0;
+  }
+
+  get overdueTasks(): number {
+    return this.stats?.overdueTasks || this.stats?.ccoMetrics?.totalOverdue || 0;
+  }
+
   get totalAssignments(): number {
     return this.stats?.assignments?.total || 0;
   }
@@ -60,9 +83,14 @@ export class BranchDashboardComponent {
   }
 
   get complianceRate(): number {
-    const total = this.totalAssignments;
-    const completed = this.completedAssignments;
-    if (!total || total === 0) return 0;
+    const total = this.totalTasks;
+    const completed = this.completedTasks;
+    if (!total || total === 0) {
+      const aTotal = this.totalAssignments;
+      const aCompleted = this.completedAssignments;
+      if (!aTotal || aTotal === 0) return 0;
+      return Math.min(100, Math.round((aCompleted / aTotal) * 100));
+    }
     return Math.min(100, Math.round((completed / total) * 100));
   }
 

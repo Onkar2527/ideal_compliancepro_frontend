@@ -283,6 +283,7 @@ export class CoReviewDetailsComponent implements OnInit {
   notCompliedCount = computed(() => this.tasks().filter(t => t.compliance_status === "NOT_COMPLIED").length);
   approvedCount = computed(() => this.tasks().filter(t => t.review_status === "APPROVED").length);
   needsRedoCount = computed(() => this.tasks().filter(t => t.review_status === "NEEDS_REDO").length);
+  escalatedCount = computed(() => this.tasks().filter(t => t.review_status === "ESCALATED").length);
   unreviewedCount = computed(() => this.tasks().filter(t => !t.review_status).length);
   isInternalTaskSet = computed(() => {
     const meta = this.assignmentMeta();
@@ -391,6 +392,7 @@ export class CoReviewDetailsComponent implements OnInit {
         if (filter === 'NOT_COMPLIED') return t.compliance_status === 'NOT_COMPLIED';
         if (filter === 'APPROVED') return t.review_status === 'APPROVED';
         if (filter === 'NEEDS_REDO') return t.review_status === 'NEEDS_REDO';
+        if (filter === 'ESCALATED') return t.review_status === 'ESCALATED';
         if (filter === 'UNREVIEWED') return !t.review_status;
         return true;
       })
@@ -698,6 +700,8 @@ export class CoReviewDetailsComponent implements OnInit {
       filteredTasks = list.filter((t: any) => t.review_status === 'APPROVED');
     } else if (filter === 'NEEDS_REDO') {
       filteredTasks = list.filter((t: any) => t.review_status === 'NEEDS_REDO');
+    } else if (filter === 'ESCALATED') {
+      filteredTasks = list.filter((t: any) => t.review_status === 'ESCALATED');
     } else if (filter === 'UNREVIEWED') {
       filteredTasks = list.filter((t: any) => !t.review_status);
     }

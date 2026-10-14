@@ -380,6 +380,16 @@
         pTooltip="Click to show only Rejected tasks">
       </button>
       <button pButton type="button"
+        [label]="escalatedCount() + ' Escalated'"
+        icon="pi pi-exclamation-triangle"
+        severity="warn"
+        [outlined]="activeFilter() !== 'ESCALATED'"
+        size="small"
+        styleClass="h-2rem text-xs font-semibold px-2.5"
+        (click)="toggleFilter('ESCALATED')"
+        pTooltip="Click to show only Escalated tasks">
+      </button>
+      <button pButton type="button"
         [label]="unreviewedCount() + ' Not Reviewed'"
         icon="pi pi-clock"
         severity="secondary"
@@ -414,6 +424,14 @@
                 [disabled]="submitting || unreviewedCount() > 0"
                 [pTooltip]="unreviewedCount() > 0 ? 'Review all tasks (Accept or Reject) before submitting' : ''"
                 (click)="submitReview('REJECT')" />
+
+      <p-button label="Escalate to CCO"
+                icon="pi pi-exclamation-triangle" severity="warn"
+                styleClass="decision-btn btn-escalate"
+                [loading]="submitting && lastAction === 'ESCALATE'"
+                [disabled]="submitting"
+                pTooltip="Escalate this assignment to Chief Compliance Officer (CCO) for final review"
+                (click)="submitReview('ESCALATE')" />
 
       <p-button label="Accept & Complete"
                 icon="pi pi-check-circle" severity="success"

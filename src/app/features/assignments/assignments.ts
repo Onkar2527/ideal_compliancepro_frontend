@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -61,6 +61,17 @@ import { SelectModule } from 'primeng/select';
                 optionLabel="label"
                 optionValue="value"
                 class="w-full sm:w-12rem"
+                styleClass="h-2.5rem flex align-items-center"
+              ></p-select>
+              <p-select
+                [options]="branchFilterOptions()"
+                [ngModel]="selectedBranchFilter()"
+                (ngModelChange)="onBranchFilterChange($event)"
+                placeholder="Filter by Dept/Branch"
+                [showClear]="true"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full sm:w-13rem"
                 styleClass="h-2.5rem flex align-items-center"
               ></p-select>
               <p-select
@@ -214,6 +225,50 @@ export class AssignmentsComponent implements OnInit {
   taskSets = signal<any[]>([]);
   branches = signal<any[]>([]);
   loading = signal<boolean>(true);
+
+  // Branch filter
+  selectedBranchFilter = signal<string | null>(null);
+
+  branchFilterOptions = computed(() => {
+    const all = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+    const current = this.branches().length > 0 ? this.branches() : all;
+    
+    let list: { label: string; value: string }[] = [];
+    if (this.isBranchUser) {
+      const user = this.auth.currentUser();
+      const userBranchId = user?.branch_id ?? user?.branchId;
+      const userBranchName = user?.branch_name || user?.branchName;
+      
+      const mySubDepts = (all || []).filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
+      
+      if (userBranchName) {
+        list.push({ label: userBranchName, value: userBranchName });
+      } else if (userBranchId) {
+        const found = (all || []).find((b: any) => String(b.id) === String(userBranchId));
+        if (found) list.push({ label: found.name, value: found.name });
+      }
+      
+      mySubDepts.forEach((sub: any) => {
+        if (!list.some(o => o.value.toLowerCase() === sub.name.toLowerCase())) {
+          list.push({ label: sub.name, value: sub.name });
+        }
+      });
+    } else {
+      list = (current || []).map((b: any) => ({ label: b.name, value: b.name }));
+    }
+
+    if (list.length === 0) {
+      const fromAsg = new Set(this.assignments().map((a: any) => a.branch_name).filter(Boolean));
+      list = Array.from(fromAsg).sort().map(b => ({ label: b, value: b }));
+    }
+
+    const selected = this.selectedBranchFilter();
+    if (selected && !list.some(o => o.value.toLowerCase() === selected.toLowerCase())) {
+      list.push({ label: selected, value: selected });
+    }
+
+    return list;
+  });
 
   // Propose Timeline Modal
   showProposeModal = signal<boolean>(false);
@@ -399,6 +454,50 @@ export class AssignmentsComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       const view = params['view'];
       const type = params['type'];
+      const status = params['status'];
+      const freq = params['frequency'];
+
+      // Handle status filter from URL
+      if (status) {
+        const s = String(status).trim().toLowerCase();
+        if (s === 'pending' || s === 'in_progress' || s === 'in progress') {
+          this.selectedStatusFilter.set('In_Progress');
+        } else if (s === 'completed' || s === 'complete') {
+          this.selectedStatusFilter.set('COMPLETED');
+        } else if (s === 'review_pending' || s === 'review pending') {
+          this.selectedStatusFilter.set('REVIEW_PENDING');
+        } else if (s === 'pending_timeline' || s === 'pending timeline') {
+          this.selectedStatusFilter.set('Pending_Timeline');
+        } else if (s === 'timeline_review' || s === 'timeline review') {
+          this.selectedStatusFilter.set('Timeline_Review');
+        } else if (s === 'overdue') {
+          this.selectedStatusFilter.set('OVERDUE');
+        } else if (s === 'rejected' || s === 'pending_recompliance' || s === 'pending recompliance') {
+          this.selectedStatusFilter.set('PENDING_RECOMPLIANCE');
+        } else {
+          const matched = this.statusFilterOptions.find(o => o.value.toLowerCase() === s);
+          this.selectedStatusFilter.set(matched ? matched.value : status);
+        }
+      } else {
+        this.selectedStatusFilter.set(null);
+      }
+
+      // Handle frequency filter from URL
+      if (freq) {
+        this.selectedFrequencyFilter.set(freq);
+      } else {
+        this.selectedFrequencyFilter.set(null);
+      }
+
+      // Handle branch filter from URL
+      const branchParam = params['branch'] || params['branch_id'] || params['dept'];
+      if (branchParam) {
+        const allList = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+        const found = (allList || []).find((b: any) => String(b.id) === String(branchParam) || (b.name && b.name.toLowerCase() === String(branchParam).toLowerCase()));
+        this.selectedBranchFilter.set(found ? found.name : branchParam);
+      } else {
+        this.selectedBranchFilter.set(null);
+      }
 
       if (view === 'dept_tasks') {
         this.activeView.set('dept_tasks');
@@ -614,12 +713,42 @@ export class AssignmentsComponent implements OnInit {
           });
         }
 
+        // Filter by branch if selected in dropdown or query params
+        const activeBranch = this.selectedBranchFilter();
+        if (activeBranch) {
+          const bMatch = activeBranch.trim().toLowerCase();
+          data = data.filter((r: any) => {
+            const rName = (r.branch_name || '').trim().toLowerCase();
+            const rId = String(r.branch_id || '');
+            return rName === bMatch || rId === bMatch;
+          });
+        }
+
         // Filter by type if selected in dropdown
         const activeType = this.selectedTaskSetTypeFilter();
         if (activeType === 'INTERNAL') {
           data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() === 'INTERNAL');
         } else if (activeType === 'REGULAR' || activeType === 'CIRCULAR_BASED') {
           data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() !== 'INTERNAL');
+        }
+
+        // Filter by status if selected in dropdown or query params
+        const activeStatus = this.selectedStatusFilter();
+        if (activeStatus) {
+          const sUpper = activeStatus.toUpperCase();
+          data = data.filter((r: any) => {
+            const rowStatus = String(r.status || '').toUpperCase();
+            if (sUpper === 'OVERDUE') {
+              return r.is_overdue && rowStatus !== 'COMPLETED';
+            }
+            if (sUpper === 'PENDING_RECOMPLIANCE' || sUpper === 'REJECTED') {
+              return rowStatus === 'REJECTED' || rowStatus === 'PENDING_RECOMPLIANCE';
+            }
+            if (sUpper === 'IN_PROGRESS' || sUpper === 'IN PROGRESS') {
+              return rowStatus === 'IN_PROGRESS' || rowStatus === 'IN PROGRESS';
+            }
+            return rowStatus === sUpper;
+          });
         }
 
         const totalCount = data.length;
@@ -890,15 +1019,36 @@ export class AssignmentsComponent implements OnInit {
     this.loadAssignments();
   }
 
+  onBranchFilterChange(value: string | null) {
+    this.selectedBranchFilter.set(value);
+    this.page = 1;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { branch: value || null },
+      queryParamsHandling: 'merge'
+    });
+    this.loadAssignments();
+  }
+
   onStatusFilterChange(value: string | null) {
     this.selectedStatusFilter.set(value);
     this.page = 1;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { status: value || null },
+      queryParamsHandling: 'merge'
+    });
     this.loadAssignments();
   }
 
   onFrequencyFilterChange(value: string | null) {
     this.selectedFrequencyFilter.set(value);
     this.page = 1;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { frequency: value || null },
+      queryParamsHandling: 'merge'
+    });
     this.loadAssignments();
   }
 
@@ -912,6 +1062,11 @@ export class AssignmentsComponent implements OnInit {
       this.pageTitle.set('Compliances & Task Sets');
     }
     this.page = 1;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { type: value || null },
+      queryParamsHandling: 'merge'
+    });
     this.loadAssignments();
   }
 

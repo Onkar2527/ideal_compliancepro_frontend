@@ -1274,5 +1274,317 @@ button:not(.p-button-icon-only):not(.icon-only-btn):not(.p-row-toggler):not(.p-c
   }
 }
 
+/* ==========================================================================
+   Task Sets Drawer & Modal System (Full Light & Dark Theme Support)
+   ========================================================================== */
+
+/* Light Mode Defaults for Drawer (Only when NOT dark mode) */
+:root:not([class*='app-dark']):not(.app-dark) {
+  .p-drawer {
+    .p-drawer-header {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .p-drawer-content {
+      background: #f8fafc !important;
+    }
+    .p-drawer-footer {
+      background: #ffffff !important;
+      border-top: 1px solid #e2e8f0 !important;
+    }
+  }
+}
+
+/* Global Dark Mode Overrides for Drawer, Dialogs, Sections, and Tables */
+:root[class*='app-dark'],
+.app-dark {
+  /* PrimeNG Drawer */
+  .p-drawer {
+    background: #090d1f !important;
+    color: #e2e8f0 !important;
+
+    .p-drawer-header {
+      background: linear-gradient(180deg, #111827 0%, #0f172a 100%) !important;
+      border-bottom: 1px solid #1e293b !important;
+      color: #f8fafc !important;
+
+      .text-900 {
+        color: #f8fafc !important;
+      }
+      .text-600 {
+        color: #94a3b8 !important;
+      }
+    }
+
+    .p-drawer-content {
+      background: #090d1f !important;
+      color: #e2e8f0 !important;
+    }
+
+    .p-drawer-footer {
+      background: #111827 !important;
+      border-top: 1px solid #1e293b !important;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4) !important;
+    }
+  }
+
+  /* PrimeNG Dialogs */
+  .p-dialog {
+    background: #090d1f !important;
+
+    .p-dialog-header {
+      background: linear-gradient(180deg, #111827 0%, #0f172a 100%) !important;
+      border-bottom: 1px solid #1e293b !important;
+      color: #f8fafc !important;
+    }
+    .p-dialog-content {
+      background: #090d1f !important;
+      color: #e2e8f0 !important;
+    }
+    .p-dialog-footer {
+      background: #111827 !important;
+      border-top: 1px solid #1e293b !important;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4) !important;
+    }
+  }
+
+  /* Drawer Cards & Form Sections */
+  .drawer-section {
+    background: #111827 !important;
+    border: 1px solid #1e293b !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+    color: #e2e8f0 !important;
+  }
+  .section-kicker {
+    color: #93c5fd !important;
+  }
+  .section-line {
+    background: #1e293b !important;
+  }
+  .drawer-title-icon {
+    background: rgba(37, 99, 235, 0.2) !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    color: #60a5fa !important;
+  }
+
+  /* Dual Transfer Panels */
+  .dual-panel {
+    background: #0f172a !important;
+    border: 1px solid #1e293b !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  }
+  .dual-panel-header-available {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    border-bottom: 1px solid #334155 !important;
+
+    span, i {
+      color: #f1f5f9 !important;
+    }
+  }
+  .available-count-badge {
+    background: #334155 !important;
+    color: #e2e8f0 !important;
+  }
+  .dual-panel-header-selected {
+    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+    border-bottom: 1px solid #047857 !important;
+
+    span, i {
+      color: #ecfdf5 !important;
+    }
+  }
+  .selected-count-badge {
+    background: #065f46 !important;
+    color: #a7f3d0 !important;
+  }
+  .selected-tasks-count-pill {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+  }
+  .search-sub-bar-available {
+    background: #111827 !important;
+    border-bottom: 1px solid #1e293b !important;
+  }
+  .search-sub-bar-selected {
+    background: #062a22 !important;
+    border-bottom: 1px solid #047857 !important;
+  }
+  .due-preset-btn {
+    background: #064e3b !important;
+    border-color: #059669 !important;
+    color: #a7f3d0 !important;
+
+    &:hover {
+      background: #047857 !important;
+      color: #ffffff !important;
+    }
+    &.preset-active {
+      background: #059669 !important;
+      color: #ffffff !important;
+      border-color: #10b981 !important;
+    }
+  }
+
+  /* Dual Panel Tables */
+  .dual-panel .p-datatable-thead > tr > th {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+    border-bottom: 1px solid #334155 !important;
+  }
+  .dual-panel .p-datatable-tbody > tr {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+
+    &:hover {
+      background: #1e293b !important;
+    }
+    > td {
+      border-bottom: 1px solid #1e293b !important;
+      color: #e2e8f0 !important;
+    }
+  }
+
+  /* Task Item Details inside Tables */
+  .task-desc-cell {
+    color: #e2e8f0 !important;
+  }
+  .task-tag-header {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+    border-color: #334155 !important;
+  }
+  .task-tag-authority {
+    background: rgba(37, 99, 235, 0.2) !important;
+    color: #93c5fd !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+  }
+
+  /* Circular Recommendation Card */
+  .circular-rec-card {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.75) 100%) !important;
+    border-color: #047857 !important;
+  }
+  .rec-card-header {
+    border-bottom-color: #334155 !important;
+  }
+  .rec-header-title {
+    color: #f1f5f9 !important;
+  }
+  .rec-data-box {
+    background: #111827 !important;
+    border-color: #1e293b !important;
+  }
+  .rec-box-label {
+    color: #94a3b8 !important;
+  }
+
+  /* Task Choice Card Modal */
+  .task-choice-card {
+    background: #111827 !important;
+    border-color: #1e293b !important;
+    color: #f1f5f9 !important;
+
+    &:hover {
+      background: #1e293b !important;
+      border-color: #3b82f6 !important;
+    }
+    span {
+      color: #f1f5f9 !important;
+    }
+    p {
+      color: #94a3b8 !important;
+    }
+  }
+
+  /* Bulk Import Modal */
+  .bulk-modal-header-row .text-slate-900 {
+    color: #f8fafc !important;
+  }
+  .bulk-modal-header-row .text-slate-500 {
+    color: #94a3b8 !important;
+  }
+  .bulk-template-card {
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.75) 100%) !important;
+    border-color: #047857 !important;
+
+    span {
+      color: #ecfdf5 !important;
+    }
+  }
+  .bulk-template-icon-wrap {
+    background: rgba(6, 78, 59, 0.5) !important;
+    border-color: #047857 !important;
+    color: #34d399 !important;
+  }
+  .btn-download-template {
+    background: #111827 !important;
+    border-color: #059669 !important;
+    color: #34d399 !important;
+  }
+  .bulk-active-file-card {
+    background: linear-gradient(90deg, rgba(6, 78, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%) !important;
+    border-color: #059669 !important;
+
+    div {
+      color: #f1f5f9 !important;
+    }
+  }
+  .bulk-toolbar-panel {
+    background: #111827 !important;
+    border-color: #1e293b !important;
+  }
+  .toolbar-label {
+    color: #cbd5e1 !important;
+  }
+  .due-preset-chip {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+
+    &:hover {
+      background: #0f172a !important;
+      border-color: #3b82f6 !important;
+      color: #60a5fa !important;
+    }
+  }
+  .bulk-grid-container {
+    background: #111827 !important;
+    border-color: #1e293b !important;
+  }
+  .bulk-grid-table th {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+    border-bottom: 2px solid #334155 !important;
+  }
+  .bulk-grid-table td {
+    background: #111827 !important;
+    border-bottom: 1px solid #1e293b !important;
+    color: #e2e8f0 !important;
+  }
+  .bulk-grid-table tr:hover td {
+    background: #1e293b !important;
+  }
+  .bulk-cell-input,
+  .bulk-cell-date {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+  }
+  .bulk-row-idx {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+  }
+  .bulk-drop-zone {
+    background: #111827 !important;
+    border-color: #334155 !important;
+
+    &:hover {
+      background: #1e293b !important;
+      border-color: #10b981 !important;
+    }
+  }
+}
+
 
 

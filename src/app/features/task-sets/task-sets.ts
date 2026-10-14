@@ -2,7 +2,7 @@ import { Component, OnInit, signal, computed, effect, inject } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { TableComponent, TableColumn, TableAction } from '../../shared/components/table/table.component';
@@ -119,18 +119,13 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     }
     ::ng-deep .p-drawer .p-drawer-header {
       padding: 1.1rem 1.5rem !important;
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-      border-bottom: 1px solid #e2e8f0 !important;
     }
     ::ng-deep .p-drawer .p-drawer-content {
       padding: 1.25rem 1.5rem !important;
-      background: #f8fafc !important;
       overflow-y: auto !important;
     }
     ::ng-deep .p-drawer .p-drawer-footer {
       padding: 0.9rem 1.5rem !important;
-      background: #ffffff !important;
-      border-top: 1px solid #e2e8f0 !important;
       box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04) !important;
     }
 
@@ -166,8 +161,8 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       padding-bottom: 1rem;
     }
     .drawer-section {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface-card, #ffffff);
+      border: 1px solid var(--surface-border, #e2e8f0);
       border-radius: 12px;
       padding: 1.2rem 1.25rem 0.6rem;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
@@ -179,7 +174,7 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       margin-bottom: 1.1rem;
     }
     .section-kicker {
-      color: #334155;
+      color: var(--text-color, #334155);
       font-size: 0.8rem;
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -189,7 +184,7 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     .section-line {
       flex: 1;
       height: 1px;
-      background: #e2e8f0;
+      background: var(--surface-border, #e2e8f0);
     }
     .drawer-form-grid {
       row-gap: 0.65rem;
@@ -224,10 +219,10 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       display: flex;
       flex-direction: column;
       min-width: 0;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--surface-border, #e2e8f0);
       border-radius: 10px;
       overflow: hidden;
-      background: #ffffff;
+      background: var(--surface-card, #ffffff);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
     .dual-panel-header-available {
@@ -468,6 +463,341 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       color: #7e22ce;
       border: 1px solid #e9d5ff;
       font-size: 0.7rem;
+    }
+
+    /* ── Create Task Mode Choice Modal ── */
+    .task-create-choice-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1rem 0 0.5rem;
+    }
+    @media (max-width: 640px) {
+      .task-create-choice-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .task-choice-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.5rem 1.25rem;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+    .task-choice-card:hover {
+      border-color: #3b82f6;
+      background: #f8faff;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15);
+    }
+    .task-choice-icon-wrap {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .task-choice-card.single .task-choice-icon-wrap {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .task-choice-card.bulk .task-choice-icon-wrap {
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    /* ── Enhanced Bulk Task Import Modal UI ── */
+    ::ng-deep .bulk-import-dialog .p-dialog-header {
+      padding: 1.15rem 1.6rem !important;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    ::ng-deep .bulk-import-dialog .p-dialog-content {
+      padding: 1.25rem 1.6rem !important;
+      background: #fbfcfd !important;
+    }
+    ::ng-deep .bulk-import-dialog .p-dialog-footer {
+      padding: 0.95rem 1.6rem !important;
+      background: #ffffff !important;
+      border-top: 1px solid #e2e8f0 !important;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    .bulk-modal-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding-right: 1.5rem;
+    }
+    .bulk-modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .bulk-modal-header-icon {
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.22);
+      flex: 0 0 auto;
+    }
+    .bulk-template-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 45%, #eff6ff 100%);
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 0.4rem 0.85rem;
+      box-shadow: 0 1px 3px rgba(16, 185, 129, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .bulk-template-icon-wrap {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: 6px;
+      background: #dcfce7;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+      border: 1px solid #bbf7d0;
+    }
+    .btn-download-template {
+      background: #ffffff !important;
+      color: #047857 !important;
+      border: 1.2px solid #10b981 !important;
+      border-radius: 6px !important;
+      font-weight: 600 !important;
+      font-size: 0.725rem !important;
+      padding: 0.25rem 0.65rem !important;
+      height: 1.85rem !important;
+      box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08) !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      cursor: pointer;
+      display: inline-flex !important;
+      align-items: center !important;
+    }
+    .btn-download-template:hover {
+      background: #10b981 !important;
+      color: #ffffff !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.28) !important;
+    }
+    .bulk-active-file-card {
+      background: linear-gradient(90deg, #ecfdf5 0%, #f0fdf4 100%);
+      border: 1.5px solid #86efac;
+      border-radius: 12px;
+      padding: 0.8rem 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.05);
+    }
+    .bulk-toolbar-panel {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.75rem 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    }
+    .toolbar-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.775rem;
+      font-weight: 700;
+      color: #334155;
+    }
+    .due-preset-chip {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 7px;
+      font-size: 0.725rem;
+      font-weight: 700;
+      color: #334155;
+      padding: 0.32rem 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .due-preset-chip:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      transform: translateY(-1px);
+    }
+    .bulk-grid-container {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    }
+    .bulk-grid-table th {
+      background: #f8fafc !important;
+      color: #475569 !important;
+      font-size: 0.725rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+      border-bottom: 2px solid #e2e8f0 !important;
+      padding: 0.65rem 0.65rem !important;
+    }
+    .bulk-grid-table td {
+      padding: 0.45rem 0.65rem !important;
+      border-bottom: 1px solid #f1f5f9 !important;
+      vertical-align: middle !important;
+    }
+    .bulk-grid-table tr:hover td {
+      background: #f8faff !important;
+    }
+    .bulk-row-idx {
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 0.725rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bulk-cell-input {
+      width: 100%;
+      height: 2.2rem;
+      border: 1.5px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.35rem 0.65rem !important;
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      color: #1e293b !important;
+      background: #ffffff !important;
+      transition: all 0.2s ease !important;
+    }
+    .bulk-cell-input:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+      outline: none !important;
+    }
+    .bulk-cell-date {
+      width: 100%;
+      height: 2.2rem;
+      border: 1.5px solid #cbd5e1 !important;
+      border-radius: 8px !important;
+      padding: 0.35rem 0.55rem !important;
+      font-size: 0.8rem !important;
+      font-weight: 500 !important;
+      color: #1e293b !important;
+      background: #ffffff !important;
+      font-family: inherit !important;
+      transition: all 0.2s ease !important;
+    }
+    .bulk-cell-date:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+      outline: none !important;
+    }
+    .bulk-trash-btn {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .bulk-trash-btn:hover {
+      background: #fef2f2;
+      color: #ef4444;
+      transform: scale(1.08);
+    }
+    .btn-submit-bulk {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      border: none !important;
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      border-radius: 9px !important;
+      padding: 0.6rem 1.4rem !important;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3) !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .btn-submit-bulk:hover:not(:disabled) {
+      box-shadow: 0 6px 18px rgba(5, 150, 105, 0.45) !important;
+      transform: translateY(-1px) !important;
+    }
+
+    .search-sub-bar-available {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    .search-sub-bar-selected {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    .available-count-badge {
+      background: #e2e8f0;
+      color: #334155;
+    }
+    .selected-count-badge {
+      background: #bbf7d0;
+      color: #166534;
+    }
+    .due-preset-btn.preset-active {
+      background: #047857 !important;
+      color: #ffffff !important;
+    }
+
+    .selected-tasks-count-pill {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .task-desc-cell {
+      color: #1e293b;
+    }
+    .task-tag-header {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+    .task-tag-authority {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
     }
   `]
 })
@@ -827,6 +1157,18 @@ export class TaskSetsComponent implements OnInit {
   uploadingInlineTaskFile = signal<boolean>(false);
   savingInlineTask = signal<boolean>(false);
 
+  // Choice modal between Single Task and Bulk by CSV
+  showCreateTaskChoiceModal = signal<boolean>(false);
+
+  // Inline Bulk Task CSV modal signals
+  showInlineBulkTaskModal = signal<boolean>(false);
+  inlineBulkFile = signal<File | null>(null);
+  inlineBulkFileName = signal<string>('');
+  inlineBulkPreviewRows = signal<any[]>([]);
+  isInlineDraggingOver = signal<boolean>(false);
+  savingInlineBulkTasks = signal<boolean>(false);
+  bulkAssignDeptId = signal<number | null>(null);
+
   taskHeaders = signal<any[]>([]);
   auditAreas = signal<any[]>([]);
   loadingPreviousTasks = signal<boolean>(false);
@@ -1001,6 +1343,369 @@ export class TaskSetsComponent implements OnInit {
   formCircularFilter = signal<number | null>(null);
   circulars = signal<any[]>([]);
 
+  openCreateTaskChoice() {
+    this.showCreateTaskChoiceModal.set(true);
+  }
+
+  selectCreateTaskMode(mode: 'SINGLE' | 'BULK') {
+    this.showCreateTaskChoiceModal.set(false);
+    setTimeout(() => {
+      if (mode === 'SINGLE') {
+        this.openInlineTaskDialog();
+      } else {
+        this.openInlineBulkTaskDialog();
+      }
+    }, 150);
+  }
+
+  openInlineBulkTaskDialog() {
+    this.loadBranches();
+    this.api.getTaskHeaders().subscribe(data => this.taskHeaders.set(data || []));
+    this.inlineBulkFile.set(null);
+    this.inlineBulkFileName.set('');
+    this.inlineBulkPreviewRows.set([]);
+    this.bulkAssignDeptId.set(null);
+    this.showInlineBulkTaskModal.set(true);
+  }
+
+  clearInlineBulkFile() {
+    this.inlineBulkFile.set(null);
+    this.inlineBulkFileName.set('');
+    this.inlineBulkPreviewRows.set([]);
+    this.isInlineDraggingOver.set(false);
+  }
+
+  onInlineDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isInlineDraggingOver.set(true);
+  }
+
+  onInlineDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isInlineDraggingOver.set(false);
+  }
+
+  onInlineDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isInlineDraggingOver.set(false);
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      this.handleInlineBulkFile(files[0]);
+    }
+  }
+
+  onInlineCsvFileChange(event: any) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.handleInlineBulkFile(input.files[0]);
+      input.value = '';
+    }
+  }
+
+  downloadInlineTaskCsvTemplate() {
+    const sampleRows = [
+      {
+        'Task Description': 'Verify daily cash drawer reconciliation and physical tally',
+        'Priority': 'High',
+        'Department': this.branches()[0]?.name || 'Operations',
+        'Sub Header': 'Daily Cash Verification',
+        'Due Date': new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0]
+      },
+      {
+        'Task Description': 'Review and validate KYC documents for newly opened high-risk accounts',
+        'Priority': 'Medium',
+        'Department': this.branches()[1]?.name || 'Compliance',
+        'Sub Header': 'KYC & AML Review',
+        'Due Date': new Date(Date.now() + 20 * 86400000).toISOString().split('T')[0]
+      },
+      {
+        'Task Description': 'Conduct quarterly backup recovery drill and system access log audit',
+        'Priority': 'Low',
+        'Department': this.branches()[2]?.name || 'IT Department',
+        'Sub Header': 'IT Security & Access Controls',
+        'Due Date': new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
+      }
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
+    XLSX.writeFile(workbook, 'task_set_tasks_template.xlsx');
+  }
+
+  handleInlineBulkFile(file: File) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.csv') && !name.endsWith('.xlsx') && !name.endsWith('.xls')) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Invalid File',
+        detail: 'Please upload a CSV or Excel (.xlsx, .xls) file.',
+        life: 4000
+      });
+      return;
+    }
+
+    this.inlineBulkFile.set(file);
+    this.inlineBulkFileName.set(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (!rawJson || rawJson.length === 0) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Empty File',
+            detail: 'No data rows found in the uploaded file.',
+            life: 4000
+          });
+          this.inlineBulkPreviewRows.set([]);
+          return;
+        }
+
+        const branchesList = this.branches() || [];
+        const headersList = this.taskHeaders() || [];
+        const mainHeaderId = this.newTaskSetMainHeaderId();
+
+        const parsedRows = rawJson.map((row: any, index: number) => {
+          const keys = Object.keys(row);
+          const findVal = (possibleNames: string[]) => {
+            const foundKey = keys.find(k => possibleNames.includes(k.trim().toLowerCase().replace(/[\s_-]+/g, '')));
+            return foundKey ? String(row[foundKey]).trim() : '';
+          };
+
+          const desc = findVal(['taskdescription', 'description', 'task', 'taskname', 'name', 'title']);
+          let priority = findVal(['priority', 'severity', 'level']) || 'Medium';
+          const pLower = priority.toLowerCase();
+          if (pLower === 'high' || pLower === 'critical') priority = 'High';
+          else if (pLower === 'low') priority = 'Low';
+          else priority = 'Medium';
+
+          const deptStr = findVal(['department', 'dept', 'branch', 'subdepartment', 'subdept', 'assignee']);
+          let matchedDeptId: number | null = null;
+          if (deptStr) {
+            const cleanDept = deptStr.toLowerCase();
+            const matchedBranch = branchesList.find((b: any) => 
+              b.name?.toLowerCase() === cleanDept || 
+              b.name?.toLowerCase().includes(cleanDept) || 
+              cleanDept.includes(b.name?.toLowerCase())
+            );
+            if (matchedBranch) {
+              matchedDeptId = matchedBranch.id;
+            }
+          }
+
+          const headerStr = findVal(['subheader', 'header', 'category', 'taskheader']);
+          let matchedHeaderId: number | null = mainHeaderId;
+          if (headerStr) {
+            const cleanH = headerStr.toLowerCase();
+            const matchedH = headersList.find((h: any) => 
+              h.name?.toLowerCase() === cleanH || 
+              h.name?.toLowerCase().includes(cleanH)
+            );
+            if (matchedH) {
+              matchedHeaderId = matchedH.id;
+            }
+          }
+
+          let dueDateStr = findVal(['duedate', 'due', 'date', 'targetdate']);
+          if (dueDateStr && !isNaN(Number(dueDateStr)) && Number(dueDateStr) > 30000) {
+            const d = XLSX.SSF.parse_date_code(Number(dueDateStr));
+            if (d) {
+              const mm = String(d.m).padStart(2, '0');
+              const dd = String(d.d).padStart(2, '0');
+              dueDateStr = `${d.y}-${mm}-${dd}`;
+            }
+          }
+
+          return {
+            rowId: index + 1,
+            description: desc,
+            priority: priority,
+            header_id: matchedHeaderId,
+            sub_dept_id: matchedDeptId,
+            due_date: dueDateStr || ''
+          };
+        }).filter(r => !!r.description);
+
+        if (parsedRows.length === 0) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Invalid Format',
+            detail: 'Could not find any rows with "Task Description". Please check the template.',
+            life: 5000
+          });
+          this.inlineBulkPreviewRows.set([]);
+          return;
+        }
+
+        this.inlineBulkPreviewRows.set(parsedRows);
+        this.messageService.add({
+          severity: 'info',
+          summary: 'File Parsed',
+          detail: `Parsed ${parsedRows.length} tasks ready to review and assign.`,
+          life: 3000
+        });
+      } catch (err) {
+        console.error('Error parsing bulk task file:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Parsing Error',
+          detail: 'Failed to parse file. Please verify file format and try again.',
+          life: 5000
+        });
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  applyBulkDeptToAll() {
+    const deptId = this.bulkAssignDeptId();
+    const rows = this.inlineBulkPreviewRows();
+    const updated = rows.map(r => ({ ...r, sub_dept_id: deptId }));
+    this.inlineBulkPreviewRows.set(updated);
+    const deptName = deptId ? (this.branches().find(b => b.id === deptId)?.name || 'Selected Department') : 'Direct (Self-Compliance)';
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Department Applied',
+      detail: `Assigned "${deptName}" to all ${rows.length} tasks.`,
+      life: 2500
+    });
+  }
+
+  applyBulkDueDaysToAll(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const dateStr = d.toISOString().split('T')[0];
+    const rows = this.inlineBulkPreviewRows();
+    const updated = rows.map(r => ({ ...r, due_date: dateStr }));
+    this.inlineBulkPreviewRows.set(updated);
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Due Date Applied',
+      detail: `Applied +${days} days (${dateStr}) to all ${rows.length} tasks.`,
+      life: 2500
+    });
+  }
+
+  removeInlineBulkRow(index: number) {
+    const rows = [...this.inlineBulkPreviewRows()];
+    rows.splice(index, 1);
+    this.inlineBulkPreviewRows.set(rows);
+  }
+
+  submitInlineBulkTasks() {
+    const rows = this.inlineBulkPreviewRows();
+    const validRows = rows.filter(r => !!r.description?.trim());
+    if (validRows.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'No Tasks',
+        detail: 'Please provide at least one valid task description.',
+        life: 3000
+      });
+      return;
+    }
+
+    this.savingInlineBulkTasks.set(true);
+
+    const type = this.newTaskSetType();
+    const circularId = type === 'REGULAR' ? (this.newTaskSetCircularId() || null) : null;
+    const defaultHeaderId = type === 'INTERNAL' ? (this.newTaskSetMainHeaderId() || null) : null;
+
+    const meta = this.api.getCurrentUserMetadata();
+    const userId = meta.userId;
+    const userName = meta.userName;
+    const userRole = meta.userRole;
+
+    const backendRows = validRows.map(r => ({
+      description: r.description.trim(),
+      priority: r.priority || 'Medium',
+      header_id: r.header_id || defaultHeaderId,
+      circular_id: circularId,
+      created_by: userId,
+      created_by_id: userId,
+      created_by_user_id: userId,
+      user_id: userId,
+      created_by_role: userRole,
+      creator_role: userRole,
+      created_by_name: userName,
+      creator_name: userName,
+      created_by_username: userName
+    }));
+
+    this.api.bulkUploadTasks({
+      rows: backendRows,
+      created_by: userId,
+      created_by_id: userId,
+      created_by_role: userRole,
+      created_by_name: userName
+    }).subscribe({
+      next: (res: any) => {
+        this.savingInlineBulkTasks.set(false);
+        this.showInlineBulkTaskModal.set(false);
+
+        const createdList = res?.data || [];
+        const taskHeadersList = this.taskHeaders() || [];
+
+        const newTasksForSet = validRows.map((origRow, idx) => {
+          const created = createdList[idx] || {};
+          const headerId = created.header_id || origRow.header_id || defaultHeaderId;
+          const headerName = (headerId ? taskHeadersList.find(h => h.id === headerId)?.name : null) || '-';
+
+          return {
+            ...created,
+            id: created.id || Date.now() + idx,
+            description: origRow.description.trim(),
+            priority: origRow.priority || 'Medium',
+            header_id: headerId,
+            header_name: headerName,
+            sub_dept_id: origRow.sub_dept_id || null,
+            due_date: origRow.due_date || null
+          };
+        });
+
+        // 1. Add directly to targetTasks (Selected Tasks)
+        this.targetTasks = [...newTasksForSet, ...this.targetTasks];
+
+        // 2. Also keep in sessionCreatedTasks and rawTasks
+        this.sessionCreatedTasks.set([...newTasksForSet, ...this.sessionCreatedTasks()]);
+        this.rawTasks.set([...newTasksForSet, ...this.rawTasks()]);
+
+        // 3. Trigger selection reactivity
+        this.selectionTick.set(this.selectionTick() + 1);
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Bulk Tasks Added',
+          detail: `Successfully created and added ${newTasksForSet.length} task(s) with department assignments to this Task Set!`,
+          life: 4000
+        });
+
+        this.clearInlineBulkFile();
+      },
+      error: (err: any) => {
+        this.savingInlineBulkTasks.set(false);
+        console.error('Error during bulk task upload:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Upload Failed',
+          detail: err?.error?.message || 'Failed to bulk create tasks.',
+          life: 5000
+        });
+      }
+    });
+  }
+
   openInlineTaskDialog() {
     this.ensureAuthoritiesLoaded();
     this.api.getTaskHeaders().subscribe(data => this.taskHeaders.set(data || []));
@@ -1018,6 +1723,10 @@ export class TaskSetsComponent implements OnInit {
     this.inlineTaskFileUrl.set(null);
     this.inlineTaskFileName.set('');
     this.showInlineTaskDrawer.set(true);
+  }
+
+  closeInlineTaskDrawer() {
+    this.showInlineTaskDrawer.set(false);
   }
 
   onInlineTaskFileSelected(event: any) {
@@ -1198,12 +1907,15 @@ export class TaskSetsComponent implements OnInit {
         const currentRaw = this.rawTasks();
         this.rawTasks.set([normalizedTask, ...currentRaw]);
 
+        // Add to targetTasks (Selected Tasks)
+        this.targetTasks = [normalizedTask, ...this.targetTasks];
+
         this.selectionTick.set(this.selectionTick() + 1);
 
         this.messageService.add({
           severity: 'success',
           summary: 'Task Created',
-          detail: 'New task created and added to Available Tasks.',
+          detail: 'New task created and added to Selected Tasks.',
           life: 3000
         });
       },
@@ -1357,7 +2069,7 @@ export class TaskSetsComponent implements OnInit {
   selectedCircularLabel = computed(() => {
     const filterId = this.selectedCircularFilter();
     if (!filterId) return null;
-    const found = this.circulars().find(c => c.id === filterId);
+    const found = (this.circulars() || []).find((c: any) => c.id === filterId);
     return found ? (found.reference_no ? `${found.reference_no} — ${found.title}` : found.title) : null;
   });
 
@@ -1374,8 +2086,8 @@ export class TaskSetsComponent implements OnInit {
     const circularId = this.newTaskSetCircularId() || this.formCircularFilter();
     if (!circularId) return null;
 
-    const circulars = this.circulars();
-    const currentCirc = circulars.find(c => c.id === circularId);
+    const circulars = this.circulars() || [];
+    const currentCirc = circulars.find((c: any) => c.id === circularId);
 
     // Look in rawTasks + sessionCreatedTasks + targetTasks
     const all = [...this.rawTasks(), ...this.sessionCreatedTasks(), ...this.targetTasks];
@@ -1492,7 +2204,7 @@ export class TaskSetsComponent implements OnInit {
       });
 
       // Auto-suggest name if empty
-      const found = this.circulars().find(c => c.id === circularId);
+      const found = (this.circulars() || []).find((c: any) => c.id === circularId);
       if (found && !this.newTaskSetName()?.trim()) {
         const titleStr = found.title || found.reference_no || '';
         this.newTaskSetName.set(titleStr);
@@ -1521,6 +2233,14 @@ export class TaskSetsComponent implements OnInit {
             });
           }
         }
+      }
+      // Directly load tasks under this main category
+      this.loadPreviousTasks();
+    } else {
+      if (this.newTaskSetType() === 'INTERNAL') {
+        this.rawTasks.set([]);
+        this.internalPreviousTasksLoaded.set(false);
+        this.selectionTick.set(this.selectionTick() + 1);
       }
     }
   }
@@ -1689,6 +2409,9 @@ export class TaskSetsComponent implements OnInit {
   isBranchUser = computed(() => {
     const role = String(this.auth.currentUser()?.role || '').toUpperCase();
     return ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role);
+  });
+  showDeptColumn = computed(() => {
+    return this.isBranchUser() || (this.branches() && this.branches().length > 0);
   });
   proposedDate = signal<Date | null>(null);
   parentPage: number | null = null;

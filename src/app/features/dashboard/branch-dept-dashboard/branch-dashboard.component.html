@@ -8,7 +8,7 @@
     <p>Manage department worksheets, track execution milestones, and verify compliance tasks.</p>
   </div>
   <div class="hero-right flex flex-wrap gap-2">
-    <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks'}" class="hero-action-btn primary-btn">
+    <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks', branch: branchDisplayName}" class="hero-action-btn primary-btn">
       <i class="pi pi-check-square"></i> Department Tasks
     </a>
     <a routerLink="/task-sets" class="hero-action-btn outline-btn">
@@ -20,7 +20,7 @@
 <!-- Quick Metrics Grid -->
 <div class="metrics-grid">
   <!-- 1. Total Tasks -->
-  <div class="metric-card theme-purple cursor-pointer" routerLink="/assignments">
+  <div class="metric-card theme-purple cursor-pointer" routerLink="/assignments" [queryParams]="{branch: branchDisplayName}">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-check-square"></i></div>
     <div class="card-details">
@@ -32,42 +32,43 @@
     </div>
   </div>
 
-  <!-- 2. Active In Progress -->
-  <div class="metric-card theme-blue cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'In_Progress'}">
+  <!-- 2. Pending Tasks (Task Wise) -->
+  <div class="metric-card theme-blue cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'In_Progress', branch: branchDisplayName}">
     <div class="card-glow"></div>
-    <div class="card-icon"><i class="pi pi-sync"></i></div>
+    <div class="card-icon"><i class="pi pi-hourglass"></i></div>
     <div class="card-details">
-      <span class="card-title">Active (In Progress)</span>
+      <span class="card-title">Pending Tasks</span>
       <div class="flex align-items-baseline gap-2">
-        <span class="card-value">{{ inProgressAssignments }}</span>
-        <span class="text-xs text-blue-600 font-semibold">Under Execution</span>
+        <span class="card-value">{{ pendingTasks }}</span>
+        <span class="text-xs text-blue-600 font-semibold">{{ inProgressAssignments }} Active Worksheets</span>
       </div>
     </div>
   </div>
 
-  <!-- 3. Completed Compliance -->
-  <div class="metric-card theme-emerald cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'COMPLETED'}">
+  <!-- 3. Completed Tasks (Task Wise) -->
+  <div class="metric-card theme-emerald cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'COMPLETED', branch: branchDisplayName}">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-check-circle"></i></div>
     <div class="card-details">
-      <span class="card-title">Completed</span>
+      <span class="card-title">Completed Tasks</span>
       <div class="flex align-items-baseline gap-2">
-        <span class="card-value">{{ completedAssignments }}</span>
+        <span class="card-value">{{ completedTasks }}</span>
         <span class="badge-rate bg-green-100 text-green-800">{{ complianceRate }}% Rate</span>
       </div>
     </div>
   </div>
 
   <!-- 4. Review & Recompliance -->
-  <div class="metric-card theme-orange cursor-pointer" routerLink="/assignments">
+  <div class="metric-card theme-orange cursor-pointer" routerLink="/assignments" [queryParams]="{status: 'REVIEW_PENDING', branch: branchDisplayName}">
     <div class="card-glow"></div>
     <div class="card-icon"><i class="pi pi-clock"></i></div>
     <div class="card-details">
-      <span class="card-title">Review / Pending</span>
+      <span class="card-title">Review / Attention</span>
       <div class="flex align-items-baseline gap-2">
         <span class="card-value">{{ reviewPendingAssignments + recomplianceAssignments + pendingTimelineAssignments }}</span>
         <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments > 0">{{ recomplianceAssignments }} Need Attention</span>
-        <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments === 0">Awaiting Check</span>
+        <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments === 0 && reviewPendingAssignments > 0">{{ reviewPendingAssignments }} In Review</span>
+        <span class="text-xs text-orange-600 font-semibold" *ngIf="recomplianceAssignments === 0 && reviewPendingAssignments === 0">Awaiting Check</span>
       </div>
     </div>
   </div>
@@ -84,7 +85,7 @@
       <div class="panel-header">
         <div>
           <h3>Department Compliance Health</h3>
-          <span class="panel-subtitle">Execution rate and milestone breakdown</span>
+          <span class="panel-subtitle">Execution rate and task breakdown</span>
         </div>
         <div class="rate-pill font-bold" [ngClass]="{'bg-green-100 text-green-700': complianceRate >= 80, 'bg-amber-100 text-amber-700': complianceRate >= 50 && complianceRate < 80, 'bg-blue-100 text-blue-700': complianceRate < 50}">
           {{ complianceRate }}% Overall
@@ -92,21 +93,33 @@
       </div>
       <div class="panel-body">
         <!-- Visual Progress Bar -->
-        <div class="progress-bar-container mb-4">
+        <div class="progress-bar-container mb-2">
           <div class="progress-bar-fill" [style.width.%]="complianceRate"></div>
+        </div>
+        <div class="flex justify-content-between align-items-center mb-4 text-xs font-semibold" style="color: #64748b;">
+          <span><strong class="text-green-600">{{ completedTasks }}</strong> of {{ totalTasks }} Tasks Completed</span>
+          <span><strong class="text-blue-600">{{ pendingTasks }}</strong> Tasks Pending</span>
         </div>
 
         <!-- Mini Status Grid -->
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.85rem;">
-          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'In_Progress'}" style="border-left: 4px solid #3b82f6;">
-            <span class="text-xs text-gray-500 font-bold uppercase">In Progress</span>
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'In_Progress', branch: branchDisplayName}" style="border-left: 4px solid #3b82f6;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Pending Tasks</span>
             <div class="flex align-items-center justify-content-between mt-1">
-              <span class="text-xl font-bold text-blue-600">{{ inProgressAssignments }}</span>
+              <span class="text-xl font-bold text-blue-600">{{ pendingTasks }}</span>
               <i class="pi pi-hourglass text-blue-400"></i>
             </div>
           </div>
 
-          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'REVIEW_PENDING'}" style="border-left: 4px solid #a855f7;">
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'COMPLETED', branch: branchDisplayName}" style="border-left: 4px solid #22c55e;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Completed Tasks</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-green-600">{{ completedTasks }}</span>
+              <i class="pi pi-check-circle text-green-400"></i>
+            </div>
+          </div>
+
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'REVIEW_PENDING', branch: branchDisplayName}" style="border-left: 4px solid #a855f7;">
             <span class="text-xs text-gray-500 font-bold uppercase">Review Pending</span>
             <div class="flex align-items-center justify-content-between mt-1">
               <span class="text-xl font-bold text-purple-600">{{ reviewPendingAssignments }}</span>
@@ -114,19 +127,27 @@
             </div>
           </div>
 
-          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'COMPLETED'}" style="border-left: 4px solid #22c55e;">
-            <span class="text-xs text-gray-500 font-bold uppercase">Completed</span>
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'Pending_Timeline', branch: branchDisplayName}" style="border-left: 4px solid #f59e0b;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Pending Timeline</span>
             <div class="flex align-items-center justify-content-between mt-1">
-              <span class="text-xl font-bold text-green-600">{{ completedAssignments }}</span>
-              <i class="pi pi-check-circle text-green-400"></i>
+              <span class="text-xl font-bold text-amber-600">{{ pendingTimelineAssignments }}</span>
+              <i class="pi pi-calendar-plus text-amber-400"></i>
             </div>
           </div>
 
-          <div class="status-summary-card" routerLink="/assignments" style="border-left: 4px solid #ef4444;">
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{status: 'PENDING_RECOMPLIANCE', branch: branchDisplayName}" style="border-left: 4px solid #ef4444;">
             <span class="text-xs text-gray-500 font-bold uppercase">Re-Compliance</span>
             <div class="flex align-items-center justify-content-between mt-1">
               <span class="text-xl font-bold text-red-600">{{ recomplianceAssignments }}</span>
               <i class="pi pi-exclamation-circle text-red-400"></i>
+            </div>
+          </div>
+
+          <div class="status-summary-card" routerLink="/assignments" [queryParams]="{branch: branchDisplayName}" style="border-left: 4px solid #6366f1;">
+            <span class="text-xs text-gray-500 font-bold uppercase">Total Worksheets</span>
+            <div class="flex align-items-center justify-content-between mt-1">
+              <span class="text-xl font-bold text-indigo-600">{{ totalAssignments }}</span>
+              <i class="pi pi-folder text-indigo-400"></i>
             </div>
           </div>
         </div>
@@ -141,7 +162,7 @@
       </div>
       <div class="panel-body">
         <div class="shortcuts-grid">
-          <a routerLink="/assignments" [queryParams]="{view: 'my_assignments'}" class="shortcut-item">
+          <a routerLink="/assignments" [queryParams]="{view: 'my_assignments', branch: branchDisplayName}" class="shortcut-item">
             <div class="shortcut-icon bg-indigo-50 text-indigo-600">
               <i class="pi pi-list"></i>
             </div>
