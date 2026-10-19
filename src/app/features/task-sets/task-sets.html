@@ -255,7 +255,16 @@
 
 <!-- Task Set Form Drawer -->
 
-<p-drawer [visible]="showFormDrawer()" (visibleChange)="showFormDrawer.set($event)" position="right" [style]="{ width: '92vw', maxWidth: '1520px' }" appendTo="body" [modal]="true" [showCloseIcon]="false">
+<p-drawer 
+  [visible]="showFormDrawer()" 
+  (visibleChange)="showFormDrawer.set($event)" 
+  [position]="isDrawerFullScreen() ? 'full' : 'right'" 
+  [fullScreen]="isDrawerFullScreen()" 
+  [style]="isDrawerFullScreen() ? { width: '100vw', maxWidth: '100vw', height: '100vh', margin: '0' } : { width: '94vw', maxWidth: '1560px' }" 
+  styleClass="task-set-form-drawer"
+  appendTo="body" 
+  [modal]="true" 
+  [showCloseIcon]="false">
   <ng-template pTemplate="header">
     <div class="drawer-header-row">
       <div class="drawer-title-wrap">
@@ -267,7 +276,28 @@
           <div class="text-600 text-sm mt-1">{{ isEditMode ? 'Modify task set configuration' : 'Define a new compliance task set' }}</div>
         </div>
       </div>
-      <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded" (click)="showFormDrawer.set(false)"></button>
+      <div class="flex align-items-center gap-1">
+        <button 
+          pButton 
+          pRipple 
+          type="button" 
+          [icon]="isDrawerFullScreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'" 
+          class="p-button-text p-button-rounded text-600 hover:text-900" 
+          [pTooltip]="isDrawerFullScreen() ? 'Restore side drawer' : 'Full screen'"
+          tooltipPosition="bottom"
+          (click)="toggleDrawerFullScreen()">
+        </button>
+        <button 
+          pButton 
+          pRipple 
+          type="button" 
+          icon="pi pi-times" 
+          class="p-button-text p-button-rounded text-600 hover:text-900" 
+          pTooltip="Close"
+          tooltipPosition="bottom"
+          (click)="showFormDrawer.set(false)">
+        </button>
+      </div>
     </div>
   </ng-template>
 
@@ -739,17 +769,17 @@
             <!-- Panel Header & Controls -->
             <div class="dual-panel-header-selected">
               <div class="flex align-items-center gap-2">
-                <i class="pi pi-check-square font-bold text-sm"></i>
-                <span class="text-sm font-bold">Selected Tasks</span>
+                <i class="pi pi-check-square font-bold text-sm text-emerald-600"></i>
+                <span class="text-sm font-bold text-slate-800">Selected Tasks</span>
                 <span class="selected-count-badge text-xs font-bold px-2 py-0.5 border-round">
-                  {{ targetTasks.length }}
+                  {{ targetTasks.length }} Total
                 </span>
               </div>
 
-              <!-- Quick Due Date Flag Buttons (10, 20, 30 days) -->
-              <div class="flex align-items-center gap-1.5" *ngIf="targetTasks.length > 0">
-                <span class="text-xs font-bold hidden sm:inline-flex align-items-center gap-1">
-                  Due:
+              <!-- Quick Due Date Flag Buttons (when no tasks are checked) & Clear All -->
+              <div class="flex align-items-center gap-1.5" *ngIf="targetTasks.length > 0 && checkedTaskCount() === 0">
+                <span class="text-xs font-bold text-slate-600 hidden sm:inline-flex align-items-center gap-1">
+                  Due All:
                 </span>
                 
                 <button type="button"
@@ -779,25 +809,105 @@
                   +30D
                 </button>
 
-                <button pButton label="Clear" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
+                <input type="date"
+                       [ngModel]="bulkSelectedDueDate()"
+                       (ngModelChange)="applyCustomDueDateToAll($event)"
+                       class="due-custom-date-input hidden md:inline-block"
+                       pTooltip="Pick custom due date for all tasks" tooltipPosition="top" />
+
+                <button pButton label="Clear All" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
                         styleClass="h-1.75rem text-xs font-semibold px-2 ml-1"
                         (click)="removeAllSelectedTasks()"
                         pTooltip="Remove all selected tasks" tooltipPosition="top"></button>
               </div>
+
+              <!-- When tasks are checked, show active selection status and Deselect in header -->
+              <div class="flex align-items-center gap-1.5" *ngIf="checkedTaskCount() > 0">
+                <span class="group-badge animate-fadein">
+                  <i class="pi pi-check-circle"></i> {{ checkedTaskCount() }} of {{ targetTasks.length }} Selected
+                </span>
+                <button pButton label="Deselect" icon="pi pi-times" size="small" severity="secondary" [outlined]="true"
+                        styleClass="h-1.75rem text-xs font-semibold px-2"
+                        (click)="clearCheckedTasks()"></button>
+              </div>
             </div>
 
-            <!-- Search Sub-Bar for Selected Tasks -->
-            <div class="search-sub-bar-selected flex align-items-center gap-2 px-2.5 py-1.5 border-bottom-1">
-              <p-iconfield iconPosition="left" class="w-full">
+            <!-- Sub-Bar: Standard Search & Assign All (When NO tasks checked) -->
+            <div *ngIf="checkedTaskCount() === 0" class="search-sub-bar-selected flex align-items-center justify-content-between gap-2 px-2.5 py-1.5 border-bottom-1 surface-border bg-slate-50 flex-wrap sm:flex-nowrap">
+              <p-iconfield iconPosition="left" class="flex-1" style="min-width: 140px;">
                 <p-inputicon styleClass="pi pi-search text-xs" />
                 <input pInputText type="text" [ngModel]="selectedSearchText()" (ngModelChange)="selectedSearchText.set($event)" 
                        placeholder="Search selected tasks..." 
                        class="w-full h-2rem text-xs" />
               </p-iconfield>
+
+              <div *ngIf="showDeptColumn() && targetTasks.length > 0" class="flex align-items-center gap-1.5 flex-shrink-0">
+                <span class="text-xs font-bold text-slate-700 hidden sm:inline-flex align-items-center gap-1 whitespace-nowrap">
+                  <i class="pi pi-building text-primary" style="font-size: 0.75rem;"></i> Assign All:
+                </span>
+                <p-select 
+                  [options]="branchDropdownOptions()" 
+                  [ngModel]="bulkSelectedSubDeptId()"
+                  (onChange)="applyBulkSubDeptToSelectedTasks($event.value)"
+                  optionLabel="label" 
+                  optionValue="value" 
+                  placeholder="Direct (Self)"
+                  styleClass="h-2rem text-xs bulk-assign-select"
+                  [style]="{ 'min-width': '165px', 'max-width': '220px' }"
+                  panelStyleClass="subdept-dropdown-panel"
+                  appendTo="body"
+                  [showClear]="true"
+                  pTooltip="Assign all selected tasks at once (single task adjustments can still be made below)"
+                  tooltipPosition="top">
+                </p-select>
+              </div>
+            </div>
+
+            <!-- Sub-Bar: Dedicated High-Contrast Group Action Bar (When 1+ tasks ARE checked) -->
+            <div *ngIf="checkedTaskCount() > 0" class="group-action-bar flex align-items-center justify-content-between gap-2 px-3 py-1.5 border-bottom-1 flex-wrap animate-fadein">
+              <!-- Left: Assign to department -->
+              <div *ngIf="showDeptColumn()" class="flex align-items-center gap-2">
+                <span class="text-xs font-bold text-blue-900 whitespace-nowrap flex align-items-center gap-1">
+                  <i class="pi pi-building text-primary font-bold"></i> Assign Checked ({{ checkedTaskCount() }}):
+                </span>
+                <p-select 
+                  [options]="branchDropdownOptions()" 
+                  [ngModel]="groupSelectedSubDeptId()"
+                  (onChange)="applyGroupSubDeptToCheckedTasks($event.value)"
+                  optionLabel="label" 
+                  optionValue="value" 
+                  [placeholder]="'Assign ' + checkedTaskCount() + ' tasks to...'"
+                  styleClass="h-2rem text-xs border-blue-400 font-semibold bg-white"
+                  [style]="{ 'min-width': '185px', 'max-width': '240px' }"
+                  panelStyleClass="subdept-dropdown-panel"
+                  appendTo="body"
+                  [showClear]="false"
+                  pTooltip="Assign checked tasks to this department and sync with Task Set"
+                  tooltipPosition="top">
+                </p-select>
+              </div>
+
+              <!-- Right: Group Due Dates & Remove Checked -->
+              <div class="flex align-items-center gap-2 flex-wrap">
+                <div class="flex align-items-center gap-1">
+                  <span class="text-xs font-bold text-slate-700 hidden lg:inline">Due:</span>
+                  <button type="button" (click)="applyDaysToSelectedTasks(10)" class="due-preset-btn" pTooltip="Set +10 days for checked tasks" tooltipPosition="top">+10D</button>
+                  <button type="button" (click)="applyDaysToSelectedTasks(20)" class="due-preset-btn" pTooltip="Set +20 days for checked tasks" tooltipPosition="top">+20D</button>
+                  <button type="button" (click)="applyDaysToSelectedTasks(30)" class="due-preset-btn" pTooltip="Set +30 days for checked tasks" tooltipPosition="top">+30D</button>
+                  <input type="date" [ngModel]="bulkSelectedDueDate()" (ngModelChange)="applyCustomDueDateToSelected($event)" class="due-custom-date-input" pTooltip="Set custom due date for checked tasks" tooltipPosition="top" />
+                </div>
+
+                <span class="text-slate-300 font-light hidden sm:inline">|</span>
+
+                <button pButton [label]="'Remove (' + checkedTaskCount() + ')'" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
+                        styleClass="h-1.85rem text-xs font-semibold px-2"
+                        (click)="removeCheckedTasks()"
+                        pTooltip="Remove checked tasks from set" tooltipPosition="top"></button>
+              </div>
             </div>
 
             <!-- Selected Tasks Table -->
-            <div style="height: 23rem; display: flex; flex-direction: column;">
+            <div style="height: 24rem; display: flex; flex-direction: column;">
               <p-table [value]="filteredSelectedTasks()" 
                        [paginator]="true" 
                        [rows]="7" 
@@ -808,31 +918,49 @@
                        scrollHeight="flex">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 42px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Remove</th>
-                    <th style="width: 34px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">#</th>
-                    <th style="white-space: nowrap; padding: 0.4rem 0.5rem;">Description</th>
-                    <th style="width: 72px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Priority</th>
-                    <th *ngIf="showDeptColumn()" style="width: 145px; white-space: nowrap; padding: 0.4rem 0.35rem;">Assignee / Sub-Dept</th>
-                    <th style="width: 120px; white-space: nowrap; padding: 0.4rem 0.35rem;">Due Date</th>
+                    <th style="width: 36px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;">
+                      <input 
+                        type="checkbox" 
+                        class="task-row-checkbox"
+                        [checked]="isAllSelectedTasksChecked()"
+                        (change)="toggleAllSelectedTasksCheck()"
+                        pTooltip="Select / Deselect all visible tasks"
+                        tooltipPosition="top" />
+                    </th>
+                    <th style="width: 36px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;" pTooltip="Remove task from set" tooltipPosition="top">
+                      <i class="pi pi-trash text-slate-400 text-xs"></i>
+                    </th>
+                    <th style="width: 32px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;">#</th>
+                    <th style="white-space: nowrap; padding: 0.45rem 0.6rem;">Description</th>
+                    <th style="width: 76px; text-align: center; white-space: nowrap; padding: 0.45rem 0.3rem;">Priority</th>
+                    <th *ngIf="showDeptColumn()" style="width: 175px; white-space: nowrap; padding: 0.45rem 0.4rem;" pTooltip="Assignee / Department (editable per task below)" tooltipPosition="top">Assignee / Dept</th>
+                    <th style="width: 130px; white-space: nowrap; padding: 0.45rem 0.4rem;">Due Date</th>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-task let-i="rowIndex">
-                  <tr>
-                    <td style="text-align: center; width: 42px; padding: 0.35rem 0.25rem;">
+                  <tr [class.row-checked]="isTaskChecked(task.id)">
+                    <td style="text-align: center; width: 36px; padding: 0.35rem 0.2rem;">
+                      <input 
+                        type="checkbox" 
+                        class="task-row-checkbox"
+                        [checked]="isTaskChecked(task.id)"
+                        (change)="toggleTaskCheck(task.id)" />
+                    </td>
+                    <td style="text-align: center; width: 36px; padding: 0.35rem 0.2rem;">
                       <button pButton icon="pi pi-times" size="small" [rounded]="true" severity="danger" [text]="true"
                               styleClass="w-1.75rem h-1.75rem"
                               pTooltip="Remove from Set" tooltipPosition="top"
                               (click)="removeSingleTask(task)"></button>
                     </td>
-                    <td style="text-align: center; width: 34px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.25rem;">
+                    <td style="text-align: center; width: 32px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.2rem;">
                       {{ i + 1 }}
                     </td>
-                    <td class="task-desc-cell" style="font-size: 0.775rem; line-height: 1.35; padding: 0.35rem 0.5rem;">
+                    <td class="task-desc-cell" style="font-size: 0.775rem; line-height: 1.35; padding: 0.35rem 0.6rem;">
                       <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;" [title]="task.description">
                         {{ task.description }}
                       </div>
-                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.25rem; flex-wrap: wrap;">
                         <span *ngIf="task.header_name" class="chip-subtle task-tag-header">
                           <i class="pi pi-tag" style="font-size: 0.58rem;"></i> {{ task.header_name }}
                         </span>
@@ -841,13 +969,14 @@
                         </span>
                       </div>
                     </td>
-                    <td style="text-align: center; width: 72px; padding: 0.35rem 0.25rem;">
+                    <td style="text-align: center; width: 76px; padding: 0.35rem 0.3rem;">
                       <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
-                    <td *ngIf="showDeptColumn()" style="width: 145px; padding: 0.35rem 0.35rem;">
+                    <td *ngIf="showDeptColumn()" style="width: 175px; padding: 0.35rem 0.4rem;">
                       <p-select 
                         [options]="branchDropdownOptions()" 
-                        [(ngModel)]="task.sub_dept_id" 
+                        [ngModel]="task.sub_dept_id" 
+                        (onChange)="onTaskSubDeptChanged(task, $event.value)"
                         optionLabel="label" 
                         optionValue="value" 
                         placeholder="Direct (Self)"
@@ -857,15 +986,15 @@
                         [showClear]="true">
                       </p-select>
                     </td>
-                    <td style="width: 120px; padding: 0.35rem 0.35rem;">
-                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-1.85rem text-xs" style="padding: 0.2rem 0.4rem;" />
+                    <td style="width: 130px; padding: 0.35rem 0.4rem;">
+                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-1.85rem text-xs" style="padding: 0.2rem 0.35rem;" />
                     </td>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="emptymessage">
                   <tr>
-                    <td [attr.colspan]="4 + (showDeptColumn() ? 2 : 1)" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                    <td [attr.colspan]="showDeptColumn() ? 7 : 6" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
                       <i class="pi pi-check-circle text-3xl text-emerald-300 block mb-2"></i>
                       <span class="text-xs font-semibold text-slate-700 block">No tasks selected yet</span>
                       <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> from the Available Tasks on the left</small>

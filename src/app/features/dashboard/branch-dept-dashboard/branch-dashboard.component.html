@@ -8,7 +8,7 @@
     <p>Manage department worksheets, track execution milestones, and verify compliance tasks.</p>
   </div>
   <div class="hero-right flex flex-wrap gap-2">
-    <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks', branch: branchDisplayName}" class="hero-action-btn primary-btn">
+    <a routerLink="/assignments" [queryParams]="{view: 'dept_tasks'}" class="hero-action-btn primary-btn">
       <i class="pi pi-check-square"></i> Department Tasks
     </a>
     <a routerLink="/task-sets" class="hero-action-btn outline-btn">
@@ -72,6 +72,34 @@
       </div>
     </div>
   </div>
+
+  <!-- 5. Dynamic Department-Wise Task Breakdown Cards -->
+  <ng-container *ngFor="let dept of departmentTaskStats">
+    <div class="metric-card cursor-pointer" [ngClass]="dept.theme" [routerLink]="['/assignments']" [queryParams]="dept.queryParams">
+      <div class="card-glow"></div>
+      <div class="card-icon"><i [class]="dept.icon"></i></div>
+      <div class="card-details">
+        <div class="flex align-items-center gap-2">
+          <span class="card-title">{{ dept.name }}</span>
+          <span class="dept-type-badge badge-sub">SUB-DEPT</span>
+        </div>
+        <div class="flex align-items-baseline gap-2 flex-wrap">
+          <span class="card-value">{{ dept.total }}</span>
+          <span class="badge-rate bg-indigo-100 text-indigo-800" *ngIf="dept.total > 0">
+            {{ dept.completed }}/{{ dept.total }} Done
+          </span>
+          <span class="badge-rate bg-purple-100 text-purple-800" *ngIf="dept.reviewPending > 0">
+            {{ dept.reviewPending }} in Review
+          </span>
+        </div>
+        <div class="text-xs font-semibold mt-1 sub-dept-card-bracket" (click)="$event.stopPropagation()">
+          (<a [routerLink]="['/assignments']" [queryParams]="dept.completedQueryParams" class="bracket-link text-gray-700 hover:text-green-700">Completed: <span class="text-green-600 font-bold">{{ dept.completed }}</span></a>,
+           <a [routerLink]="['/assignments']" [queryParams]="dept.pendingQueryParams" class="bracket-link text-gray-700 hover:text-blue-700">Pending: <span class="text-blue-600 font-bold">{{ dept.pending }}</span></a>,
+           <a [routerLink]="['/assignments']" [queryParams]="dept.reviewQueryParams" class="bracket-link text-gray-700 hover:text-purple-700">Reviewer Pending: <span class="text-purple-600 font-bold">{{ dept.reviewPending }}</span></a>)
+        </div>
+      </div>
+    </div>
+  </ng-container>
 </div>
 
 <!-- Main 2-Column Intelligence Section -->
@@ -99,6 +127,26 @@
         <div class="flex justify-content-between align-items-center mb-4 text-xs font-semibold" style="color: #64748b;">
           <span><strong class="text-green-600">{{ completedTasks }}</strong> of {{ totalTasks }} Tasks Completed</span>
           <span><strong class="text-blue-600">{{ pendingTasks }}</strong> Tasks Pending</span>
+        </div>
+
+        <!-- Sub-Department Tasks Highlight Banners -->
+        <div class="flex flex-column gap-2 mb-3" *ngIf="departmentTaskStats.length > 0">
+          <div *ngFor="let dept of departmentTaskStats"
+               class="sub-dept-summary-banner"
+               [routerLink]="['/assignments']"
+               [queryParams]="dept.queryParams"
+               style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(79, 70, 229, 0.12)); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 0.65rem 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+            <div class="flex align-items-center gap-2">
+              <i [class]="dept.icon" style="color: #6366f1; font-size: 1rem;"></i>
+              <span class="text-xs font-bold" style="color: #4338ca;">{{ dept.name }} (Sub-Dept):</span>
+              <span class="text-sm font-extrabold" style="color: #4f46e5;">{{ dept.total }}</span>
+            </div>
+            <div class="text-xs font-semibold" style="color: #4338ca;" (click)="$event.stopPropagation()">
+              (<a [routerLink]="['/assignments']" [queryParams]="dept.completedQueryParams" class="bracket-link hover:underline" style="color: inherit;">Completed: <strong class="text-green-600">{{ dept.completed }}</strong></a>,
+               <a [routerLink]="['/assignments']" [queryParams]="dept.pendingQueryParams" class="bracket-link hover:underline" style="color: inherit;">Pending: <strong class="text-blue-600">{{ dept.pending }}</strong></a>,
+               <a [routerLink]="['/assignments']" [queryParams]="dept.reviewQueryParams" class="bracket-link hover:underline" style="color: inherit;">Reviewer Pending: <strong class="text-purple-600">{{ dept.reviewPending }}</strong></a>)
+            </div>
+          </div>
         </div>
 
         <!-- Mini Status Grid -->
@@ -150,6 +198,25 @@
               <i class="pi pi-folder text-indigo-400"></i>
             </div>
           </div>
+
+          <!-- Sub-Department Tasks Grid Cards -->
+          <ng-container *ngFor="let dept of departmentTaskStats">
+            <div class="status-summary-card" [routerLink]="['/assignments']" [queryParams]="dept.queryParams"
+                 style="border-left: 4px solid #6366f1; grid-column: span 2; cursor: pointer;">
+              <div class="flex align-items-center justify-content-between">
+                <span class="text-xs text-gray-500 font-bold uppercase">{{ dept.name }} (Sub-Dept)</span>
+                <span class="text-xs font-bold text-indigo-600" (click)="$event.stopPropagation()">
+                  (<a [routerLink]="['/assignments']" [queryParams]="dept.completedQueryParams" class="bracket-link hover:underline" style="color: inherit;">Completed: {{ dept.completed }}</a>,
+                   <a [routerLink]="['/assignments']" [queryParams]="dept.pendingQueryParams" class="bracket-link hover:underline" style="color: inherit;">Pending: {{ dept.pending }}</a>,
+                   <a [routerLink]="['/assignments']" [queryParams]="dept.reviewQueryParams" class="bracket-link hover:underline" style="color: inherit;">Reviewer Pending: {{ dept.reviewPending }}</a>)
+                </span>
+              </div>
+              <div class="flex align-items-center justify-content-between mt-1">
+                <span class="text-xl font-bold text-indigo-600">{{ dept.total }}</span>
+                <i [class]="dept.icon" style="color: #a5b4fc;"></i>
+              </div>
+            </div>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -213,8 +280,8 @@
     </div>
     
     <div class="panel-body" style="padding-top: 0.5rem;">
-      <div class="progress-list" *ngIf="stats?.recentAssignments?.length > 0; else noAssignments">
-        <div *ngFor="let a of stats.recentAssignments" class="worksheet-card" [routerLink]="['/assignments', a.id]">
+      <div class="progress-list" *ngIf="(recentWorksheets.length > 0 ? recentWorksheets : stats?.recentAssignments)?.length > 0; else noAssignments">
+        <div *ngFor="let a of (recentWorksheets.length > 0 ? recentWorksheets : stats?.recentAssignments)" class="worksheet-card" [routerLink]="['/assignments', a.id]">
           <div class="worksheet-icon"
                [ngClass]="{
                  'icon-completed': a.status === 'COMPLETED',
@@ -236,6 +303,12 @@
               </span>
               <span class="meta-item" *ngIf="a.proposed_timeline">
                 <i class="pi pi-calendar"></i> {{ a.proposed_timeline | date:'dd MMM yyyy' }}
+              </span>
+              <span class="meta-item sub-dept-meta" *ngIf="a.sub_dept_stats && a.sub_dept_stats.total > 0" style="color: #4f46e5; font-weight: 600; background: rgba(99, 102, 241, 0.08); padding: 0.15rem 0.5rem; border-radius: 6px;">
+                <i class="pi pi-sitemap"></i> Sub-Dept: <strong>{{ a.sub_dept_stats.total }}</strong>
+                <span style="font-weight: 500; font-size: 0.72rem; margin-left: 0.25rem;">
+                  (Completed: {{ a.sub_dept_stats.completed }}, Pending: {{ a.sub_dept_stats.pending }}, Reviewer Pending: {{ a.sub_dept_stats.reviewPending }})
+                </span>
               </span>
             </div>
           </div>

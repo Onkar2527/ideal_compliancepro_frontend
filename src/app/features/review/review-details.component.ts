@@ -42,7 +42,7 @@ import { APP_CONFIG } from '../../core/services/config/config.token';
                 <td class="p-4 italic text-gray-600 max-w-sm">"{{ ev.remark }}"</td>
                 <td class="p-4">
                   <a [href]="ev.file_url" target="_blank" class="text-indigo-600 hover:text-indigo-800 flex items-center">
-                    <i class="pi pi-file-pdf text-xl mr-2 text-red-500"></i> View PDF
+                    <i class="pi pi-file text-xl mr-2 text-indigo-600"></i> View Evidence
                   </a>
                 </td>
               </tr>

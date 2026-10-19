@@ -911,17 +911,19 @@ body {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 
         &.card-approved,
+        &.card-complied,
         &.border-left-green {
             background: #0f172a !important;
             border-color: #334155 !important;
-            border-left: 4px solid #10b981 !important;
+            border-left: 6px solid #10b981 !important;
         }
 
         &.card-needs-redo,
+        &.card-not-complied,
         &.border-left-red {
             background: #0f172a !important;
             border-color: #334155 !important;
-            border-left: 4px solid #ef4444 !important;
+            border-left: 6px solid #ef4444 !important;
         }
 
         .question-main {
@@ -1272,6 +1274,132 @@ button:not(.p-button-icon-only):not(.icon-only-btn):not(.p-row-toggler):not(.p-c
     transform: scale(2.2);
     opacity: 0;
   }
+}
+
+/* Sub-Department Task & Delegation Badges */
+.subdept-task-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4338ca;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.7rem;
+    color: #6366f1;
+  }
+}
+
+.subdept-breakdown-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4f46e5;
+  white-space: nowrap;
+  background: rgba(99, 102, 241, 0.06);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+}
+
+.sub-dept-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  font-size: 0.725rem;
+  font-weight: 700;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.7rem;
+    color: #6366f1;
+  }
+}
+
+:root.app-dark .subdept-task-tag,
+.app-dark .subdept-task-tag {
+  background: rgba(99, 102, 241, 0.22);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.4);
+  i { color: #818cf8; }
+}
+
+:root.app-dark .subdept-breakdown-pill,
+.app-dark .subdept-breakdown-pill {
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+}
+
+:root.app-dark .sub-dept-chip,
+.app-dark .sub-dept-chip {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  border-color: rgba(99, 102, 241, 0.35);
+  i { color: #818cf8; }
+}
+
+/* ==========================================================================
+   Compliance Cycle & Period Badges (Assignments & Reviews)
+   ========================================================================== */
+.compliance-cycle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+
+  i {
+    font-size: 0.7rem;
+    color: #2563eb;
+  }
+}
+
+:root.app-dark .compliance-cycle-badge,
+.app-dark .compliance-cycle-badge {
+  background: rgba(37, 99, 235, 0.15);
+  color: #93c5fd;
+  border-color: rgba(37, 99, 235, 0.35);
+
+  i {
+    color: #60a5fa;
+  }
+}
+
+.compliance-period-subtle {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+:root.app-dark .compliance-period-subtle,
+.app-dark .compliance-period-subtle {
+  color: #94a3b8;
+}
+
+/* Ensure Table Headers Never Wrap Letters Vertically */
+.p-datatable-thead > tr > th {
+  white-space: nowrap !important;
 }
 
 /* ==========================================================================

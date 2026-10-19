@@ -206,11 +206,12 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
     /* ── Dual Transfer Panel Enhancements (Zero Horizontal Scroll) ── */
     .dual-transfer-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
-      gap: 1rem;
+      grid-template-columns: minmax(320px, 0.72fr) minmax(500px, 1.28fr);
+      gap: 1.25rem;
       width: 100%;
+      align-items: start;
     }
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
       .dual-transfer-grid {
         grid-template-columns: 1fr;
       }
@@ -257,6 +258,8 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       align-items: center;
       gap: 0.25rem;
       line-height: 1.2;
+      background: #ffffff;
+      color: #065f46;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .due-preset-btn:hover {
@@ -301,6 +304,78 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       border-bottom: 1px solid #f1f5f9 !important;
       overflow: hidden;
       vertical-align: middle;
+    }
+
+    /* ── Checkbox & Group Selection Styles ── */
+    .task-row-checkbox {
+      width: 1.05rem;
+      height: 1.05rem;
+      accent-color: #2563eb;
+      border-radius: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+    ::ng-deep .dual-panel .p-datatable-tbody > tr.row-checked {
+      background: #eff6ff !important;
+    }
+    ::ng-deep .dual-panel .p-datatable-tbody > tr.row-checked:hover {
+      background: #dbeafe !important;
+    }
+    :root[class*='app-dark'] ::ng-deep .dual-panel .p-datatable-tbody > tr.row-checked,
+    .app-dark ::ng-deep .dual-panel .p-datatable-tbody > tr.row-checked {
+      background: rgba(30, 58, 138, 0.3) !important;
+    }
+    .group-action-bar {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-bottom: 1.5px solid #93c5fd !important;
+      border-left: 3px solid #2563eb !important;
+      min-height: 2.75rem;
+    }
+    :root[class*='app-dark'] .group-action-bar,
+    .app-dark .group-action-bar {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+      border-bottom: 1.5px solid #2563eb !important;
+      border-left: 3px solid #60a5fa !important;
+    }
+    .group-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.65rem;
+      border-radius: 9999px;
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+      white-space: nowrap;
+    }
+    .due-custom-date-input {
+      height: 1.7rem;
+      font-size: 0.72rem;
+      padding: 0 0.35rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      color: #334155;
+      background: #ffffff;
+      max-width: 125px;
+    }
+    :root[class*='app-dark'] .due-custom-date-input,
+    .app-dark .due-custom-date-input {
+      background: #1e293b;
+      border-color: #475569;
+      color: #e2e8f0;
+    }
+    ::ng-deep .task-set-form-drawer.p-drawer-full {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      height: 100vh !important;
+      border-radius: 0 !important;
+    }
+    ::ng-deep .task-set-form-drawer .p-drawer-content {
+      padding: 1.25rem 1.75rem 4.5rem 1.75rem !important;
+      overflow-y: auto !important;
     }
 
     /* ── Bulk Upload Dialog ── */
@@ -780,6 +855,39 @@ import { DateFieldComponent } from '../../shared/components/form/date-field/date
       background: #047857 !important;
       color: #ffffff !important;
     }
+    .due-custom-date-input {
+      border: 1.5px solid #10b981;
+      border-radius: 6px;
+      padding: 0.15rem 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #065f46;
+      background: #ffffff;
+      height: 1.65rem;
+      outline: none;
+      transition: all 0.15s ease-in-out;
+    }
+    .due-custom-date-input:focus {
+      border-color: #047857;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    ::ng-deep .bulk-assign-select.p-select {
+      background: #ffffff !important;
+      border: 1.5px solid #86efac !important;
+      border-radius: 6px !important;
+      box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08) !important;
+      transition: all 0.15s ease-in-out !important;
+    }
+    ::ng-deep .bulk-assign-select.p-select:hover {
+      border-color: #10b981 !important;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.15) !important;
+    }
+    ::ng-deep .bulk-assign-select .p-select-label {
+      padding: 0.25rem 0.5rem !important;
+      font-size: 0.75rem !important;
+      font-weight: 600 !important;
+      color: #0f172a !important;
+    }
 
     .selected-tasks-count-pill {
       background: #ecfdf5;
@@ -1041,9 +1149,14 @@ export class TaskSetsComponent implements OnInit {
 
   // Modals state
   showFormDrawer = signal(false);
+  isDrawerFullScreen = signal(true);
   isEditMode = false;
   selectedTaskSet: any = null;
   showBranchAssignment = signal(false);
+
+  toggleDrawerFullScreen() {
+    this.isDrawerFullScreen.update(v => !v);
+  }
 
   taskSetTypeOptions = [
     { label: 'Regular (Circular Based)', value: 'REGULAR' },
@@ -2304,24 +2417,41 @@ export class TaskSetsComponent implements OnInit {
   addAllAvailableTasks(): void {
     const toAdd = this.filteredAvailableTasks();
     if (toAdd.length === 0) return;
-    this.targetTasks = [...toAdd, ...this.targetTasks];
+    const currentBulkDept = this.bulkSelectedSubDeptId();
+    const tasksToAdd = currentBulkDept !== null && currentBulkDept !== undefined
+      ? toAdd.map(t => ({ ...t, sub_dept_id: t.sub_dept_id ?? currentBulkDept }))
+      : toAdd;
+    this.targetTasks = [...tasksToAdd, ...this.targetTasks];
     this.selectionTick.set(this.selectionTick() + 1);
   }
 
   removeAllSelectedTasks(): void {
     this.targetTasks = [];
+    this.bulkSelectedSubDeptId.set(null);
+    this.bulkSelectedDueDate.set('');
+    this.activeDueDaysPreset.set(null);
+    this.clearCheckedTasks();
     this.selectionTick.set(this.selectionTick() + 1);
   }
 
   addSingleTask(task: any): void {
     if (!task) return;
-    this.targetTasks = [task, ...this.targetTasks];
+    const currentBulkDept = this.bulkSelectedSubDeptId();
+    const taskToAdd = (currentBulkDept !== null && currentBulkDept !== undefined && (task.sub_dept_id === undefined || task.sub_dept_id === null))
+      ? { ...task, sub_dept_id: currentBulkDept }
+      : task;
+    this.targetTasks = [taskToAdd, ...this.targetTasks];
     this.selectionTick.set(this.selectionTick() + 1);
   }
 
   removeSingleTask(task: any): void {
     if (!task) return;
     this.targetTasks = this.targetTasks.filter(t => t.id !== task.id);
+    if (this.checkedTaskIds().has(task.id)) {
+      const set = new Set(this.checkedTaskIds());
+      set.delete(task.id);
+      this.checkedTaskIds.set(set);
+    }
     this.selectionTick.set(this.selectionTick() + 1);
   }
 
@@ -2365,6 +2495,207 @@ export class TaskSetsComponent implements OnInit {
   });
 
   activeDueDaysPreset = signal<number | null>(null);
+  bulkSelectedSubDeptId = signal<any>(null);
+  bulkSelectedDueDate = signal<string>('');
+
+  // Checkbox multi-select for target tasks
+  checkedTaskIds = signal<Set<number>>(new Set());
+  checkedTaskCount = computed(() => this.checkedTaskIds().size);
+  groupSelectedSubDeptId = signal<any>(null);
+
+  isTaskChecked(id: number): boolean {
+    return this.checkedTaskIds().has(id);
+  }
+
+  toggleTaskCheck(id: number): void {
+    const set = new Set(this.checkedTaskIds());
+    if (set.has(id)) {
+      set.delete(id);
+    } else {
+      set.add(id);
+    }
+    this.checkedTaskIds.set(set);
+  }
+
+  isAllSelectedTasksChecked(): boolean {
+    const visible = this.filteredSelectedTasks();
+    if (!visible || visible.length === 0) return false;
+    const set = this.checkedTaskIds();
+    return visible.every(t => set.has(t.id));
+  }
+
+  toggleAllSelectedTasksCheck(): void {
+    const visible = this.filteredSelectedTasks();
+    if (!visible || visible.length === 0) return;
+    const set = new Set(this.checkedTaskIds());
+    const allChecked = visible.every(t => set.has(t.id));
+    if (allChecked) {
+      visible.forEach(t => set.delete(t.id));
+    } else {
+      visible.forEach(t => set.add(t.id));
+    }
+    this.checkedTaskIds.set(set);
+  }
+
+  clearCheckedTasks(): void {
+    this.checkedTaskIds.set(new Set());
+    this.groupSelectedSubDeptId.set(null);
+  }
+
+  ensureBranchInSelectedBranches(deptId: any): void {
+    if (!deptId) return;
+    const numId = Number(deptId);
+    const matchingBranch = (this.branches() || []).find((b: any) => Number(b.id) === numId);
+    if (matchingBranch && !this.selectedBranches.some((b: any) => Number(b.id) === numId)) {
+      this.selectedBranches = [...this.selectedBranches, matchingBranch];
+    }
+  }
+
+  applyGroupSubDeptToCheckedTasks(deptId: any): void {
+    const checkedIds = this.checkedTaskIds();
+    if (!checkedIds || checkedIds.size === 0) return;
+
+    this.groupSelectedSubDeptId.set(deptId);
+
+    this.targetTasks = this.targetTasks.map(t => {
+      if (checkedIds.has(t.id)) {
+        return {
+          ...t,
+          sub_dept_id: deptId
+        };
+      }
+      return t;
+    });
+    this.selectionTick.set(this.selectionTick() + 1);
+
+    if (deptId !== null && deptId !== undefined) {
+      this.ensureBranchInSelectedBranches(deptId);
+    }
+
+    const deptName = (deptId === null || deptId === undefined)
+      ? 'Direct (Self)'
+      : (this.branches().find((b: any) => Number(b.id) === Number(deptId))?.name || 'Selected Department');
+
+    const count = checkedIds.size;
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Group Assigned',
+      detail: `Assigned "${deptName}" to ${count} task(s) and synced with Task Set branches.`,
+      life: 3000
+    });
+
+    this.clearCheckedTasks();
+  }
+
+  onTaskSubDeptChanged(task: any, deptId: any): void {
+    task.sub_dept_id = deptId;
+    if (deptId !== null && deptId !== undefined) {
+      this.ensureBranchInSelectedBranches(deptId);
+    }
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  applyDaysToSelectedTasks(days: number): void {
+    const checkedIds = this.checkedTaskIds();
+    this.activeDueDaysPreset.set(days);
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const dateStr = d.toISOString().split('T')[0];
+
+    if (checkedIds.size > 0) {
+      this.targetTasks = this.targetTasks.map(t => {
+        if (checkedIds.has(t.id)) {
+          return { ...t, due_date: dateStr };
+        }
+        return t;
+      });
+      this.selectionTick.set(this.selectionTick() + 1);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Due Date Applied',
+        detail: `Applied +${days} days (${dateStr}) to ${checkedIds.size} checked task(s).`,
+        life: 2500
+      });
+    } else {
+      this.applyDaysToAllSelectedTasks(days);
+    }
+  }
+
+  applyCustomDueDateToSelected(dateVal: any): void {
+    const dateStr = this.toDateString(dateVal);
+    if (!dateStr) return;
+    this.bulkSelectedDueDate.set(dateStr);
+    this.activeDueDaysPreset.set(null);
+    const checkedIds = this.checkedTaskIds();
+
+    if (checkedIds.size > 0) {
+      this.targetTasks = this.targetTasks.map(t => {
+        if (checkedIds.has(t.id)) {
+          return { ...t, due_date: dateStr };
+        }
+        return t;
+      });
+      this.selectionTick.set(this.selectionTick() + 1);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Due Date Applied',
+        detail: `Applied due date (${dateStr}) to ${checkedIds.size} checked task(s).`,
+        life: 2500
+      });
+    } else {
+      this.applyCustomDueDateToAll(dateVal);
+    }
+  }
+
+  removeCheckedTasks(): void {
+    const checkedIds = this.checkedTaskIds();
+    if (checkedIds.size === 0) return;
+    this.targetTasks = this.targetTasks.filter(t => !checkedIds.has(t.id));
+    this.selectionTick.set(this.selectionTick() + 1);
+    this.clearCheckedTasks();
+  }
+
+  applyBulkSubDeptToSelectedTasks(deptId: any): void {
+    this.bulkSelectedSubDeptId.set(deptId);
+    this.targetTasks = this.targetTasks.map(t => ({
+      ...t,
+      sub_dept_id: deptId
+    }));
+    this.selectionTick.set(this.selectionTick() + 1);
+
+    if (deptId !== null && deptId !== undefined) {
+      this.ensureBranchInSelectedBranches(deptId);
+    }
+
+    const deptName = (deptId === null || deptId === undefined)
+      ? 'Direct (Self)'
+      : (this.branches().find(b => b.id === deptId)?.name || 'Selected Sub-Department');
+
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Assignee Applied to All',
+      detail: `Assigned "${deptName}" to all ${this.targetTasks.length} selected tasks and synced with Task Set branches. Individual tasks can still be adjusted below.`,
+      life: 3000
+    });
+  }
+
+  applyCustomDueDateToAll(dateVal: any): void {
+    const dateStr = this.toDateString(dateVal);
+    if (!dateStr) return;
+    this.bulkSelectedDueDate.set(dateStr);
+    this.activeDueDaysPreset.set(null);
+    this.targetTasks = this.targetTasks.map(t => ({
+      ...t,
+      due_date: dateStr
+    }));
+    this.selectionTick.set(this.selectionTick() + 1);
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Due Date Applied',
+      detail: `Applied due date (${dateStr}) to all ${this.targetTasks.length} selected tasks.`,
+      life: 2500
+    });
+  }
 
   applyDaysToAllSelectedTasks(days: number) {
     this.activeDueDaysPreset.set(days);
@@ -2402,7 +2733,7 @@ export class TaskSetsComponent implements OnInit {
   branchDropdownOptions = computed(() => {
     const list = this.branches() || [];
     return [
-      { label: 'Direct (Self-Compliance)', value: null },
+      { label: 'Direct (Self)', value: null },
       ...list.map((b: any) => ({ label: b.name, value: b.id }))
     ];
   });
@@ -2719,9 +3050,13 @@ export class TaskSetsComponent implements OnInit {
   }
 
   openCreateModal() { // Kept method name since html uses it, but it opens the form drawer
+    this.isDrawerFullScreen.set(true);
     this.isEditMode = false;
     this.selectedTaskSet = null;
+    this.clearCheckedTasks();
     this.activeDueDaysPreset.set(null);
+    this.bulkSelectedSubDeptId.set(null);
+    this.bulkSelectedDueDate.set('');
     this.newTaskSetType.set('REGULAR');
     this.newTaskSetName.set('');
     this.newTaskSetAuthorityId.set(null);
@@ -2767,8 +3102,10 @@ export class TaskSetsComponent implements OnInit {
   }
 
   openFormDrawer(row: any) {
+    this.isDrawerFullScreen.set(true);
     this.isEditMode = true;
     this.selectedTaskSet = row;
+    this.clearCheckedTasks();
     this.sessionCreatedTasks.set([]);
     this.internalPreviousTasksLoaded.set(true);
     this.newTaskSetType.set(row.type || 'REGULAR');
@@ -2802,6 +3139,8 @@ export class TaskSetsComponent implements OnInit {
     this.newTaskSetAssignmentSchedule.set(row.assignment_schedule || '');
     this.selectedBranches = [];
     this.targetTasks = [];
+    this.bulkSelectedSubDeptId.set(null);
+    this.bulkSelectedDueDate.set('');
     this.selectionTick.set(this.selectionTick() + 1);
     this.showBranchAssignment.set(true);
     this.proposedDate.set(null);
@@ -2864,6 +3203,13 @@ export class TaskSetsComponent implements OnInit {
           });
 
           this.targetTasks = selected.length > 0 ? selected : mappedRawTasks.filter((t: any) => mappedIds.has(t.id));
+          if (this.targetTasks.length > 0) {
+            const firstDept = this.targetTasks[0].sub_dept_id;
+            const allSameDept = this.targetTasks.every((t: any) => t.sub_dept_id === firstDept);
+            if (allSameDept && firstDept !== undefined) {
+              this.bulkSelectedSubDeptId.set(firstDept);
+            }
+          }
           this.selectedBranches = this.branches().filter((b: any) => mappedBranchIds.has(b.id));
           this.selectionTick.set(this.selectionTick() + 1);
           this.loadingFormDetails.set(false);
@@ -3021,6 +3367,7 @@ export class TaskSetsComponent implements OnInit {
       frequency: freq || undefined,
       start_date: this.formatDate(this.newTaskSetStartDate()),
       end_date: this.formatDate(this.newTaskSetEndDate()),
+      default_due_date: this.formatDate(this.newTaskSetEndDate()),
       created_by: userId || undefined,
       created_by_id: userId || undefined,
       created_by_user_id: userId || undefined,
@@ -3071,6 +3418,20 @@ export class TaskSetsComponent implements OnInit {
         branchIds = this.selectedBranches.map(b => b.id);
       } else if (userBranchId) {
         branchIds = [Number(userBranchId)];
+      }
+
+      // Automatically sync all task-assigned branches to the whole task set
+      if (!isBranch) {
+        const taskBranchIds = this.targetTasks
+          .filter(t => t.sub_dept_id !== null && t.sub_dept_id !== undefined)
+          .map(t => Number(t.sub_dept_id));
+        const mergedBranchIds = new Set<number>([...branchIds, ...taskBranchIds]);
+        branchIds = Array.from(mergedBranchIds);
+
+        const currentBranchObjects = (this.branches() || []).filter((b: any) => branchIds.includes(Number(b.id)));
+        if (currentBranchObjects.length > 0) {
+          this.selectedBranches = currentBranchObjects;
+        }
       }
       
       const d20 = new Date();

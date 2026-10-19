@@ -12,6 +12,7 @@ import { DialogModule } from "primeng/dialog";
 import { InputTextModule } from "primeng/inputtext";
 import { ConfirmDialogModule } from "primeng/confirmdialog";
 import { ConfirmationService } from "primeng/api";
+import { getCompliancePeriodInfo } from "../../shared/utils/compliance-period.util";
 
 @Component({
   selector: "app-co-review-details",
@@ -66,16 +67,46 @@ export class CoReviewDetailsComponent implements OnInit {
   }
 
   cleanFileName(rawName: string): string {
-    if (!rawName) return 'Evidence Document.pdf';
+    if (!rawName) return 'Evidence Document';
     let name = decodeURIComponent(rawName.trim().split('?')[0]);
+    if (name.includes('/') || name.includes('\\')) {
+      name = name.split(/[/\\]/).pop() || name;
+    }
     // Remove leading timestamp e.g. 1726483920192-file.pdf
     name = name.replace(/^\d{10,14}[-_]/, '');
-    // Remove trailing hex hash, uuid, or timestamp before .pdf extension
-    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.pdf$|$)/i, '');
-    if (!name.toLowerCase().endsWith('.pdf') && rawName.toLowerCase().includes('.pdf')) {
-      name = name + '.pdf';
-    }
-    return name || 'Evidence Document.pdf';
+    // Remove trailing hex hash, uuid, or timestamp before extension
+    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.[a-zA-Z0-9]+$|$)/i, '');
+    return name || 'Evidence Document';
+  }
+
+  getFileIcon(nameOrUrl?: string): string {
+    if (!nameOrUrl) return 'pi pi-file';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'pi pi-file-pdf';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return 'pi pi-image';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return 'pi pi-file-word';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return 'pi pi-file-excel';
+    return 'pi pi-file';
+  }
+
+  getFileIconColor(nameOrUrl?: string): string {
+    if (!nameOrUrl) return '#6b7280';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return '#dc2626';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return '#2563eb';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return '#1d4ed8';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return '#059669';
+    return '#6b7280';
+  }
+
+  getFileTypeName(nameOrUrl?: string): string {
+    if (!nameOrUrl) return 'Document';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'PDF Document';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return 'Image File';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return 'Word Document';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return 'Spreadsheet';
+    return 'Document';
   }
 
   private getDeletedEvidenceKeys(): Set<string> {
@@ -278,6 +309,17 @@ export class CoReviewDetailsComponent implements OnInit {
   selectedFilesMap = signal<Record<number, File[]>>({});
 
   assignmentMeta = computed(() => this.tasks()[0] ?? null);
+  complianceCycleInfo = computed(() => {
+    const meta = this.assignmentMeta();
+    if (!meta) return { cycleLabel: '', periodRangeLabel: '' };
+    return getCompliancePeriodInfo({
+      frequency: meta.frequency,
+      startDate: meta.start_date,
+      endDate: meta.end_date,
+      proposedTimeline: meta.proposed_timeline,
+      createdAt: meta.created_at
+    });
+  });
   assignmentStatus = computed(() => this.assignmentMeta()?.status || this.assignmentMeta()?.assignment_status || '');
   compliedCount = computed(() => this.tasks().filter(t => t.compliance_status === "COMPLIED").length);
   notCompliedCount = computed(() => this.tasks().filter(t => t.compliance_status === "NOT_COMPLIED").length);
@@ -746,13 +788,20 @@ export class CoReviewDetailsComponent implements OnInit {
     const fileList: FileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
 
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const allowedExts = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
     const validFiles: File[] = [];
     for (let i = 0; i < fileList.length; i++) {
       const f = fileList[i];
-      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      if (f.size > MAX_FILE_SIZE) {
+        this.notification.warn(`Skipped "${f.name}": exceeds 5MB size limit (${(f.size / (1024 * 1024)).toFixed(1)}MB).`);
+        continue;
+      }
+      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
+      if (allowedExts.includes(ext) || f.type.startsWith('image/') || f.type === 'application/pdf') {
         validFiles.push(f);
       } else {
-        this.notification.warn(`Skipped "${f.name}": only PDF files are accepted.`);
+        this.notification.warn(`Skipped "${f.name}": only PDF, images (PNG, JPG), Word and Excel files are accepted.`);
       }
     }
 
@@ -767,7 +816,7 @@ export class CoReviewDetailsComponent implements OnInit {
       this.displayEvidenceSourceModal = true;
     } else {
       this.addSelectedFiles(taskId, validFiles);
-      this.notification.success(`${validFiles.length} evidence PDF documents attached.`);
+      this.notification.success(`${validFiles.length} evidence document(s) attached.`);
       this.displayEvidenceSourceModal = false;
     }
     event.target.value = '';
@@ -783,16 +832,22 @@ export class CoReviewDetailsComponent implements OnInit {
     if (!this.activeEvidenceTaskId || !this.stagedFile) return;
     const taskId = this.activeEvidenceTaskId;
     let finalName = (this.customDocName || '').trim();
+    const origName = this.originalFileName || this.stagedFile.name || 'evidence.pdf';
+    const lastDotIdx = origName.lastIndexOf('.');
+    const origExt = lastDotIdx !== -1 ? origName.slice(lastDotIdx) : '';
+
     if (!finalName) {
-      finalName = this.originalFileName || 'evidence.pdf';
-    }
-    if (!finalName.toLowerCase().endsWith('.pdf')) {
-      finalName = finalName + '.pdf';
+      finalName = origName;
+    } else if (origExt && !finalName.toLowerCase().endsWith(origExt.toLowerCase())) {
+      const userDotIdx = finalName.lastIndexOf('.');
+      if (userDotIdx === -1) {
+        finalName = finalName + origExt;
+      }
     }
 
-    const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/pdf' });
+    const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/octet-stream' });
     this.addSelectedFiles(taskId, [renamedFile]);
-    this.notification.success(`Evidence PDF "${finalName}" attached.`);
+    this.notification.success(`Evidence document "${finalName}" attached.`);
     this.stagedFile = null;
     this.displayEvidenceSourceModal = false;
   }

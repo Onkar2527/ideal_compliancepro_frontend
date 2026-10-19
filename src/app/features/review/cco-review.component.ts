@@ -7,6 +7,7 @@ import { AuthService } from "../../core/services/auth/auth.service";
 import { ComplianceApiService } from "../../core/services/api/compliance-api.service";
 import { NotificationService } from "../../core/services/notification/notification.service";
 import { TableComponent, TableColumn, TableAction } from "../../shared/components/table/table.component";
+import { getCompliancePeriodInfo } from "../../shared/utils/compliance-period.util";
 import { SelectModule } from "primeng/select";
 import { FormsModule } from "@angular/forms";
 
@@ -32,6 +33,7 @@ import { ButtonModule } from "primeng/button";
         [showRefreshButton]="true"
         [paginator]="true"
         [rows]="10"
+        [tableStyle]="{ 'width': '100%' }"
         (onSearch)="handleSearch($event)"
         (onRefresh)="loadAssignments()"
       >
@@ -111,13 +113,12 @@ export class CcoReviewComponent implements OnInit {
   };
 
   tableColumns: TableColumn[] = [
-    { field: 'task_set_name', header: 'Task Set', type: 'text', width: '26%' },
-    { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
-    { field: 'branch_name', header: 'Dept / Branch', type: 'text', width: '14%' },
-    { field: 'frequency', header: 'Frequency', type: 'text', width: '110px' },
-    { field: 'progress_text', header: 'Progress', type: 'text', width: '90px', align: 'center' },
-    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '140px' },
-    { field: 'status', header: 'Status', type: 'status', width: '160px' }
+    { field: 'task_set_display', header: 'Task Set', type: 'html', width: '24%', sortField: 'task_set_name' },
+    { field: 'branch_display', header: 'Dept / Branch', type: 'html', width: '15%' },
+    { field: 'frequency_display', header: 'Frequency', type: 'html', width: '24%', sortField: 'frequency' },
+    { field: 'progress_text', header: 'Progress', type: 'text', width: '9%', align: 'center' },
+    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '13%' },
+    { field: 'status', header: 'Status', type: 'status', width: '15%' }
   ];
 
   statusFilterOptions = [
@@ -374,12 +375,42 @@ export class CcoReviewComponent implements OnInit {
                   dueScheduleText += ` ${a.due_time}`;
                 }
 
+                const { cycleLabel, periodRangeLabel } = getCompliancePeriodInfo({
+                  frequency: a.frequency || ts?.frequency,
+                  startDate: a.start_date || ts?.start_date,
+                  endDate: a.end_date || ts?.end_date,
+                  proposedTimeline: a.proposed_timeline,
+                  createdAt: a.created_at
+                });
+                const baseName = a.task_set_name || ts?.name || 'Task Set';
+                const taskSetDisplay = `
+                  <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 2px 0;">
+                    <span style="font-weight: 600; color: var(--text-color, #0f172a); line-height: 1.35; font-size: 0.88rem;">${baseName}</span>
+                  </div>
+                `;
+
+                const freqName = this.frequencyMap[a.frequency] || a.frequency || '—';
+                const frequencyDisplay = `
+                  <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start; padding: 2px 0;">
+                    <span style="font-weight: 700; color: var(--text-color, #0f172a); font-size: 0.82rem;">${freqName}</span>
+                    <span class="compliance-cycle-badge" title="Specific compliance cycle/period for this assignment">
+                      <i class="pi pi-calendar-clock"></i> ${cycleLabel}
+                    </span>
+                    ${periodRangeLabel ? `<span class="compliance-period-subtle" title="Overall task set active validity period">${periodRangeLabel}</span>` : ''}
+                  </div>
+                `;
+
+                const branchDisplay = `<span style="white-space: nowrap; font-weight: 600; font-size: 0.82rem; color: var(--text-color, #0f172a);">${a.branch_name || '—'}</span>`;
+
                 return {
                   ...a,
+                  task_set_display: taskSetDisplay,
+                  frequency_display: frequencyDisplay,
+                  branch_display: branchDisplay,
                   created_by_role: role,
                   created_by_username: username,
                   is_branch_created: isBranch,
-                  frequency: this.frequencyMap[a.frequency] || a.frequency,
+                  frequency: freqName,
                   progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
                   due_schedule_text: dueScheduleText
                 };

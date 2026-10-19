@@ -138,7 +138,7 @@
 /* ── Question Card (the main checklist card) ── */
 .question-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   background: var(--surface-card, white);
   border: 1px solid var(--surface-border, #e2e8f0);
   border-left: 4px solid var(--primary-color, #0f2942);
@@ -174,15 +174,50 @@
   width: 1.6rem !important;
 }
 
-/* Left border status colours — shared by branch + review */
+/* Left border status colours — shared by branch + review (thick prominent accent) */
 .border-left-green,
 .card-complied,
-.card-approved       { border-left-color: #10b981 !important; }
+.card-approved {
+  border-left: 6px solid #10b981 !important;
+}
 .border-left-red,
 .card-not-complied,
-.card-needs-redo     { border-left-color: #ef4444 !important; }
+.card-needs-redo {
+  border-left: 6px solid #ef4444 !important;
+}
 .border-left-yellow,
-.border-left-pending { border-left-color: var(--primary-color, #0f2942) !important; }
+.border-left-pending {
+  border-left-color: var(--primary-color, #0f2942) !important;
+}
+
+/* ── Saved / Completed Response Panel (prominent green panel when complied) ── */
+.saved-response-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 8px;
+  width: 100%;
+  background: var(--surface-hover, #f8fafc);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-left: 6px solid #64748b;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.saved-response-panel.panel-complied {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.45) !important;
+  border-left: 6px solid #10b981 !important;
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.08);
+}
+
+.saved-response-panel.panel-not-complied {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.45) !important;
+  border-left: 6px solid #ef4444 !important;
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.08);
+}
 
 /* ── Left Column: Serial number + task description ── */
 .question-main {
@@ -456,19 +491,54 @@
 }
 
 :root.app-dark .question-card.card-approved,
+:root.app-dark .question-card.card-complied,
+:root.app-dark .question-card.border-left-green,
 .app-dark .question-card.card-approved,
-:host-context(.app-dark) .question-card.card-approved {
+.app-dark .question-card.card-complied,
+.app-dark .question-card.border-left-green,
+:host-context(.app-dark) .question-card.card-approved,
+:host-context(.app-dark) .question-card.card-complied,
+:host-context(.app-dark) .question-card.border-left-green {
   background: #0f172a !important;
   border-color: #334155 !important;
-  border-left: 4px solid #10b981 !important;
+  border-left: 6px solid #10b981 !important;
 }
 
 :root.app-dark .question-card.card-needs-redo,
+:root.app-dark .question-card.card-not-complied,
+:root.app-dark .question-card.border-left-red,
 .app-dark .question-card.card-needs-redo,
-:host-context(.app-dark) .question-card.card-needs-redo {
+.app-dark .question-card.card-not-complied,
+.app-dark .question-card.border-left-red,
+:host-context(.app-dark) .question-card.card-needs-redo,
+:host-context(.app-dark) .question-card.card-not-complied,
+:host-context(.app-dark) .question-card.border-left-red {
   background: #0f172a !important;
   border-color: #334155 !important;
-  border-left: 4px solid #ef4444 !important;
+  border-left: 6px solid #ef4444 !important;
+}
+
+:root.app-dark .saved-response-panel,
+.app-dark .saved-response-panel,
+:host-context(.app-dark) .saved-response-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:root.app-dark .saved-response-panel.panel-complied,
+.app-dark .saved-response-panel.panel-complied,
+:host-context(.app-dark) .saved-response-panel.panel-complied {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  border-left: 6px solid #10b981 !important;
+}
+
+:root.app-dark .saved-response-panel.panel-not-complied,
+.app-dark .saved-response-panel.panel-not-complied,
+:host-context(.app-dark) .saved-response-panel.panel-not-complied {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  border-left: 6px solid #ef4444 !important;
 }
 
 :root.app-dark .question-card:hover,
@@ -650,12 +720,28 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.75rem;
+  padding: 0.85rem 1.15rem;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-left: 3px solid #0f2942;
+  border-left: 6px solid #0f2942;
   border-radius: 8px;
   color: #1e293b;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.subdept-submission-card.panel-complied {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.45) !important;
+  border-left: 6px solid #10b981 !important;
+  box-shadow: 0 1px 6px rgba(16, 185, 129, 0.08);
+}
+
+.subdept-submission-card.panel-not-complied {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1.5px solid rgba(239, 68, 68, 0.45) !important;
+  border-left: 6px solid #ef4444 !important;
+  box-shadow: 0 1px 6px rgba(239, 68, 68, 0.08);
 }
 
 .subdept-submission-title {
@@ -724,6 +810,22 @@
   border-color: #334155 !important;
   border-left-color: #3b82f6 !important;
   color: #f8fafc !important;
+}
+
+:root.app-dark .subdept-submission-card.panel-complied,
+.app-dark .subdept-submission-card.panel-complied,
+:host-context(.app-dark) .subdept-submission-card.panel-complied {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  border-left-color: #10b981 !important;
+}
+
+:root.app-dark .subdept-submission-card.panel-not-complied,
+.app-dark .subdept-submission-card.panel-not-complied,
+:host-context(.app-dark) .subdept-submission-card.panel-not-complied {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  border-left-color: #ef4444 !important;
 }
 
 :root.app-dark .subdept-submission-title,

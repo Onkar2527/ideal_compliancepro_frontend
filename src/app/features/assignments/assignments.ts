@@ -9,6 +9,7 @@ import { ComplianceApiService } from '../../core/services/api/compliance-api.ser
 import { AuthService } from '../../core/services/auth/auth.service';
 import { DateFieldComponent } from '../../shared/components/form/date-field/date-field.component';
 import { TableComponent, TableColumn, TableAction } from '../../shared/components/table/table.component';
+import { getCompliancePeriodInfo } from '../../shared/utils/compliance-period.util';
 
 import { DialogModule } from 'primeng/dialog';
 import { MultiSelectModule } from 'primeng/multiselect';
@@ -46,12 +47,25 @@ import { SelectModule } from 'primeng/select';
               [rows]="limit"
               [totalRecords]="totalRecords()"
               [lazy]="true"
+              [tableStyle]="{ 'width': '100%' }"
               (onLazyLoad)="handleLazyLoad($event)"
               (onRefresh)="loadAssignments()"
               (onSearch)="handleSearch($event)"
           >
             <!-- Project the Status filter inside the toolbar-actions slot -->
             <div toolbar-actions class="flex align-items-center gap-2">
+              <p-select
+                *ngIf="isBranchUser"
+                [options]="subDeptFilterOptions"
+                [ngModel]="selectedSubDeptFilter()"
+                (ngModelChange)="onSubDeptFilterChange($event)"
+                placeholder="Filter Sub-Dept"
+                [showClear]="true"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full sm:w-13rem"
+                styleClass="h-2.5rem flex align-items-center"
+              ></p-select>
               <p-select
                 [options]="taskSetTypeFilterOptions"
                 [ngModel]="selectedTaskSetTypeFilter()"
@@ -176,6 +190,16 @@ export class AssignmentsComponent implements OnInit {
   limit = 10;
   searchQuery = '';
 
+  // Sub-Department filter
+  selectedSubDeptFilter = signal<string | null>(null);
+  subDeptFilterOptions = [
+    { label: 'All Sub-Dept Tasks', value: 'all' },
+    { label: 'Sub-Dept Completed', value: 'COMPLETED' },
+    { label: 'Sub-Dept Pending', value: 'PENDING' },
+    { label: 'Sub-Dept Review Pending', value: 'REVIEW_PENDING' },
+    { label: 'Direct Head Dept Only', value: 'direct' }
+  ];
+
   // Status filter
   selectedStatusFilter = signal<string | null>(null);
   statusFilterOptions = [
@@ -253,6 +277,15 @@ export class AssignmentsComponent implements OnInit {
           list.push({ label: sub.name, value: sub.name });
         }
       });
+
+      // Also add any sub-department that appears in loaded assignments
+      (this.assignments() || []).forEach((a: any) => {
+        (a.sub_dept_stats?.subDeptNames || []).forEach((sdn: string) => {
+          if (!list.some(o => o.value.toLowerCase() === sdn.toLowerCase())) {
+            list.push({ label: sdn, value: sdn });
+          }
+        });
+      });
     } else {
       list = (current || []).map((b: any) => ({ label: b.name, value: b.name }));
     }
@@ -319,13 +352,12 @@ export class AssignmentsComponent implements OnInit {
 
   assignmentColumns: TableColumn[] = [
     { field: 'task_set_display', header: 'Task Set', type: 'html', width: '22%', sortField: 'task_set_name' },
-    { field: 'task_set_type', header: 'Type', type: 'badge', width: '90px' },
-    { field: 'created_by_display', header: 'Created By', type: 'text', width: '140px' },
-    { field: 'frequency_label', header: 'Frequency', type: 'text', width: '100px' },
-    { field: 'branch_name', header: 'Dept / Branch', type: 'text', width: '15%' },
-    { field: 'progress_text', header: 'Progress', type: 'text', width: '95px' },
-    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '130px' },
-    { field: 'status', header: 'Status', type: 'badge', width: '110px' }
+    { field: 'created_by_display', header: 'Created By', type: 'text', width: '13%' },
+    { field: 'frequency_display', header: 'Frequency', type: 'html', width: '23%', sortField: 'frequency' },
+    { field: 'branch_display', header: 'Dept / Branch', type: 'html', width: '14%' },
+    { field: 'progress_text', header: 'Progress', type: 'text', width: '8%', align: 'center' },
+    { field: 'due_schedule_text', header: 'Due Schedule', type: 'text', width: '11%' },
+    { field: 'status', header: 'Status', type: 'badge', width: '9%' }
   ];
 
   taskSetColumns: TableColumn[] = [
@@ -456,9 +488,17 @@ export class AssignmentsComponent implements OnInit {
       const type = params['type'];
       const status = params['status'];
       const freq = params['frequency'];
+      const subDeptParam = params['sub_dept'];
 
-      // Handle status filter from URL
-      if (status) {
+      // Handle sub-department filter from URL
+      if (subDeptParam) {
+        this.selectedSubDeptFilter.set(subDeptParam);
+      } else {
+        this.selectedSubDeptFilter.set(null);
+      }
+
+      // Handle status filter from URL (only if not a sub_dept filter, to avoid conflicts)
+      if (status && !subDeptParam) {
         const s = String(status).trim().toLowerCase();
         if (s === 'pending' || s === 'in_progress' || s === 'in progress') {
           this.selectedStatusFilter.set('In_Progress');
@@ -499,7 +539,22 @@ export class AssignmentsComponent implements OnInit {
         this.selectedBranchFilter.set(null);
       }
 
-      if (view === 'dept_tasks') {
+      if (subDeptParam) {
+        const sdUpper = String(subDeptParam).toUpperCase();
+        if (sdUpper === 'COMPLETED') {
+          this.pageTitle.set('Completed Sub-Department Tasks');
+        } else if (sdUpper === 'PENDING') {
+          this.pageTitle.set('Pending Sub-Department Tasks');
+        } else if (sdUpper === 'REVIEW_PENDING') {
+          this.pageTitle.set('Review-Pending Sub-Department Tasks');
+        } else if (sdUpper === 'DIRECT' || sdUpper === 'HEAD' || sdUpper === 'MAIN') {
+          this.pageTitle.set('Head Department Direct Tasks');
+        } else {
+          this.pageTitle.set('Sub-Department Tasks');
+        }
+        this.activeView.set('dept_tasks');
+        this.selectedTaskSetTypeFilter.set(null);
+      } else if (view === 'dept_tasks') {
         this.activeView.set('dept_tasks');
         this.pageTitle.set('Department Tasks');
         this.selectedTaskSetTypeFilter.set(null);
@@ -560,7 +615,7 @@ export class AssignmentsComponent implements OnInit {
     };
     if (this.searchQuery) params.search = this.searchQuery;
     const status = this.selectedStatusFilter();
-    if (status) params.status = status;
+    if (status && !this.selectedSubDeptFilter()) params.status = status;
     const frequency = this.selectedFrequencyFilter();
     if (frequency) params.frequency = frequency;
     const type = this.selectedTaskSetTypeFilter();
@@ -600,10 +655,12 @@ export class AssignmentsComponent implements OnInit {
         const userBranchId = user?.branch_id ?? user?.branchId;
         const userBranchName = (user?.branch_name || user?.branchName || '').trim().toLowerCase();
         const allBranchesList = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+        const userBranchObj = (allBranchesList || []).find((b: any) => userBranchId && String(b.id) === String(userBranchId));
+        const userBranchActualName = (userBranchObj?.name || '').trim().toLowerCase();
 
         // Sub-departments belonging to this user's branch/department
         const mySubDepts = allBranchesList.filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
-        const subDeptIds = new Set(mySubDepts.map((b: any) => b.id));
+        const subDeptIds = new Set(mySubDepts.map((b: any) => Number(b.id)));
         const subDeptNames = new Set(mySubDepts.map((b: any) => (b.name || '').trim().toLowerCase()));
 
         const view = this.activeView();
@@ -643,15 +700,20 @@ export class AssignmentsComponent implements OnInit {
               }
             }
           });
-        } else if (view === 'dept_tasks') {
+        } else if (view === 'dept_tasks' || this.selectedSubDeptFilter() || this.isBranchUser) {
+          // Department Tasks View / Sub-Department filter:
+          // Keep all assignments belonging to this department, its sub-departments,
+          // or containing delegated sub-department tasks!
           const filteredAssignments = data.filter((r: any) => {
             const rBranchName = (r.branch_name || '').trim().toLowerCase();
-            const isForMySubDept = (r.branch_id && subDeptIds.has(r.branch_id)) ||
+            const isForMyDept = (userBranchId && String(r.branch_id) === String(userBranchId)) ||
+              (userBranchName && rBranchName === userBranchName) ||
+              (userBranchActualName && rBranchName === userBranchActualName);
+            const isForMySubDept = (r.branch_id && subDeptIds.has(Number(r.branch_id))) ||
               (rBranchName && subDeptNames.has(rBranchName));
-            return isForMySubDept;
+            return isForMyDept || isForMySubDept || !userBranchId;
           });
 
-          const subDeptTaskSets: any[] = [];
           const syntheticAssignments: any[] = [];
 
           (this.taskSets() || []).forEach((ts: any) => {
@@ -660,45 +722,39 @@ export class AssignmentsComponent implements OnInit {
               .map((b: string) => b.trim().toLowerCase())
               .filter(Boolean);
 
-            const matchingBranches = mySubDepts.filter((sub: any) => {
-              const sName = (sub.name || '').trim().toLowerCase();
-              const hasSubTasks = (ts.tasks || []).some((t: any) => String(t.sub_dept_id) === String(sub.id) || String(t.branch_id) === String(sub.id) || (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() === sName));
-              return bNamesList.includes(sName) || (ts.branch_id && sub.id === ts.branch_id) || hasSubTasks;
-            });
+            const isForDeptOrSub = bNamesList.includes(userBranchName) ||
+              (userBranchActualName && bNamesList.includes(userBranchActualName)) ||
+              (ts.created_by_name && userBranchName && ts.created_by_name.toLowerCase().includes(userBranchName)) ||
+              String(ts.created_by) === String(user?.id) ||
+              mySubDepts.some((sub: any) => bNamesList.includes((sub.name || '').trim().toLowerCase()));
 
-            if (matchingBranches.length > 0) {
-              subDeptTaskSets.push(ts);
-              matchingBranches.forEach((sub: any) => {
-                const alreadyAssigned = filteredAssignments.some((a: any) =>
-                  a.task_set_id === ts.id && (a.branch_id === sub.id || (a.branch_name || '').trim().toLowerCase() === (sub.name || '').trim().toLowerCase())
-                );
-                if (!alreadyAssigned) {
-                  const sName = (sub.name || '').trim().toLowerCase();
-                  const subTasks = (ts.tasks || []).filter((t: any) => String(t.sub_dept_id) === String(sub.id) || String(t.branch_id) === String(sub.id) || (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() === sName));
-                  const targetTasksList = subTasks.length > 0 ? subTasks : (ts.tasks || []);
-                  const totalT = targetTasksList.length;
-                  const completedT = targetTasksList.filter((t: any) => t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED' || t.status === 'COMPLETED' || !!t.remarks?.trim() || t.has_evidence).length;
-                  syntheticAssignments.push({
-                    id: -(ts.id * 1000 + sub.id),
-                    task_set_id: ts.id,
-                    task_set_name: ts.name,
-                    task_set_type: ts.type || 'INTERNAL',
-                    circular_id: ts.circular_id,
-                    frequency: ts.frequency,
-                    due_time: ts.due_time,
-                    due_schedule: ts.due_schedule,
-                    branch_id: sub.id,
-                    branch_name: sub.name,
-                    is_overdue: false,
-                    total_tasks: totalT,
-                    completed_tasks: completedT,
-                    proposed_timeline: ts.start_date || ts.default_due_date,
-                    status: (totalT > 0 && completedT === totalT) ? 'COMPLETED' : 'In_Progress',
-                    tasks: targetTasksList,
-                    is_synthetic: true
-                  });
-                }
-              });
+            if (isForDeptOrSub) {
+              const alreadyAssigned = filteredAssignments.some((a: any) =>
+                Number(a.task_set_id) === Number(ts.id)
+              );
+              if (!alreadyAssigned) {
+                const totalT = (ts.tasks || []).length;
+                const completedT = (ts.tasks || []).filter((t: any) => t.compliance_status === 'COMPLIED' || t.status === 'COMPLETED').length;
+                syntheticAssignments.push({
+                  id: -(ts.id * 1000 + Number(userBranchId || 1)),
+                  task_set_id: ts.id,
+                  task_set_name: ts.name,
+                  task_set_type: ts.type || 'INTERNAL',
+                  circular_id: ts.circular_id,
+                  frequency: ts.frequency,
+                  due_time: ts.due_time,
+                  due_schedule: ts.due_schedule,
+                  branch_id: userBranchId,
+                  branch_name: user?.branch_name || user?.branchName,
+                  is_overdue: false,
+                  total_tasks: totalT,
+                  completed_tasks: completedT,
+                  proposed_timeline: ts.start_date || ts.default_due_date,
+                  status: (totalT > 0 && completedT === totalT) ? 'COMPLETED' : 'In_Progress',
+                  tasks: ts.tasks || [],
+                  is_synthetic: true
+                });
+              }
             }
           });
 
@@ -713,61 +769,138 @@ export class AssignmentsComponent implements OnInit {
           });
         }
 
-        // Filter by branch if selected in dropdown or query params
-        const activeBranch = this.selectedBranchFilter();
-        if (activeBranch) {
-          const bMatch = activeBranch.trim().toLowerCase();
-          data = data.filter((r: any) => {
-            const rName = (r.branch_name || '').trim().toLowerCase();
-            const rId = String(r.branch_id || '');
-            return rName === bMatch || rId === bMatch;
+        // Fetch assignment tasks for all candidate real rows so sub-department delegations and actual task counts are 100% accurate
+        const candidateRealRows = data.filter((r: any) => r.id && Number(r.id) > 0 && !r.is_synthetic);
+        const taskRequests = candidateRealRows.map((r: any) =>
+          this.api.getAssignmentTasks(Number(r.id)).pipe(
+            map(tasks => ({ id: r.id, tasks })),
+            catchError(() => of({ id: r.id, tasks: [] }))
+          )
+        );
+
+        const processFilteredData = () => {
+          // 1. Calculate sub_dept_stats for every row
+          data.forEach((r: any) => {
+            const rTasks = r.tasks || [];
+            let aTotal = 0;
+            let aCompleted = 0;
+            let aPending = 0;
+            let aReviewPending = 0;
+            const subDeptNamesSet = new Set<string>();
+
+            rTasks.forEach((t: any) => {
+              const isAssignedSubDept = !!t.sub_dept_id ||
+                (t.sub_dept_name && subDeptNames.has((t.sub_dept_name || '').trim().toLowerCase())) ||
+                (subDeptIds.has(Number(t.sub_dept_id))) ||
+                (subDeptIds.has(Number(r.branch_id)));
+
+              if (isAssignedSubDept) {
+                aTotal++;
+                if (t.sub_dept_name) {
+                  subDeptNamesSet.add(t.sub_dept_name.trim());
+                } else if (t.sub_dept_id) {
+                  const sObj = allBranchesList.find((b: any) => String(b.id) === String(t.sub_dept_id));
+                  if (sObj?.name) subDeptNamesSet.add(sObj.name.trim());
+                }
+
+                const isApproved = t.review_status === 'APPROVED';
+                const hasSubSubmission = !!(t.remarks?.trim() || t.has_evidence || t.evidence_url || t.compliance_status === 'COMPLIED' || t.status === 'COMPLETED');
+
+                if (isApproved) {
+                  aCompleted++;
+                } else if (t.review_status === 'NEEDS_REDO') {
+                  aPending++;
+                } else if (hasSubSubmission || t.review_status === 'IN_REVIEW' || t.review_status === 'REVIEW_PENDING' || t.status === 'REVIEW_PENDING') {
+                  aReviewPending++;
+                } else {
+                  aPending++;
+                }
+              }
+            });
+
+            r.sub_dept_stats = {
+              total: aTotal,
+              completed: aCompleted,
+              pending: aPending,
+              reviewPending: aReviewPending,
+              subDeptNames: Array.from(subDeptNamesSet)
+            };
           });
-        }
 
-        // Filter by type if selected in dropdown
-        const activeType = this.selectedTaskSetTypeFilter();
-        if (activeType === 'INTERNAL') {
-          data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() === 'INTERNAL');
-        } else if (activeType === 'REGULAR' || activeType === 'CIRCULAR_BASED') {
-          data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() !== 'INTERNAL');
-        }
-
-        // Filter by status if selected in dropdown or query params
-        const activeStatus = this.selectedStatusFilter();
-        if (activeStatus) {
-          const sUpper = activeStatus.toUpperCase();
-          data = data.filter((r: any) => {
-            const rowStatus = String(r.status || '').toUpperCase();
-            if (sUpper === 'OVERDUE') {
-              return r.is_overdue && rowStatus !== 'COMPLETED';
+          // 2. Filter by sub_dept if filter is active
+          const activeSubDept = this.selectedSubDeptFilter();
+          if (activeSubDept) {
+            const sdUpper = activeSubDept.toUpperCase();
+            if (sdUpper === 'ALL' || sdUpper === 'TRUE') {
+              data = data.filter((r: any) => (r.sub_dept_stats?.total || 0) > 0);
+            } else if (sdUpper === 'COMPLETED') {
+              data = data.filter((r: any) => (r.sub_dept_stats?.completed || 0) > 0);
+            } else if (sdUpper === 'PENDING') {
+              data = data.filter((r: any) => (r.sub_dept_stats?.pending || 0) > 0);
+            } else if (sdUpper === 'REVIEW_PENDING') {
+              data = data.filter((r: any) => (r.sub_dept_stats?.reviewPending || 0) > 0);
+            } else if (sdUpper === 'DIRECT' || sdUpper === 'HEAD' || sdUpper === 'MAIN') {
+              data = data.filter((r: any) => ((r.tasks || []).length - (r.sub_dept_stats?.total || 0)) > 0);
             }
-            if (sUpper === 'PENDING_RECOMPLIANCE' || sUpper === 'REJECTED') {
-              return rowStatus === 'REJECTED' || rowStatus === 'PENDING_RECOMPLIANCE';
-            }
-            if (sUpper === 'IN_PROGRESS' || sUpper === 'IN PROGRESS') {
-              return rowStatus === 'IN_PROGRESS' || rowStatus === 'IN PROGRESS';
-            }
-            return rowStatus === sUpper;
-          });
-        }
+          }
 
-        const totalCount = data.length;
-        this.totalRecords.set(totalCount);
+          // 3. Filter by branch if selected in dropdown or query params
+          const activeBranch = this.selectedBranchFilter();
+          if (activeBranch) {
+            const bMatch = activeBranch.trim().toLowerCase();
+            data = data.filter((r: any) => {
+              const rName = (r.branch_name || '').trim().toLowerCase();
+              const rId = String(r.branch_id || '');
+              const hasSubDeptMatch = r.sub_dept_stats?.subDeptNames?.some((sdn: string) => sdn.toLowerCase() === bMatch);
+              if (activeSubDept && (activeSubDept.toUpperCase() === 'DIRECT' || activeSubDept.toUpperCase() === 'HEAD' || activeSubDept.toUpperCase() === 'MAIN')) {
+                return rName === bMatch || rId === bMatch;
+              }
+              if (view === 'dept_tasks' && (bMatch === userBranchName || bMatch === userBranchActualName)) {
+                return rName === bMatch || subDeptNames.has(rName) || hasSubDeptMatch;
+              }
+              return rName === bMatch || rId === bMatch || hasSubDeptMatch;
+            });
+          }
 
-        // Client-side paginate
-        const startIndex = (this.page - 1) * this.limit;
-        const paginatedData = data.slice(startIndex, startIndex + this.limit);
+          // 4. Filter by type if selected in dropdown
+          const activeType = this.selectedTaskSetTypeFilter();
+          if (activeType === 'INTERNAL') {
+            data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() === 'INTERNAL');
+          } else if (activeType === 'REGULAR' || activeType === 'CIRCULAR_BASED') {
+            data = data.filter((r: any) => (r.task_set_type || r.type || '').toUpperCase() !== 'INTERNAL');
+          }
 
-        // Fetch assignment tasks for visible rows so sub-department delegations and actual task counts are 100% accurate
-        const realAssignmentRows = paginatedData.filter((r: any) => r.id && Number(r.id) > 0 && !r.is_synthetic);
-        if (realAssignmentRows.length > 0) {
-          const taskRequests = realAssignmentRows.map((r: any) =>
-            this.api.getAssignmentTasks(Number(r.id)).pipe(
-              map(tasks => ({ id: r.id, tasks })),
-              catchError(() => of({ id: r.id, tasks: [] }))
-            )
-          );
+          // 5. Filter by status if selected in dropdown or query params
+          const activeStatus = this.selectedStatusFilter();
+          if (activeStatus) {
+            const sUpper = activeStatus.toUpperCase();
+            data = data.filter((r: any) => {
+              const rowStatus = String(r.status || '').toUpperCase();
+              if (sUpper === 'OVERDUE') {
+                return r.is_overdue && rowStatus !== 'COMPLETED';
+              }
+              if (sUpper === 'PENDING_RECOMPLIANCE' || sUpper === 'REJECTED') {
+                return rowStatus === 'REJECTED' || rowStatus === 'PENDING_RECOMPLIANCE';
+              }
+              if (sUpper === 'IN_PROGRESS' || sUpper === 'IN PROGRESS') {
+                return rowStatus === 'IN_PROGRESS' || rowStatus === 'IN PROGRESS';
+              }
+              return rowStatus === sUpper;
+            });
+          }
 
+          const totalCount = data.length;
+          this.totalRecords.set(totalCount);
+
+          // Client-side paginate
+          const startIndex = (this.page - 1) * this.limit;
+          const paginatedData = data.slice(startIndex, startIndex + this.limit);
+
+          this.assignments.set(this.transformAssignments(paginatedData));
+          this.loading.set(false);
+        };
+
+        if (candidateRealRows.length > 0) {
           forkJoin(taskRequests).subscribe({
             next: (results) => {
               const tasksByAsgId = new Map<number, any[]>();
@@ -777,29 +910,36 @@ export class AssignmentsComponent implements OnInit {
                 }
               });
 
-              paginatedData.forEach((r: any) => {
+              data.forEach((r: any) => {
                 if (r.id && tasksByAsgId.has(Number(r.id))) {
                   r.tasks = tasksByAsgId.get(Number(r.id));
                 }
               });
 
-              this.assignments.set(this.transformAssignments(paginatedData));
-              this.loading.set(false);
+              processFilteredData();
             },
             error: () => {
-              this.assignments.set(this.transformAssignments(paginatedData));
-              this.loading.set(false);
+              processFilteredData();
             }
           });
         } else {
-          this.assignments.set(this.transformAssignments(paginatedData));
-          this.loading.set(false);
+          processFilteredData();
         }
       },
       error: (err) => {
         console.error('Failed to load assignments:', err);
         this.loading.set(false);
       }
+    });
+  }
+
+  formatCompliancePeriodInfo(row: any, ts: any): { cycleLabel: string; periodRangeLabel: string } {
+    return getCompliancePeriodInfo({
+      frequency: row.frequency || ts?.frequency,
+      startDate: row.start_date || row.tasks?.[0]?.start_date || ts?.start_date,
+      endDate: row.end_date || row.tasks?.[0]?.end_date || ts?.end_date,
+      proposedTimeline: row.proposed_timeline,
+      createdAt: row.created_at
     });
   }
 
@@ -812,6 +952,9 @@ export class AssignmentsComponent implements OnInit {
     const allBranchesList = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
     const userBranchObj = (allBranchesList || []).find((b: any) => userBranchId && String(b.id) === String(userBranchId));
     const userBranchActualName = (userBranchObj?.name || '').trim().toLowerCase();
+    const mySubDepts = allBranchesList.filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
+    const subDeptIds = new Set(mySubDepts.map((b: any) => Number(b.id)));
+    const subDeptNames = new Set(mySubDepts.map((b: any) => (b.name || '').trim().toLowerCase()));
 
     return rows.map(row => {
       const ts = (this.taskSets() || []).find((s: any) => Number(s.id) === Number(row.task_set_id));
@@ -861,14 +1004,27 @@ export class AssignmentsComponent implements OnInit {
       } else if (view === 'dept_tasks' && tsTasks.length > 0) {
         const targetSubId = row.branch_id;
         const targetSubName = (row.branch_name || '').trim().toLowerCase();
-        const subTasks = tsTasks.filter((t: any) =>
-          (t.sub_dept_id && targetSubId && String(t.sub_dept_id) === String(targetSubId)) ||
-          (t.branch_id && targetSubId && String(t.branch_id) === String(targetSubId)) ||
-          (t.sub_dept_name && targetSubName && t.sub_dept_name.trim().toLowerCase() === targetSubName)
-        );
-        if (subTasks.length > 0) {
-          total = subTasks.length;
-          completed = subTasks.filter((t: any) =>
+        if (subDeptIds.has(Number(targetSubId)) || subDeptNames.has(targetSubName)) {
+          const subTasks = tsTasks.filter((t: any) =>
+            (t.sub_dept_id && String(t.sub_dept_id) === String(targetSubId)) ||
+            (t.branch_id && String(t.branch_id) === String(targetSubId)) ||
+            (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() === targetSubName)
+          );
+          if (subTasks.length > 0) {
+            total = subTasks.length;
+            completed = subTasks.filter((t: any) =>
+              t.compliance_status === 'COMPLIED' ||
+              t.compliance_status === 'NOT_COMPLIED' ||
+              t.status === 'COMPLETED' ||
+              !!t.remarks?.trim() ||
+              !!t.temp_remarks?.trim() ||
+              t.has_evidence ||
+              !!t.evidence_file_name
+            ).length;
+          }
+        } else {
+          total = tsTasks.length;
+          completed = tsTasks.filter((t: any) =>
             t.compliance_status === 'COMPLIED' ||
             t.compliance_status === 'NOT_COMPLIED' ||
             t.status === 'COMPLETED' ||
@@ -926,6 +1082,18 @@ export class AssignmentsComponent implements OnInit {
         }
       }
 
+      // If viewing filtered Sub-Dept view, align row status with sub-dept progress
+      const hasSubDeptTasks = row.sub_dept_stats && row.sub_dept_stats.total > 0;
+      if (this.selectedSubDeptFilter() && hasSubDeptTasks) {
+        if (row.sub_dept_stats.completed === row.sub_dept_stats.total && row.sub_dept_stats.total > 0) {
+          rowStatus = 'COMPLETED';
+        } else if (row.sub_dept_stats.reviewPending > 0) {
+          rowStatus = 'REVIEW_PENDING';
+        } else if (row.sub_dept_stats.pending > 0) {
+          rowStatus = 'In_Progress';
+        }
+      }
+
       // Format standard Date string dd/MM/yyyy
       let dateStr = '';
       if (row.proposed_timeline) {
@@ -969,20 +1137,51 @@ export class AssignmentsComponent implements OnInit {
       const hasSubDeptSubmission = isHeadUser && submittedSubDeptTasks.length > 0 && rowStatus !== 'COMPLETED';
 
       const baseName = row.task_set_name || ts?.name || 'Task Set';
-      let taskSetDisplay = `<span style="font-weight: 500; color: #1e293b;">${baseName}</span>`;
+      const { cycleLabel, periodRangeLabel } = this.formatCompliancePeriodInfo(row, ts);
 
-      if (hasSubDeptSubmission) {
-        const count = submittedSubDeptTasks.length;
-        const badgeLabel = count === 1 ? 'Sub-Dept Submitted' : `${count} Sub-Depts Submitted`;
-        taskSetDisplay = `
-          <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
-            <span style="font-weight: 600; color: #0f172a; line-height: 1.3;">${baseName}</span>
-            <span class="subdept-pulse-badge" title="Sub-department compliance has been submitted and is awaiting your review">
+      let taskSetDisplay = `
+        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 2px 0;">
+          <span style="font-weight: 600; color: var(--text-color, #0f172a); line-height: 1.35; font-size: 0.88rem;">${baseName}</span>
+          ${hasSubDeptSubmission ? `
+            <span class="subdept-pulse-badge mt-1" title="Sub-department compliance has been submitted and is awaiting your review">
               <span class="pulse-dot"></span>
-              <span>${badgeLabel}</span>
+              <span>${submittedSubDeptTasks.length === 1 ? 'Sub-Dept Submitted' : `${submittedSubDeptTasks.length} Sub-Depts Submitted`}</span>
+            </span>
+          ` : ''}
+        </div>
+      `;
+
+      const freqName = this.frequencyLabelMap[String(row.frequency)?.trim()] ?? row.frequency ?? '—';
+      let frequencyDisplay = `
+        <div style="display: flex; flex-direction: column; gap: 3px; align-items: flex-start; padding: 2px 0;">
+          <span style="font-weight: 700; color: var(--text-color, #0f172a); font-size: 0.82rem;">${freqName}</span>
+          <span class="compliance-cycle-badge" title="Specific compliance cycle/period for this assignment">
+            <i class="pi pi-calendar-clock"></i> ${cycleLabel}
+          </span>
+          ${periodRangeLabel ? `<span class="compliance-period-subtle" title="Overall task set active validity period">${periodRangeLabel}</span>` : ''}
+        </div>
+      `;
+
+      let branchDisplay = `<span style="white-space: nowrap; font-weight: 600; font-size: 0.82rem; color: var(--text-color, #1e293b);">${row.branch_name || '—'}</span>`;
+      if (hasSubDeptTasks) {
+        const subDeptNames = row.sub_dept_stats.subDeptNames || [];
+        const subDeptNameStr = subDeptNames.length > 0 ? subDeptNames.join(', ') : 'Sub-Department';
+        branchDisplay = `
+          <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+            <span style="white-space: nowrap; font-weight: 600; font-size: 0.82rem; color: var(--text-color, #1e293b);">${row.branch_name || '—'}</span>
+            <span class="sub-dept-chip" title="Delegated to Sub-Department: ${subDeptNameStr}">
+              <i class="pi pi-users" style="font-size: 0.7rem;"></i> ${subDeptNameStr}
             </span>
           </div>
         `;
+      }
+
+      let progressText = total > 0 ? `${completed} / ${total} (${pct}%)` : '—';
+      if (this.selectedSubDeptFilter() && hasSubDeptTasks) {
+        const sTotal = row.sub_dept_stats.total;
+        const sDone = row.sub_dept_stats.completed;
+        const sPct = sTotal > 0 ? Math.round((sDone / sTotal) * 100) : 0;
+        progressText = `${sDone} / ${sTotal} (${sPct}%)`;
       }
 
       return {
@@ -991,8 +1190,10 @@ export class AssignmentsComponent implements OnInit {
         status: rowStatus,
         task_set_type: isInternal ? 'INTERNAL' : (row.task_set_type || row.type || 'REGULAR'),
         created_by_display: createdByDisplay,
-        frequency_label: this.frequencyLabelMap[String(row.frequency)?.trim()] ?? row.frequency ?? '—',
-        progress_text: total > 0 ? `${completed} / ${total} (${pct}%)` : '—',
+        frequency_label: freqName,
+        frequency_display: frequencyDisplay,
+        branch_display: branchDisplay,
+        progress_text: progressText,
         due_schedule_text: dueScheduleText
       };
     });
@@ -1016,6 +1217,17 @@ export class AssignmentsComponent implements OnInit {
   handleSearch(query: string) {
     this.searchQuery = query;
     this.page = 1;
+    this.loadAssignments();
+  }
+
+  onSubDeptFilterChange(value: string | null) {
+    this.selectedSubDeptFilter.set(value);
+    this.page = 1;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { sub_dept: value || null },
+      queryParamsHandling: 'merge'
+    });
     this.loadAssignments();
   }
 

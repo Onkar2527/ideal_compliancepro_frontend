@@ -7,6 +7,7 @@ import { catchError } from 'rxjs/operators';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
+import { getCompliancePeriodInfo } from '../../shared/utils/compliance-period.util';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
@@ -38,9 +39,6 @@ import { ConfirmationService } from 'primeng/api';
           <span class="dept-pill-badge" *ngIf="isSubDepartmentUser() && userBranchName()" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3);">
             <i class="pi pi-users" style="font-size: 0.7rem;"></i> {{ userBranchName() }}
           </span>
-          <span class="freq-pill-badge">
-            Freq: {{ frequency() || 'ONCE' }}
-          </span>
           <span *ngIf="isBranchCreated()" style="background: rgba(16, 185, 129, 0.12); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
             <i class="pi pi-building" style="font-size: 0.68rem;"></i> Branch Created
           </span>
@@ -49,9 +47,11 @@ import { ConfirmationService } from 'primeng/api';
           </span>
         </div>
         <h1 class="text-lg font-bold m-0 mt-1" style="margin-top: 0.25rem; color: var(--text-color, #1e293b); font-size: 1.2rem; line-height: 1.3;">{{ taskSetName() }}</h1>
-        <span class="text-xs font-medium" *ngIf="startDate() && endDate()" style="color: var(--text-color-secondary, #64748b); font-size: 0.75rem;">
-          Period: {{ startDate() | date:'dd/MM/yyyy' }} to {{ endDate() | date:'dd/MM/yyyy' }}
-        </span>
+        <div class="flex items-center gap-2 flex-wrap" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.2rem;" *ngIf="startDate() && endDate()">
+          <span class="text-xs font-medium" style="color: var(--text-color-secondary, #64748b); font-size: 0.75rem;">
+            Overall Task Set Period: {{ startDate() | date:'dd/MM/yyyy' }} to {{ endDate() | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
       </div>
 
       <!-- Middle: Circular Ref & Due Date -->
@@ -214,9 +214,9 @@ import { ConfirmationService } from 'primeng/api';
                [ngClass]="{
                  'card-approved': t.review_status === 'APPROVED',
                  'card-needs-redo': t.review_status === 'NEEDS_REDO',
-                 'border-left-green': (!t.review_status && t.status === 'COMPLETED' && t.compliance_status === 'COMPLIED'),
-                 'border-left-red': (!t.review_status && t.status === 'COMPLETED' && t.compliance_status === 'NOT_COMPLIED'),
-                 'border-left-yellow': (!t.review_status && t.status === 'PENDING')
+                 'border-left-green': (!t.review_status && (t.compliance_status === 'COMPLIED' || (t.status === 'COMPLETED' && t.compliance_status !== 'NOT_COMPLIED'))),
+                 'border-left-red': (!t.review_status && t.compliance_status === 'NOT_COMPLIED'),
+                 'border-left-yellow': (!t.review_status && (!t.compliance_status || t.compliance_status === 'PENDING') && t.status !== 'COMPLETED')
                }"
                style="margin-bottom: 0.75rem;">
             
@@ -283,6 +283,7 @@ import { ConfirmationService } from 'primeng/api';
                           [options]="availableSubDepts()" 
                           [ngModel]="t.sub_dept_id || null" 
                           (ngModelChange)="onTaskSubDeptChange(t, $event)"
+                          [disabled]="t.remarks || t.has_evidence || t.status === 'COMPLETED'"
                           optionLabel="label" 
                           optionValue="value" 
                           placeholder="Select Assignee"
@@ -430,6 +431,7 @@ import { ConfirmationService } from 'primeng/api';
                         [options]="availableSubDepts()" 
                         [ngModel]="t.sub_dept_id || null" 
                         (ngModelChange)="onTaskSubDeptChange(t, $event)" 
+                        [disabled]="t.remarks || t.has_evidence || t.status === 'COMPLETED'"
                         optionLabel="label" 
                         optionValue="value" 
                         placeholder="Select Assignee"
@@ -486,10 +488,14 @@ import { ConfirmationService } from 'primeng/api';
                 </div>
 
                 <!-- ══ CASE 1: HEAD DEPARTMENT VIEWING DELEGATED SUB-DEPT TASK ══ -->
-                <ng-container *ngIf="isHeadDepartmentUser() && (t.sub_dept_id || isTargetSubDeptOfHead()) && !isReviewer()">
+                <ng-container *ngIf="isHeadDepartmentUser() && isSubDeptSubmission(null, t) && !isReviewer()">
                   <!-- If Sub-Dept has filled compliance -->
                   <div *ngIf="t.remarks || t.has_evidence || t.status === 'COMPLETED'; else subDeptPendingBlock" 
-                       class="subdept-submission-card w-full">
+                       class="subdept-submission-card w-full"
+                       [ngClass]="{
+                         'panel-complied': t.compliance_status === 'COMPLIED' || (!t.compliance_status && t.status === 'COMPLETED'),
+                         'panel-not-complied': t.compliance_status === 'NOT_COMPLIED'
+                       }">
                     
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                       <span class="subdept-submission-title" style="display: flex; align-items: center; gap: 0.35rem;">
@@ -516,7 +522,7 @@ import { ConfirmationService } from 'primeng/api';
 
                     <div *ngIf="t.has_evidence && t.evidence_url" style="margin-top: 0.15rem;">
                       <a [href]="t.evidence_url" target="_blank" class="evidence-link" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none;">
-                        <i class="pi pi-file-pdf"></i> View Sub-Dept Evidence PDF
+                        <i [class]="getFileIcon(t.evidence_url)" [style.color]="getFileIconColor(t.evidence_url)"></i> View Sub-Dept Evidence
                       </a>
                     </div>
 
@@ -599,11 +605,14 @@ import { ConfirmationService } from 'primeng/api';
                 </ng-container>
 
                 <!-- ══ CASE 2: DIRECT TASKS OR SUB-DEPT USER VIEWING THEIR TASK ══ -->
-                <ng-container *ngIf="!isHeadDepartmentUser() || (!t.sub_dept_id && !isTargetSubDeptOfHead()) || isReviewer()">
+                <ng-container *ngIf="!isHeadDepartmentUser() || (!isSubDeptSubmission(null, t)) || isReviewer()">
                   <!-- If assignment is completed, hide form inputs and show read-only details -->
                   <div *ngIf="assignmentStatus() === 'COMPLETED'; else activeComplianceForm" 
-                       class="flex flex-column gap-2 p-3 rounded-lg w-full"
-                       style="background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-radius: 8px;">
+                       class="saved-response-panel w-full"
+                       [ngClass]="{
+                         'panel-complied': t.compliance_status === 'COMPLIED' || (!t.compliance_status && t.status === 'COMPLETED'),
+                         'panel-not-complied': t.compliance_status === 'NOT_COMPLIED'
+                       }">
                     <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                       <span class="text-xs font-bold" style="color: var(--text-color-secondary, #94a3b8);">Compliance Status:</span>
                       <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
@@ -632,7 +641,7 @@ import { ConfirmationService } from 'primeng/api';
                     <!-- View PDF link -->
                     <div class="mt-1.5" *ngIf="hasFileToView(t)">
                       <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
-                        <i class="pi pi-file-pdf" style="color: #ef4444;"></i> View PDF
+                        <i [class]="getFileIcon(t.evidence_url)" [style.color]="getFileIconColor(t.evidence_url)"></i> View Evidence
                       </button>
                     </div>
                   </div>
@@ -673,7 +682,7 @@ import { ConfirmationService } from 'primeng/api';
                                     (click)="previewFile(t)"
                                     class="p-button p-button-sm p-button-outlined p-button-danger"
                                     style="height: 1.95rem; font-size: 0.72rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                              <i class="pi pi-file-pdf"></i> View Saved Evidence
+                              <i [class]="getFileIcon(t.evidence_url)"></i> View Saved Evidence
                             </button>
                           </div>
 
@@ -693,13 +702,13 @@ import { ConfirmationService } from 'primeng/api';
                              style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; padding: 0.35rem 0.5rem; background: rgba(99, 102, 241, 0.05); border-radius: 6px; border: 1px dashed rgba(99, 102, 241, 0.2);">
                           <div *ngFor="let file of getSelectedFiles(t.assignment_task_id); let fIdx = index"
                                style="display: inline-flex; align-items: center; gap: 0.35rem; background: #ffffff; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.72rem; color: #047857; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-                            <i class="pi pi-file-pdf" style="color: #ef4444; font-size: 0.82rem;"></i>
+                            <i [class]="getFileIcon(file.name)" [style.color]="getFileIconColor(file.name)" style="font-size: 0.82rem;"></i>
                             <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="file.name">
                               {{ file.name }}
                             </span>
                             <button type="button" 
                                     (click)="previewSelectedFile(file)" 
-                                    title="Preview PDF"
+                                    title="Preview File"
                                     style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 0.1rem 0.35rem; cursor: pointer; color: #10b981; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
                               <i class="pi pi-eye" style="font-size: 0.68rem;"></i>
                             </button>
@@ -717,8 +726,11 @@ import { ConfirmationService } from 'primeng/api';
                     </div>
 
                     <ng-template #readOnlyTaskBlock>
-                      <div class="flex flex-column gap-2 p-3 rounded-lg w-full"
-                           style="background: var(--surface-hover, #f8fafc); border: 1px solid var(--surface-border, #e2e8f0); border-radius: 8px;">
+                      <div class="saved-response-panel w-full"
+                           [ngClass]="{
+                             'panel-complied': t.compliance_status === 'COMPLIED' || (!t.compliance_status && t.status === 'COMPLETED'),
+                             'panel-not-complied': t.compliance_status === 'NOT_COMPLIED'
+                           }">
                         <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                           <span class="text-xs font-bold" style="color: var(--text-color-secondary, #94a3b8);">Compliance Status:</span>
                           <span class="px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider" 
@@ -746,7 +758,7 @@ import { ConfirmationService } from 'primeng/api';
                         </div>
                         <div class="mt-1.5" *ngIf="hasFileToView(t)">
                           <button type="button" (click)="previewFile(t)" class="evidence-link border-none bg-transparent cursor-pointer p-0 font-bold" style="color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem;">
-                            <i class="pi pi-file-pdf" style="color: #ef4444;"></i> View PDF
+                            <i [class]="getFileIcon(t.evidence_url)" [style.color]="getFileIconColor(t.evidence_url)"></i> View Evidence
                           </button>
                         </div>
                       </div>
@@ -1061,15 +1073,15 @@ import { ConfirmationService } from 'primeng/api';
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.15rem;">
                 <a [href]="ev.file_url" target="_blank" 
                    style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #dc2626; text-decoration: none; font-size: 0.78rem;">
-                  <i class="pi pi-file-pdf" style="font-size: 0.95rem;"></i> 
-                  <span>{{ cleanFileName(ev.file_name || ev.file_url || 'View Evidence PDF') }}</span>
+                  <i [class]="getFileIcon(ev.file_name || ev.file_url)" [style.color]="getFileIconColor(ev.file_name || ev.file_url)" style="font-size: 0.95rem;"></i> 
+                  <span>{{ cleanFileName(ev.file_name || ev.file_url || 'View Evidence') }}</span>
                 </a>
                 
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                   <a [href]="ev.file_url" target="_blank" 
                      class="p-button p-button-sm p-button-outlined p-button-danger"
                      style="text-decoration: none; padding: 0.2rem 0.55rem; font-size: 0.7rem; height: 1.65rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                    <i class="pi pi-external-link"></i> Open PDF
+                    <i class="pi pi-external-link"></i> Open File
                   </a>
                   <!-- Delete button allowed ONLY if user has authority to delete (e.g. self-compliance or sub-dept owner before submit) -->
                   <button *ngIf="canDeleteEvidence(ev, selectedTaskForChain, evIdx)"
@@ -1179,12 +1191,12 @@ import { ConfirmationService } from 'primeng/api';
           
           <!-- Option 1: Upload from Computer (PC) -->
           <label style="border: 2px dashed #6366f1; background: #f5f7ff; border-radius: 10px; padding: 1.5rem 1rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.65rem; cursor: pointer; transition: all 0.2s;">
-            <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" multiple accept="application/pdf" style="display: none;">
+            <input type="file" (change)="onFileSelected($event, activeEvidenceTaskId)" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf,image/*" style="display: none;">
             <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
               <i class="pi pi-desktop"></i>
             </div>
             <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;">Upload from PC</span>
-            <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload one or multiple PDF files from your local storage</span>
+            <span style="font-size: 0.75rem; color: #64748b; line-height: 1.4;">Browse and upload files (PDF, Images, Word, Excel &bull; Max 5MB)</span>
           </label>
 
           <!-- Option 2: Select from Previous Department Evidence -->
@@ -1234,7 +1246,7 @@ import { ConfirmationService } from 'primeng/api';
           <div *ngFor="let item of filteredDeptEvidences" 
                style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem; transition: all 0.15s;">
             <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex: 1;">
-              <i class="pi pi-file-pdf" style="font-size: 1.35rem; color: #dc2626; flex-shrink: 0;"></i>
+              <i [class]="getFileIcon(item.name || item.url)" [style.color]="getFileIconColor(item.name || item.url)" style="font-size: 1.35rem; flex-shrink: 0;"></i>
               <div style="display: flex; flex-direction: column; gap: 0.15rem; min-width: 0;">
                 <span style="font-size: 0.82rem; font-weight: 700; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="item.name">
                   {{ item.name }}
@@ -1272,11 +1284,11 @@ import { ConfirmationService } from 'primeng/api';
         <!-- Selected File Info Banner -->
         <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <i class="pi pi-file-pdf" style="font-size: 2rem; color: #dc2626;"></i>
+            <i [class]="getFileIcon(originalFileName)" [style.color]="getFileIconColor(originalFileName)" style="font-size: 2rem;"></i>
             <div style="display: flex; flex-direction: column; gap: 0.15rem;">
               <span style="font-size: 0.82rem; font-weight: 700; color: #1e293b;">Selected File: {{ originalFileName }}</span>
               <span style="font-size: 0.72rem; color: #64748b;" *ngIf="stagedFile">
-                Size: {{ (stagedFile.size / 1024).toFixed(1) }} KB &bull; PDF Document
+                Size: {{ (stagedFile.size / 1024).toFixed(1) }} KB &bull; {{ getFileTypeName(originalFileName) }}
               </span>
             </div>
           </div>
@@ -1368,16 +1380,46 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   cleanFileName(rawName: string): string {
-    if (!rawName) return 'Evidence Document.pdf';
+    if (!rawName) return 'Evidence Document';
     let name = decodeURIComponent(rawName.trim().split('?')[0]);
+    if (name.includes('/') || name.includes('\\')) {
+      name = name.split(/[/\\]/).pop() || name;
+    }
     // Remove leading timestamp e.g. 1726483920192-file.pdf
     name = name.replace(/^\d{10,14}[-_]/, '');
-    // Remove trailing hex hash, uuid, or timestamp before .pdf extension
-    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.pdf$|$)/i, '');
-    if (!name.toLowerCase().endsWith('.pdf') && rawName.toLowerCase().includes('.pdf')) {
-      name = name + '.pdf';
-    }
-    return name || 'Evidence Document.pdf';
+    // Remove trailing hex hash, uuid, or timestamp before extension
+    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.[a-zA-Z0-9]+$|$)/i, '');
+    return name || 'Evidence Document';
+  }
+
+  getFileIcon(nameOrUrl?: string): string {
+    if (!nameOrUrl) return 'pi pi-file';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'pi pi-file-pdf';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return 'pi pi-image';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return 'pi pi-file-word';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return 'pi pi-file-excel';
+    return 'pi pi-file';
+  }
+
+  getFileIconColor(nameOrUrl?: string): string {
+    if (!nameOrUrl) return '#6b7280';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return '#dc2626';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return '#2563eb';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return '#1d4ed8';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return '#059669';
+    return '#6b7280';
+  }
+
+  getFileTypeName(nameOrUrl?: string): string {
+    if (!nameOrUrl) return 'Document';
+    const lower = nameOrUrl.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'PDF Document';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) return 'Image File';
+    if (lower.endsWith('.doc') || lower.endsWith('.docx')) return 'Word Document';
+    if (lower.endsWith('.xls') || lower.endsWith('.xlsx') || lower.endsWith('.csv')) return 'Spreadsheet';
+    return 'Document';
   }
 
   private getDeletedEvidenceKeys(): Set<string> {
@@ -1694,6 +1736,15 @@ export class AssignmentDetailsComponent implements OnInit {
   circularTitle = signal<string>('');
   authorityName = signal<string>('');
 
+  complianceCycleInfo = computed(() => {
+    return getCompliancePeriodInfo({
+      frequency: this.frequency(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      proposedTimeline: this.proposedTimeline()
+    });
+  });
+
   submitting = false;
   lastSubmitAction: 'COMPLETE' | 'SUBMIT_CO' = 'COMPLETE';
 
@@ -1957,8 +2008,8 @@ export class AssignmentDetailsComponent implements OnInit {
 
     // If user is a Head Department user:
     if (this.isHeadDepartmentUser()) {
-      // If task is delegated to a sub-department, head department does not fill it (sub-dept fills, head accepts/rejects)
-      if (task?.sub_dept_id) {
+      // If task is delegated to / submitted by a sub-department, head department does not fill it (sub-dept fills, head accepts/rejects)
+      if (this.isSubDeptSubmission(null, task)) {
         return false;
       }
       // If assignment belongs to a child sub-department, head department does not fill it
@@ -2677,6 +2728,10 @@ export class AssignmentDetailsComponent implements OnInit {
 
   onTaskSubDeptChange(task: any, subDeptId: number | null) {
     if (!this.assignmentId || !task.assignment_task_id) return;
+    if ((task.remarks?.trim() || task.has_evidence) && subDeptId === null) {
+      this.notification.warn('Cannot convert a task with sub-department submissions into a direct task. Sub-department comment and evidence are protected.');
+      return;
+    }
     this.api.delegateTaskToSubDept(this.assignmentId, task.assignment_task_id, subDeptId).subscribe({
       next: () => {
         task.sub_dept_id = subDeptId;
@@ -2830,13 +2885,20 @@ export class AssignmentDetailsComponent implements OnInit {
     const fileList: FileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
 
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+    const allowedExts = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.txt'];
     const validFiles: File[] = [];
     for (let i = 0; i < fileList.length; i++) {
       const f = fileList[i];
-      if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      if (f.size > MAX_FILE_SIZE) {
+        this.notification.warn(`Skipped "${f.name}": exceeds 5MB size limit (${(f.size / (1024 * 1024)).toFixed(1)}MB).`);
+        continue;
+      }
+      const ext = f.name.toLowerCase().slice(f.name.lastIndexOf('.'));
+      if (allowedExts.includes(ext) || f.type.startsWith('image/') || f.type === 'application/pdf') {
         validFiles.push(f);
       } else {
-        this.notification.warn(`Skipped "${f.name}": only PDF files are accepted.`);
+        this.notification.warn(`Skipped "${f.name}": only PDF, images (PNG, JPG), Word and Excel files are accepted.`);
       }
     }
 
@@ -2851,7 +2913,7 @@ export class AssignmentDetailsComponent implements OnInit {
       this.displayEvidenceSourceModal = true;
     } else {
       this.addSelectedFiles(assignmentTaskId, validFiles);
-      this.notification.success(`${validFiles.length} evidence PDF documents attached.`);
+      this.notification.success(`${validFiles.length} evidence document(s) attached.`);
       this.displayEvidenceSourceModal = false;
     }
     event.target.value = '';
@@ -2867,16 +2929,22 @@ export class AssignmentDetailsComponent implements OnInit {
     if (!this.activeEvidenceTaskId || !this.stagedFile) return;
     const taskId = this.activeEvidenceTaskId;
     let finalName = (this.customDocName || '').trim();
+    const origName = this.originalFileName || this.stagedFile.name || 'evidence.pdf';
+    const lastDotIdx = origName.lastIndexOf('.');
+    const origExt = lastDotIdx !== -1 ? origName.slice(lastDotIdx) : '';
+
     if (!finalName) {
-      finalName = this.originalFileName || 'evidence.pdf';
-    }
-    if (!finalName.toLowerCase().endsWith('.pdf')) {
-      finalName = finalName + '.pdf';
+      finalName = origName;
+    } else if (origExt && !finalName.toLowerCase().endsWith(origExt.toLowerCase())) {
+      const userDotIdx = finalName.lastIndexOf('.');
+      if (userDotIdx === -1) {
+        finalName = finalName + origExt;
+      }
     }
 
-    const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/pdf' });
+    const renamedFile = new File([this.stagedFile], finalName, { type: this.stagedFile.type || 'application/octet-stream' });
     this.addSelectedFiles(taskId, [renamedFile]);
-    this.notification.success(`Evidence PDF "${finalName}" attached.`);
+    this.notification.success(`Evidence document "${finalName}" attached.`);
     this.stagedFile = null;
     this.displayEvidenceSourceModal = false;
   }
@@ -2965,17 +3033,28 @@ export class AssignmentDetailsComponent implements OnInit {
 
   isSubDeptSubmission(ev: any, task: any): boolean {
     if (!task) return false;
-    return !!(task.sub_dept_id);
+    if (task.sub_dept_id) return true;
+    if (task.sub_dept_name && task.sub_dept_name.trim().length > 0) return true;
+    if (this.isTargetSubDeptOfHead()) return true;
+    if (ev && ev.uploader_name && task.sub_dept_name && ev.uploader_name.toLowerCase().includes(task.sub_dept_name.toLowerCase())) {
+      return true;
+    }
+    return false;
   }
 
   canDeleteEvidence(ev: any, task: any, idx?: number): boolean {
     if (!task || !ev) return false;
     if (this.assignmentStatus() === 'COMPLETED') return false;
 
+    // Head Department user is strictly prohibited from deleting any sub-department evidence
+    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(ev, task)) {
+      return false;
+    }
+
     const isSubDeptUser = this.isSubDepartmentUser();
 
-    // 1. If task is delegated to a sub-department:
-    if (task.sub_dept_id) {
+    // 1. If task is delegated to / submitted by a sub-department:
+    if (this.isSubDeptSubmission(ev, task)) {
       // Head Department reviewing a sub-dept task CANNOT delete sub-dept's evidence!
       if (!isSubDeptUser) {
         return false;
@@ -3007,6 +3086,10 @@ export class AssignmentDetailsComponent implements OnInit {
 
   deleteSavedEvidence(ev: any, task: any) {
     if (!ev || !task) return;
+    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(ev, task)) {
+      this.notification.warn('Sub-department evidence cannot be deleted by Head of Department.');
+      return;
+    }
     const fileName = ev.file_name || 'Evidence Document.pdf';
 
     this.confirmationService.confirm({
@@ -3055,6 +3138,13 @@ export class AssignmentDetailsComponent implements OnInit {
   // Save a single task row declaration and/or upload evidence
   async saveSingleTask(task: any, showNotification: boolean = true): Promise<boolean> {
     if (!this.assignmentId) return false;
+    // Guard: Head Department cannot overwrite sub-department comments/remarks
+    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(null, task)) {
+      if (showNotification) {
+        this.notification.warn('Sub-department comments and evidence cannot be modified by Head of Department.');
+      }
+      return false;
+    }
     if (!task.temp_remarks?.trim()) {
       this.notification.warn('Remarks / Explanation is required.');
       return false;
@@ -3174,7 +3264,7 @@ export class AssignmentDetailsComponent implements OnInit {
       }
     }
 
-    const tasksToSaveDirectly = allTasks.filter(t => !t.sub_dept_id && this.canEditTaskAssignment(t));
+    const tasksToSaveDirectly = allTasks.filter(t => !this.isSubDeptSubmission(null, t) && this.canEditTaskAssignment(t));
     if (tasksToSaveDirectly.length > 0) {
       this.submitting = true;
       this.lastSubmitAction = action;

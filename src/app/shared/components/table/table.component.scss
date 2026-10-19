@@ -25,8 +25,7 @@
         &:last-child {
             border-right: none !important;
         }
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        white-space: nowrap !important;
     }
 
     // Body row styling
@@ -42,8 +41,8 @@
             border-color: var(--p-datatable-body-cell-border-color);
             border-right: 1px solid var(--p-datatable-body-cell-border-color);
             color: var(--p-text-color);
-            overflow-wrap: anywhere;
-            word-break: break-word;
+            overflow-wrap: normal;
+            word-break: normal;
             vertical-align: middle;
             
             &:last-child {

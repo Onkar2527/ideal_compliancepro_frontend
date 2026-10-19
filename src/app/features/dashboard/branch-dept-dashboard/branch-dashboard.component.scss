@@ -201,7 +201,67 @@
   &.theme-purple  { border-left: 4px solid var(--purple-500, #8B5CF6); .card-glow { background: var(--purple-500, #8B5CF6); } .card-icon { background: rgba(139, 92, 246, 0.1); color: var(--purple-500, #8B5CF6); } }
   &.theme-emerald { border-left: 4px solid var(--emerald-500, #10B981);.card-glow { background: var(--emerald-500, #10B981);} .card-icon { background: rgba(16, 185, 129, 0.1); color: var(--emerald-500, #10B981); } }
   &.theme-orange  { border-left: 4px solid #f97316;                    .card-glow { background: #f97316; }                  .card-icon { background: rgba(249, 115, 22, 0.1);  color: #f97316; } }
+  &.theme-indigo  { border-left: 4px solid #6366f1;                    .card-glow { background: #6366f1; }                  .card-icon { background: rgba(99, 102, 241, 0.1);  color: #6366f1; } }
+  &.theme-cyan    { border-left: 4px solid #06b6d4;                    .card-glow { background: #06b6d4; }                  .card-icon { background: rgba(6, 182, 212, 0.1);   color: #06b6d4; } }
 }
+
+.dept-type-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  line-height: 1;
+
+  &.badge-parent {
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+  }
+
+  &.badge-sub {
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+  }
+}
+
+.sub-dept-card-bracket {
+  line-height: 1.4;
+  font-size: 0.72rem;
+  .bracket-text {
+    color: #4f46e5;
+    font-weight: 600;
+  }
+}
+
+.bracket-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-block;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline !important;
+    transform: translateY(-0.5px);
+  }
+}
+
+.sub-dept-summary-banner {
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  &:hover {
+    border-color: #6366f1 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  }
+}
+
+.sub-dept-meta {
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
 
 /* Grid */
 .dashboard-grid-2col {
