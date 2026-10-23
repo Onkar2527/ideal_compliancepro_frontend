@@ -98,6 +98,69 @@ interface SearchItem {
               </ng-template>
             </p-select>
 
+        <!-- Color Palette Theme Switcher -->
+        <div class="theme-palette-container hide-on-small" #themeBtnContainer (click)="themeOp.toggle($event, themeBtnContainer)">
+          <p-button
+            class="layout-topbar-action"
+            icon="pi pi-palette"
+            severity="secondary"
+            pTooltip="Choose Software Color Theme"
+            tooltipPosition="bottom"
+          ></p-button>
+          <span class="theme-active-dot" [style.background]="layoutService.currentColorTheme().primary"></span>
+        </div>
+
+        <p-popover #themeOp appendTo="body" [style]="{ width: '340px', padding: '0' }" styleClass="theme-popover-panel">
+          <div class="theme-dropdown-card">
+            <!-- Header -->
+            <div class="theme-dropdown-header">
+              <div class="flex align-items-center gap-2">
+                <div class="theme-header-icon-box" [style.background]="layoutService.currentColorTheme().lightTintRgba">
+                  <i class="pi pi-palette" [style.color]="layoutService.currentColorTheme().primary"></i>
+                </div>
+                <div>
+                  <div class="theme-header-title">Software Colors</div>
+                  <div class="theme-header-subtitle">Select a color to tint the entire software</div>
+                </div>
+              </div>
+              <span class="theme-light-badge">Light Colors</span>
+            </div>
+
+            <!-- Active Theme Preview Banner -->
+            <div class="theme-active-banner" [style.background]="layoutService.currentColorTheme().lightTintRgba">
+              <div class="flex align-items-center gap-2">
+                <span class="theme-preview-dot" [style.background]="layoutService.currentColorTheme().primary"></span>
+                <span class="theme-active-name">Current: <strong>{{ layoutService.currentColorTheme().name }}</strong></span>
+              </div>
+              <span class="theme-active-pill" [style.background]="layoutService.currentColorTheme().primary">Active</span>
+            </div>
+
+            <!-- Theme Grid -->
+            <div class="theme-grid-container">
+              <div
+                *ngFor="let t of layoutService.colorThemes"
+                class="theme-color-item"
+                [class.selected-theme]="layoutService.currentColorTheme().key === t.key"
+                (click)="onSelectColorTheme(t.key)"
+                [pTooltip]="t.label"
+                tooltipPosition="top"
+              >
+                <div class="theme-swatch-circle" [style.background]="t.primary">
+                  <i *ngIf="layoutService.currentColorTheme().key === t.key" class="pi pi-check theme-check-icon"></i>
+                </div>
+                <span class="theme-item-name">{{ t.name }}</span>
+                <span class="theme-item-badge" [style.background]="t.pageBg" [style.color]="t.primary">Light</span>
+              </div>
+            </div>
+
+            <!-- Footer info -->
+            <div class="theme-dropdown-footer">
+              <i class="pi pi-sparkles" [style.color]="layoutService.currentColorTheme().primary"></i>
+              <span>All software pages, buttons, headers, and highlights adapt instantly</span>
+            </div>
+          </div>
+        </p-popover>
+
         <!-- Dark/Light Theme Button -->
         <p-button
           class="layout-topbar-action hide-on-small"
@@ -201,13 +264,13 @@ interface SearchItem {
           class="topbar-profile flex align-items-center gap-3 hide-on-small"
           (click)="logout()"
           tooltipPosition="bottom"
-          style="padding: 0.35rem 0.75rem; margin-right: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease-in-out; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08);"
-          onmouseover="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.borderColor='rgba(255, 255, 255, 0.16)';"
-          onmouseout="this.style.background='rgba(255, 255, 255, 0.04)'; this.style.borderColor='rgba(255, 255, 255, 0.08)';"
+          style="padding: 0.35rem 0.75rem; margin-right: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease-in-out; background: var(--topbar-action-bg, rgba(255, 255, 255, 0.12)); border: 1px solid var(--topbar-action-border, rgba(255, 255, 255, 0.18));"
+          onmouseover="this.style.background='var(--topbar-action-hover, rgba(255, 255, 255, 0.2))'; this.style.borderColor='rgba(255, 255, 255, 0.35)';"
+          onmouseout="this.style.background='var(--topbar-action-bg, rgba(255, 255, 255, 0.12))'; this.style.borderColor='var(--topbar-action-border, rgba(255, 255, 255, 0.18))';"
         >
           <div
             class="profile-avatar flex align-items-center justify-content-center"
-            style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background: linear-gradient(135deg, #eaf1f8, #cbe0f2); color: #173a59; font-weight: 700; font-size: 0.95rem; border: 2px solid rgba(255, 255, 255, 0.4); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08); transition: transform 0.2s;"
+            style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1)); color: #ffffff; font-weight: 700; font-size: 0.95rem; border: 2px solid rgba(255, 255, 255, 0.5); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); transition: transform 0.2s;"
             onmouseover="this.style.transform='scale(1.05)';"
             onmouseout="this.style.transform='scale(1)';"
             (click)="$event.stopPropagation()"
@@ -222,7 +285,7 @@ interface SearchItem {
             >
             <span
               class="profile-role"
-              style="font-size: 0.68rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.65);"
+              style="font-size: 0.68rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255, 255, 255, 0.75);"
               *ngIf="userDesignation"
               >{{ userDesignation }}</span
             >
@@ -305,7 +368,7 @@ interface SearchItem {
           align-items: center;
           justify-content: center;
           padding: 0 4px;
-          border: 1.5px solid #0f2942; /* matches topbar header background color nicely */
+          border: 1.5px solid #ffffff; /* crisp contrast border */
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
           pointer-events: none;
           z-index: 10;
@@ -322,8 +385,8 @@ interface SearchItem {
 
 
         .layout-topbar-actions .p-button.p-button-secondary {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
+          background: var(--topbar-action-bg, rgba(255, 255, 255, 0.12));
+          border-color: var(--topbar-action-border, rgba(255, 255, 255, 0.2));
           color: #ffffff;
         }
 
@@ -332,16 +395,16 @@ interface SearchItem {
         }
 
         .layout-topbar-actions .p-button.p-button-secondary:hover {
-          background: rgba(255, 255, 255, 0.16);
-          border-color: rgba(255, 255, 255, 0.28);
+          background: var(--topbar-action-hover, rgba(255, 255, 255, 0.22));
+          border-color: rgba(255, 255, 255, 0.35);
         }
 
         .layout-topbar-actions .p-select {
           height: 2.25rem;
           border-radius: 4px;
           align-items: center;
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(255, 255, 255, 0.2);
+          background: var(--topbar-action-bg, rgba(255, 255, 255, 0.12));
+          border-color: var(--topbar-action-border, rgba(255, 255, 255, 0.2));
           color: #ffffff;
         }
 
@@ -355,7 +418,7 @@ interface SearchItem {
         }
 
         .layout-topbar-actions .p-select-dropdown {
-          color: #ffffff;
+          color: rgba(255, 255, 255, 0.8);
         }
       }
 
@@ -732,6 +795,197 @@ interface SearchItem {
         color: var(--text-color-secondary);
         margin: 0;
       }
+
+      /* Theme Palette Popover & Swatches */
+      .theme-palette-container {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+      }
+
+      .theme-active-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        border: 1.5px solid #ffffff;
+        pointer-events: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+
+      ::ng-deep .theme-popover-panel {
+        border-radius: 14px !important;
+        overflow: hidden !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15) !important;
+        border: 1px solid var(--surface-border) !important;
+        background: var(--surface-card) !important;
+      }
+
+      ::ng-deep .theme-dropdown-card {
+        padding: 0;
+        background: var(--surface-card);
+      }
+
+      ::ng-deep .theme-dropdown-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--surface-border);
+        background: var(--surface-card);
+      }
+
+      ::ng-deep .theme-header-icon-box {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+      }
+
+      ::ng-deep .theme-header-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-color);
+        line-height: 1.2;
+      }
+
+      ::ng-deep .theme-header-subtitle {
+        font-size: 0.72rem;
+        color: var(--text-color-secondary);
+      }
+
+      ::ng-deep .theme-light-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 0.2rem 0.5rem;
+        border-radius: 9999px;
+        background: rgba(34, 197, 94, 0.12);
+        color: #16a34a;
+        letter-spacing: 0.03em;
+      }
+
+      ::ng-deep .theme-active-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 1rem;
+        border-bottom: 1px solid var(--surface-border);
+        font-size: 0.78rem;
+        color: var(--text-color);
+      }
+
+      ::ng-deep .theme-preview-dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      ::ng-deep .theme-active-pill {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #ffffff;
+        padding: 0.15rem 0.45rem;
+        border-radius: 9999px;
+        text-transform: uppercase;
+      }
+
+      ::ng-deep .theme-grid-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.6rem;
+        padding: 0.85rem;
+        max-height: 320px;
+        overflow-y: auto;
+        background: var(--surface-card);
+      }
+
+      ::ng-deep .theme-color-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 0.65rem 0.35rem;
+        border-radius: 10px;
+        border: 1.5px solid var(--surface-border);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--surface-card);
+      }
+
+      ::ng-deep .theme-color-item:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+
+      ::ng-deep .theme-color-item.selected-theme {
+        border-color: var(--primary-color);
+        background: var(--primary-light-rgba, rgba(2, 132, 199, 0.08));
+        box-shadow: 0 0 0 1px var(--primary-color);
+      }
+
+      ::ng-deep .theme-swatch-circle {
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.4rem;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+        transition: transform 0.2s;
+      }
+
+      ::ng-deep .theme-color-item:hover .theme-swatch-circle {
+        transform: scale(1.08);
+      }
+
+      ::ng-deep .theme-check-icon {
+        color: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 900;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+      }
+
+      ::ng-deep .theme-item-name {
+        font-size: 0.72rem;
+        font-weight: 650;
+        color: var(--text-color);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 82px;
+      }
+
+      ::ng-deep .theme-item-badge {
+        font-size: 0.6rem;
+        font-weight: 700;
+        padding: 0.05rem 0.35rem;
+        border-radius: 4px;
+        margin-top: 0.2rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        text-transform: uppercase;
+      }
+
+      ::ng-deep .theme-dropdown-footer {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+        border-top: 1px solid var(--surface-border);
+        font-size: 0.72rem;
+        color: var(--text-color-secondary);
+        background: var(--surface-card);
+      }
     `,
   ],
 })
@@ -751,6 +1005,10 @@ export class AppTopbar implements OnInit, OnDestroy {
 
   toggleTheme() {
     this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+  }
+
+  onSelectColorTheme(themeKey: string) {
+    this.layoutService.applyColorTheme(themeKey);
   }
 
   // Notifications State

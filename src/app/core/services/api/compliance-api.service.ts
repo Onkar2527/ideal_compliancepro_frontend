@@ -78,6 +78,10 @@ export interface ComplianceDocument {
   created_by_username?: string | null;
   is_evidence?: boolean;
   source_type?: 'DOC_MASTER' | 'TASK_EVIDENCE' | string;
+  task_set_id?: number | null;
+  task_set_name?: string | null;
+  frequency?: string | null;
+  cycle_label?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

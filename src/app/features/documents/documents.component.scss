@@ -246,6 +246,90 @@
     }
   }
 
+  /* Task Set & Frequency Cell */
+  .taskset-cell {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+    max-width: 220px;
+
+    .taskset-title {
+      font-size: 0.78rem;
+      color: var(--text-color, #1e293b);
+      line-height: 1.25;
+      word-break: break-word;
+    }
+  }
+
+  /* Frequency Badges */
+  .freq-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.1rem 0.5rem;
+    border-radius: 9999px;
+    letter-spacing: 0.02em;
+
+    &.freq-monthly {
+      background: rgba(14, 165, 233, 0.12);
+      color: #0284c7;
+      border: 1px solid rgba(14, 165, 233, 0.25);
+    }
+
+    &.freq-quarterly {
+      background: rgba(168, 85, 247, 0.12);
+      color: #7e22ce;
+      border: 1px solid rgba(168, 85, 247, 0.25);
+    }
+
+    &.freq-weekly {
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    &.freq-daily {
+      background: rgba(245, 158, 11, 0.12);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    &.freq-yearly {
+      background: rgba(99, 102, 241, 0.12);
+      color: #4338ca;
+      border: 1px solid rgba(99, 102, 241, 0.25);
+    }
+
+    &.freq-fortnight {
+      background: rgba(236, 72, 153, 0.12);
+      color: #db2777;
+      border: 1px solid rgba(236, 72, 153, 0.25);
+    }
+
+    &.freq-default {
+      background: rgba(100, 116, 139, 0.12);
+      color: #475569;
+      border: 1px solid rgba(100, 116, 139, 0.25);
+    }
+  }
+
+  /* Compliance Cycle / Day Label Badge */
+  .cycle-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #4338ca;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 4px;
+    padding: 0.08rem 0.4rem;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+  }
+
   /* Access Tags */
   .access-tag {
     font-size: 0.7rem;

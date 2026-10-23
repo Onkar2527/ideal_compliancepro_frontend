@@ -35,9 +35,14 @@ export const routes: Routes = [
       { path: 'admin/task-headers', loadComponent: () => import('./features/admin/task-headers.component').then(mod => mod.TaskHeadersComponent) },
       { path: 'admin/manage-assignments', loadComponent: () => import('./features/admin/manage-assignments/manage-assignments').then(mod => mod.ManageAssignmentsComponent) },
       { path: 'admin/documents', loadComponent: () => import('./features/documents/documents.component').then(mod => mod.DocumentsComponent) },
+      { path: 'admin/evidence', redirectTo: 'admin/documents', pathMatch: 'full' },
+      { path: 'admin/evidence-management', redirectTo: 'admin/documents', pathMatch: 'full' },
       { path: 'documents', redirectTo: 'admin/documents', pathMatch: 'full' },
+      { path: 'evidence', redirectTo: 'admin/documents', pathMatch: 'full' },
       { path: 'reports', loadComponent: () => import('./features/reports/reports.component').then(mod => mod.ReportsComponent) },
       { path: 'reports/:reportSlug', loadComponent: () => import('./features/reports/report-viewer/report-viewer.component').then(mod => mod.ReportViewerComponent) },
+      { path: 'summary', loadComponent: () => import('./features/summary/summary.component').then(mod => mod.SummaryComponent) },
+      { path: 'compliance-summary', redirectTo: 'summary', pathMatch: 'full' },
     ]
   },
   { 
@@ -50,4 +55,4 @@ export const routes: Routes = [
   },
   { path: '**', redirectTo: '/home' },
 ];
-// Touch to trigger watcher reload
+// Touch to trigger watcher reload - summary route added

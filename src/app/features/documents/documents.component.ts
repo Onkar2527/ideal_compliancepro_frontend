@@ -19,6 +19,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ComplianceApiService, ComplianceDocument } from '../../core/services/api/compliance-api.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
+import { getCompliancePeriodInfo } from '../../shared/utils/compliance-period.util';
 
 export interface DepartmentOption {
   label: string;
@@ -92,6 +93,8 @@ export class DocumentsComponent implements OnInit {
   selectedAccessFilter: string | null = null;
   selectedStatusFilter: string | null = null;
   selectedTypeFilter: 'DOCUMENT' | 'EVIDENCE' | null = null;
+  selectedTaskSetFilter = signal<string | null>(null);
+  selectedFrequencyFilter = signal<string | null>(null);
 
   // Pagination
   rowsPerPageOptions = [10, 25, 50, 100];
@@ -183,7 +186,7 @@ export class DocumentsComponent implements OnInit {
       // "All Branches" selected -> Show all users across company
       return users;
     }
-    
+
     const deptInfo = this.getDepartmentInfo(selectedDeptId);
     if (deptInfo?.isHead) {
       // If a Head Department is selected, include users in the Head Dept AND all its child Sub-Departments
@@ -236,6 +239,83 @@ export class DocumentsComponent implements OnInit {
     { label: '📁 Master Documents', value: 'DOCUMENT' },
     { label: '📎 Task Evidence', value: 'EVIDENCE' }
   ];
+
+  readonly frequencyMap: Record<string, string> = {
+    '0': 'Daily',
+    '7': 'Weekly',
+    '1': 'Fortnight',
+    '2': 'Monthly',
+    '3': 'Quarterly',
+    '4': 'Semi-Annually',
+    '5': 'Yearly',
+    '6': '1 Time Use',
+    'DAILY': 'Daily',
+    'WEEKLY': 'Weekly',
+    'FORTNIGHT': 'Fortnight',
+    'FORTNIGHTLY': 'Fortnight',
+    'MONTHLY': 'Monthly',
+    'QUARTERLY': 'Quarterly',
+    'SEMI_ANNUALLY': 'Semi-Annually',
+    'HALF_YEARLY': 'Semi-Annually',
+    'YEARLY': 'Yearly',
+    'ANNUALLY': 'Yearly',
+    'ONCE': '1 Time Use'
+  };
+
+  getFrequencyLabel(freq: string | null | undefined): string {
+    if (!freq) return '—';
+    const key = String(freq).trim();
+    return this.frequencyMap[key] || this.frequencyMap[key.toUpperCase()] || key;
+  }
+
+  getFrequencyBadgeClass(freq: string | null | undefined): string {
+    const label = (this.getFrequencyLabel(freq) || '').toLowerCase();
+    if (label.includes('month')) return 'freq-monthly';
+    if (label.includes('quarter')) return 'freq-quarterly';
+    if (label.includes('week')) return 'freq-weekly';
+    if (label.includes('day') || label.includes('daily')) return 'freq-daily';
+    if (label.includes('year') || label.includes('annual')) return 'freq-yearly';
+    if (label.includes('fortnight')) return 'freq-fortnight';
+    return 'freq-default';
+  }
+
+  getCycleLabel(doc: ComplianceDocument): string {
+    if (doc.cycle_label) return doc.cycle_label;
+    if (doc.is_evidence && doc.frequency) {
+      const info = getCompliancePeriodInfo({
+        frequency: doc.frequency,
+        startDate: doc.start_date,
+        endDate: doc.end_date,
+        proposedTimeline: doc.issue_date || doc.created_at,
+        createdAt: doc.created_at
+      });
+      return info?.cycleLabel || '';
+    }
+    return '';
+  }
+
+  // Computed Dynamic Task Set Options from Documents
+  taskSetFilterOptions = computed(() => {
+    const set = new Set<string>();
+    this.documents().forEach(d => {
+      const name = d.task_set_name || (d.document_number?.startsWith('TASK: ') ? d.document_number.replace('TASK: ', '').trim() : null);
+      if (name) set.add(name);
+    });
+    return Array.from(set).sort().map(name => ({ label: name, value: name }));
+  });
+
+  // Computed Dynamic Frequency Options from Documents
+  frequencyFilterOptions = computed(() => {
+    const freqs = new Set<string>();
+    this.documents().forEach(d => {
+      if (d.frequency) {
+        freqs.add(this.getFrequencyLabel(d.frequency));
+      }
+    });
+    const standardFreqs = ['Daily', 'Weekly', 'Fortnight', 'Monthly', 'Quarterly', 'Semi-Annually', 'Yearly', '1 Time Use'];
+    standardFreqs.forEach(f => freqs.add(f));
+    return Array.from(freqs).map(f => ({ label: f, value: f }));
+  });
 
   // Calculated Summary Statistics
   totalCount = computed(() => this.visibleDocuments.length);
@@ -359,7 +439,7 @@ export class DocumentsComponent implements OnInit {
     if (this.currentUserBranchId !== null && doc.department_id !== null && doc.department_id !== undefined) {
       const docDeptId = Number(doc.department_id);
       const userDeptId = Number(this.currentUserBranchId);
-      
+
       // Exact match (same department or sub-department)
       if (docDeptId === userDeptId) return true;
 
@@ -410,13 +490,33 @@ export class DocumentsComponent implements OnInit {
     const st = this.selectedStatusFilter;
 
     if (search) {
-      list = list.filter(d => 
+      list = list.filter(d =>
         (d.document_name && d.document_name.toLowerCase().includes(search)) ||
         (d.document_number && d.document_number.toLowerCase().includes(search)) ||
         (d.department_name && d.department_name.toLowerCase().includes(search)) ||
         (d.user_name && d.user_name.toLowerCase().includes(search)) ||
-        (d.description && d.description.toLowerCase().includes(search))
+        (d.description && d.description.toLowerCase().includes(search)) ||
+        (d.task_set_name && d.task_set_name.toLowerCase().includes(search)) ||
+        (d.frequency && this.getFrequencyLabel(d.frequency).toLowerCase().includes(search))
       );
+    }
+
+    // Filter by Task Set
+    const ts = this.selectedTaskSetFilter();
+    if (ts) {
+      list = list.filter(d => {
+        const name = d.task_set_name || (d.document_number?.startsWith('TASK: ') ? d.document_number.replace('TASK: ', '').trim() : '');
+        return name.toLowerCase() === ts.toLowerCase();
+      });
+    }
+
+    // Filter by Frequency
+    const fr = this.selectedFrequencyFilter();
+    if (fr) {
+      list = list.filter(d => {
+        if (!d.frequency) return false;
+        return this.getFrequencyLabel(d.frequency).toLowerCase() === fr.toLowerCase();
+      });
     }
 
     if (dept !== null && dept !== undefined) {
@@ -658,7 +758,7 @@ export class DocumentsComponent implements OnInit {
         this.documents.set(combined);
         this.loading.set(false);
         if (isRefresh) {
-          this.notification.info('Asset Management list refreshed');
+          this.notification.info('Evidence Management list refreshed');
         }
 
         // Lightweight background sync (only if cache is empty or on manual refresh)
@@ -761,7 +861,17 @@ export class DocumentsComponent implements OnInit {
                   status: 'ACTIVE',
                   access_level: 'PUBLIC',
                   is_evidence: true,
-                  source_type: 'TASK_EVIDENCE'
+                  source_type: 'TASK_EVIDENCE',
+                  task_set_id: asg.task_set_id ? Number(asg.task_set_id) : null,
+                  task_set_name: asg.task_set_name || null,
+                  frequency: asg.frequency ? String(asg.frequency) : null,
+                  cycle_label: getCompliancePeriodInfo({
+                    frequency: asg.frequency,
+                    startDate: asg.start_date,
+                    endDate: asg.end_date,
+                    proposedTimeline: asg.proposed_timeline,
+                    createdAt: ev.created_at || asg.created_at
+                  })?.cycleLabel || null
                 });
               });
             });

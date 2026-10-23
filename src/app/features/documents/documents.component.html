@@ -1,5 +1,5 @@
 <div class="documents-page-container">
-  
+
   <!-- Page Header & Summary Badges -->
   <div class="page-header-card">
     <div class="header-left">
@@ -7,12 +7,14 @@
         <i class="pi pi-folder-open text-primary text-2xl"></i>
       </div>
       <div>
-        <h2 class="page-title">Asset Management</h2>
-        <p class="page-subtitle">Manage, store, and track organizational, regulatory, policy, and asset documents with role-based access control</p>
+        <h2 class="page-title">Evidence Management</h2>
+        <p class="page-subtitle">Manage, store, and track organizational, regulatory, policy, and evidence documents
+          with role-based access control</p>
       </div>
     </div>
     <div class="header-actions">
-      <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" severity="secondary" size="small" (click)="loadDocuments(true)" />
+      <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" severity="secondary" size="small"
+        (click)="loadDocuments(true)" />
       <p-button label="Add Document" icon="pi pi-plus" severity="primary" size="small" (click)="openNew()" />
     </div>
   </div>
@@ -74,40 +76,48 @@
   <div class="filter-toolbar-card">
     <div class="search-box">
       <i class="pi pi-search search-icon"></i>
-      <input type="text" pInputText placeholder="Search by name, ref no, department, owner..." 
-             [(ngModel)]="searchTerm" class="w-full search-input" />
+      <input type="text" pInputText placeholder="Search by name, ref no, department, owner..." [(ngModel)]="searchTerm"
+        class="w-full search-input" />
     </div>
 
     <div class="filter-controls">
       <!-- Type Filter (Master Documents vs Task Evidence) -->
-      <p-select [options]="typeFilterOptions" [(ngModel)]="selectedTypeFilter" 
-                placeholder="Item Type" styleClass="filter-dropdown" />
+      <p-select [options]="typeFilterOptions" [(ngModel)]="selectedTypeFilter" placeholder="Item Type"
+        styleClass="filter-dropdown" />
+
+      <!-- Task Set Filter -->
+      <p-select [options]="taskSetFilterOptions()" [ngModel]="selectedTaskSetFilter()" (ngModelChange)="selectedTaskSetFilter.set($event)"
+        [filter]="true" filterBy="label" [showClear]="true" placeholder="Filter by Task Set" styleClass="filter-dropdown" />
+
+      <!-- Frequency Filter -->
+      <p-select [options]="frequencyFilterOptions()" [ngModel]="selectedFrequencyFilter()" (ngModelChange)="selectedFrequencyFilter.set($event)"
+        [showClear]="true" placeholder="Filter by Frequency" styleClass="filter-dropdown" />
 
       <!-- Department Filter -->
-      <p-select [options]="deptFilterOptions()" [(ngModel)]="selectedDeptFilter" 
-                [filter]="true" filterBy="label" [showClear]="true"
-                placeholder="Department / Branch" styleClass="filter-dropdown" />
+      <p-select [options]="deptFilterOptions()" [(ngModel)]="selectedDeptFilter" [filter]="true" filterBy="label"
+        [showClear]="true" placeholder="Department / Branch" styleClass="filter-dropdown" />
 
       <!-- Access Level (Public/Private) Filter -->
-      <p-select [options]="accessFilterOptions" [(ngModel)]="selectedAccessFilter" 
-                placeholder="Visibility" styleClass="filter-dropdown" />
+      <p-select [options]="accessFilterOptions" [(ngModel)]="selectedAccessFilter" placeholder="Visibility"
+        styleClass="filter-dropdown" />
 
       <!-- Status Filter -->
-      <p-select [options]="statusFilterOptions" [(ngModel)]="selectedStatusFilter" 
-                placeholder="Status" styleClass="filter-dropdown" />
+      <p-select [options]="statusFilterOptions" [(ngModel)]="selectedStatusFilter" placeholder="Status"
+        styleClass="filter-dropdown" />
     </div>
   </div>
 
   <!-- Documents DataTable -->
   <div class="table-wrapper-card">
-    <p-table [value]="filteredDocumentsList" [loading]="loading()" [paginator]="true" [rows]="10" 
-             [rowsPerPageOptions]="rowsPerPageOptions" responsiveLayout="scroll" 
-             styleClass="p-datatable-sm p-datatable-striped">
-      
+    <p-table [value]="filteredDocumentsList" [loading]="loading()" [paginator]="true" [rows]="10"
+      [rowsPerPageOptions]="rowsPerPageOptions" responsiveLayout="scroll"
+      styleClass="p-datatable-sm p-datatable-striped">
+
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 45px;">#</th>
           <th style="min-width: 220px;">Document Details</th>
+          <th style="min-width: 170px;">Task Set & Frequency</th>
           <th style="min-width: 125px;">Access Level</th>
           <th style="min-width: 150px;">Department / Branch</th>
           <th style="min-width: 140px;">Owner / User</th>
@@ -129,30 +139,54 @@
               <i class="pi pi-file-pdf text-red-500 doc-type-icon" *ngIf="doc.file_url"></i>
               <i class="pi pi-file text-gray-400 doc-type-icon" *ngIf="!doc.file_url"></i>
               <div class="doc-text-meta">
-                <div class="flex items-center gap-2" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <div class="flex items-center gap-2"
+                  style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                   <span class="doc-name">{{ doc.document_name }}</span>
-                  <span *ngIf="doc.is_evidence" style="background: rgba(99, 102, 241, 0.12); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.28); font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <span *ngIf="doc.is_evidence"
+                    style="background: rgba(99, 102, 241, 0.12); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.28); font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
                     <i class="pi pi-check-circle" style="font-size: 0.65rem;"></i> Evidence
                   </span>
                 </div>
                 <div class="doc-sub-meta" *ngIf="doc.document_number || doc.description">
-                  <span class="doc-ref-badge" *ngIf="doc.document_number">{{ doc.is_evidence ? doc.document_number : ('Ref: ' + doc.document_number) }}</span>
+                  <span class="doc-ref-badge" *ngIf="doc.document_number">{{ doc.is_evidence ? doc.document_number :
+                    ('Ref: ' + doc.document_number) }}</span>
                   <span class="doc-desc" *ngIf="doc.description" [title]="doc.description">{{ doc.description }}</span>
                 </div>
               </div>
             </div>
           </td>
 
+          <!-- Task Set & Frequency -->
+          <td>
+            <div class="taskset-cell" *ngIf="doc.task_set_name || (doc.is_evidence && doc.document_number?.startsWith('TASK: '))">
+              <div class="taskset-title flex items-center">
+                <i class="pi pi-list-check text-indigo-500 mr-1" style="font-size: 0.74rem;"></i>
+                <span class="font-semibold text-xs" style="color: #1e293b;">{{ doc.task_set_name || (doc.document_number ? doc.document_number.replace('TASK: ', '') : 'Task Set') }}</span>
+              </div>
+              <div class="taskset-sub mt-1 flex flex-wrap gap-1 items-center" *ngIf="doc.frequency || getCycleLabel(doc)">
+                <span [class]="'freq-badge ' + getFrequencyBadgeClass(doc.frequency)" *ngIf="doc.frequency">
+                  <i class="pi pi-clock mr-1" style="font-size: 0.62rem;"></i>
+                  {{ getFrequencyLabel(doc.frequency) }}
+                </span>
+                <span class="cycle-badge" *ngIf="getCycleLabel(doc)">
+                  <i class="pi pi-calendar mr-1" style="font-size: 0.62rem;"></i>
+                  {{ getCycleLabel(doc) }}
+                </span>
+              </div>
+            </div>
+            <div *ngIf="!doc.task_set_name && !(doc.is_evidence && doc.document_number?.startsWith('TASK: '))">
+              <span style="color: #94a3b8; font-size: 0.78rem;">—</span>
+            </div>
+          </td>
+
           <!-- Access Level (Public vs Private) -->
           <td>
-            <span *ngIf="doc.access_level === 'PRIVATE'" 
-                  class="access-tag access-private"
-                  pTooltip="Private: Visible ONLY to the creator / owner who created it">
+            <span *ngIf="doc.access_level === 'PRIVATE'" class="access-tag access-private"
+              pTooltip="Private: Visible ONLY to the creator / owner who created it">
               <i class="pi pi-lock"></i> Private
             </span>
-            <span *ngIf="doc.access_level !== 'PRIVATE'" 
-                  class="access-tag access-public"
-                  pTooltip="Public: Visible to CCO, CO, and department members">
+            <span *ngIf="doc.access_level !== 'PRIVATE'" class="access-tag access-public"
+              pTooltip="Public: Visible to CCO, CO, and department members">
               <i class="pi pi-globe"></i> Public
             </span>
           </td>
@@ -220,7 +254,8 @@
           <!-- Issue Date -->
           <td>
             <span class="date-text">
-              {{ doc.issue_date ? (doc.issue_date | date:'dd/MM/yyyy') : (doc.created_at ? (doc.created_at | date:'dd/MM/yyyy') : '—') }}
+              {{ doc.issue_date ? (doc.issue_date | date:'dd/MM/yyyy') : (doc.created_at ? (doc.created_at |
+              date:'dd/MM/yyyy') : '—') }}
             </span>
           </td>
 
@@ -229,7 +264,8 @@
             <div class="period-cell">
               <!-- For Evidence: Permanent Lifetime record (Never Expired) -->
               <ng-container *ngIf="doc.is_evidence">
-                <span class="period-dates" style="color: #047857; font-weight: 600; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <span class="period-dates"
+                  style="color: #047857; font-weight: 600; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-check-circle" style="font-size: 0.72rem;"></i> Lifetime / No Expiry
                 </span>
               </ng-container>
@@ -237,7 +273,7 @@
               <!-- For Master Compliance Documents: Date range -->
               <ng-container *ngIf="!doc.is_evidence">
                 <span class="period-dates" *ngIf="doc.start_date || doc.end_date">
-                  {{ doc.start_date ? (doc.start_date | date:'dd/MM/yyyy') : '—' }} &rarr; 
+                  {{ doc.start_date ? (doc.start_date | date:'dd/MM/yyyy') : '—' }} &rarr;
                   {{ doc.end_date ? (doc.end_date | date:'dd/MM/yyyy') : 'No Expiry' }}
                 </span>
                 <span class="period-dates" *ngIf="!doc.start_date && !doc.end_date">
@@ -253,9 +289,8 @@
 
           <!-- Status Tag -->
           <td>
-            <p-tag [value]="getStatusLabel(getDocumentStatus(doc))" 
-                   [severity]="getStatusSeverity(getDocumentStatus(doc))" 
-                   [rounded]="true" />
+            <p-tag [value]="getStatusLabel(getDocumentStatus(doc))"
+              [severity]="getStatusSeverity(getDocumentStatus(doc))" [rounded]="true" />
           </td>
 
           <!-- Actions -->
@@ -263,16 +298,14 @@
             <div class="action-buttons-cell">
               <!-- View / Download PDF button -->
               <p-button *ngIf="doc.file_url" icon="pi pi-eye" [text]="true" severity="info" size="small"
-                        (click)="previewFile(doc.file_url, doc.file_name || doc.document_name)"
-                        pTooltip="Preview Document" tooltipPosition="top" />
+                (click)="previewFile(doc.file_url, doc.file_name || doc.document_name)" pTooltip="Preview Document"
+                tooltipPosition="top" />
 
               <p-button *ngIf="canEditDocument(doc)" icon="pi pi-pencil" [text]="true" severity="secondary" size="small"
-                        (click)="editDocument(doc)"
-                        pTooltip="Edit Document" tooltipPosition="top" />
+                (click)="editDocument(doc)" pTooltip="Edit Document" tooltipPosition="top" />
 
               <p-button *ngIf="canDeleteDocument(doc)" icon="pi pi-trash" [text]="true" severity="danger" size="small"
-                        (click)="deleteDocument(doc)"
-                        pTooltip="Delete Document" tooltipPosition="top" />
+                (click)="deleteDocument(doc)" pTooltip="Delete Document" tooltipPosition="top" />
             </div>
           </td>
         </tr>
@@ -281,12 +314,13 @@
       <!-- Empty State -->
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="9" class="empty-state-cell">
+          <td colspan="10" class="empty-state-cell">
             <div class="empty-state-content">
               <i class="pi pi-folder-open empty-icon"></i>
               <p class="empty-title">No documents found</p>
               <p class="empty-subtitle">Click "Add Document" above to create and store your first document.</p>
-              <p-button label="Add First Document" icon="pi pi-plus" size="small" severity="primary" (click)="openNew()" />
+              <p-button label="Add First Document" icon="pi pi-plus" size="small" severity="primary"
+                (click)="openNew()" />
             </div>
           </td>
         </tr>
@@ -295,15 +329,9 @@
   </div>
 
   <!-- Create / Edit Document Drawer -->
-  <p-drawer [visible]="displayDialog()" 
-            (visibleChange)="displayDialog.set($event)" 
-            position="right" 
-            [style]="{ width: '850px', maxWidth: '96vw' }" 
-            [modal]="true" 
-            [dismissible]="true" 
-            [showCloseIcon]="false" 
-            styleClass="drawer-layout circular-drawer" 
-            appendTo="body">
+  <p-drawer [visible]="displayDialog()" (visibleChange)="displayDialog.set($event)" position="right"
+    [style]="{ width: '850px', maxWidth: '96vw' }" [modal]="true" [dismissible]="true" [showCloseIcon]="false"
+    styleClass="drawer-layout circular-drawer" appendTo="body">
 
     <ng-template pTemplate="header">
       <div class="drawer-header-row">
@@ -316,18 +344,20 @@
               {{ dialogMode() === 'create' ? 'Add New Document' : 'Edit Document Details' }}
             </div>
             <div class="text-600 text-sm mt-1">
-              {{ dialogMode() === 'create' ? 'Upload and register a new compliance or regulatory document' : 'Update document properties, assignment, or privacy' }}
+              {{ dialogMode() === 'create' ? 'Upload and register a new compliance or regulatory document' : 'Update
+              document properties, assignment, or privacy' }}
             </div>
           </div>
         </div>
-        <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded" (click)="hideDialog()"></button>
+        <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded"
+          (click)="hideDialog()"></button>
       </div>
     </ng-template>
 
     <ng-template pTemplate="content">
       <div class="drawer-content-shell">
         <div class="dialog-form-container">
-          
+
           <!-- Section 1: Basic Information -->
           <div class="section-heading mb-3">
             <span class="section-kicker">Document Information</span>
@@ -340,7 +370,8 @@
               <label class="form-label">
                 Document Name <span class="required-star">*</span>
               </label>
-              <input type="text" pInputText [(ngModel)]="docName" placeholder="e.g. Master Direction on KYC" class="w-full" />
+              <input type="text" pInputText [(ngModel)]="docName" placeholder="e.g. Master Direction on KYC"
+                class="w-full" />
               <small *ngIf="submitted() && !docName.trim()" class="p-error">Document name is required.</small>
             </div>
 
@@ -361,26 +392,25 @@
             <label class="form-label">
               Access Level / Privacy <span class="required-star">*</span>
             </label>
-            
+
             <div class="access-selector-grid">
               <!-- Public Option -->
-              <div class="access-option-card" 
-                   [class.selected]="accessLevel === 'PUBLIC'" 
-                   (click)="accessLevel = 'PUBLIC'">
+              <div class="access-option-card" [class.selected]="accessLevel === 'PUBLIC'"
+                (click)="accessLevel = 'PUBLIC'">
                 <div class="option-header">
                   <i class="pi pi-globe text-teal-600"></i>
                   <span class="option-title">Public Document</span>
                   <i class="pi pi-check-circle check-icon" *ngIf="accessLevel === 'PUBLIC'"></i>
                 </div>
                 <p class="option-desc">
-                  Visible to <strong>CCO, CO</strong> and all members (Heads, Sub-Heads, Staff) of the assigned department / all branches.
+                  Visible to <strong>CCO, CO</strong> and all members (Heads, Sub-Heads, Staff) of the assigned
+                  department / all branches.
                 </p>
               </div>
 
               <!-- Private Option -->
-              <div class="access-option-card" 
-                   [class.selected]="accessLevel === 'PRIVATE'" 
-                   (click)="accessLevel = 'PRIVATE'">
+              <div class="access-option-card" [class.selected]="accessLevel === 'PRIVATE'"
+                (click)="accessLevel = 'PRIVATE'">
                 <div class="option-header">
                   <i class="pi pi-lock text-purple-600"></i>
                   <span class="option-title">Private / Confidential</span>
@@ -397,16 +427,15 @@
           <div class="form-row-2">
             <div class="form-group">
               <label class="form-label">Department / Branch Target</label>
-              <p-select [options]="formDeptOptions()" [(ngModel)]="departmentId" 
-                        (onChange)="onDepartmentChange($event.value)"
-                        [filter]="true" filterBy="label"
-                        placeholder="Select Department / Branch / Sub-Dept" 
-                        [showClear]="true" appendTo="body" styleClass="w-full">
+              <p-select [options]="formDeptOptions()" [(ngModel)]="departmentId"
+                (onChange)="onDepartmentChange($event.value)" [filter]="true" filterBy="label"
+                placeholder="Select Department / Branch / Sub-Dept" [showClear]="true" appendTo="body"
+                styleClass="w-full">
                 <ng-template let-item pTemplate="item">
                   <div class="dept-option-item" [style.padding-left]="item.isSub ? '1.4rem' : '0'">
                     <span [style.font-weight]="item.isHead ? '700' : (item.isSub ? '500' : '600')"
-                          [style.color]="item.isSub ? '#475569' : (item.isHead ? '#1e3a8a' : (item.isBranch ? '#0f766e' : '#1e293b'))"
-                          [style.font-size]="item.isSub ? '0.84rem' : '0.88rem'">
+                      [style.color]="item.isSub ? '#475569' : (item.isHead ? '#1e3a8a' : (item.isBranch ? '#0f766e' : '#1e293b'))"
+                      [style.font-size]="item.isSub ? '0.84rem' : '0.88rem'">
                       {{ item.label }}
                     </span>
                   </div>
@@ -415,13 +444,16 @@
 
               <!-- Informative Hierarchy Feedback -->
               <div *ngIf="selectedDepartmentInfo as info" class="mt-1">
-                <small *ngIf="info.isSub" style="color: #2563eb; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <small *ngIf="info.isSub"
+                  style="color: #2563eb; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-info-circle"></i> Sub-Department under <strong>{{ info.parentName }}</strong>
                 </small>
-                <small *ngIf="info.isHead" style="color: #4338ca; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <small *ngIf="info.isHead"
+                  style="color: #4338ca; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-info-circle"></i> Head Department (Applies to all sub-departments and staff)
                 </small>
-                <small *ngIf="info.isBranch" style="color: #0d9488; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <small *ngIf="info.isBranch"
+                  style="color: #0d9488; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
                   <i class="pi pi-map-marker"></i> Branch Location
                 </small>
               </div>
@@ -435,10 +467,9 @@
               <label class="form-label">
                 {{ accessLevel === 'PRIVATE' ? 'Assigned Person (Private Access) *' : 'Owner / Created By (Employee)' }}
               </label>
-              <p-select [options]="formUserOptions()" [(ngModel)]="userId" (onChange)="onUserChange($event.value)" 
-                        [filter]="true" filterBy="label" 
-                        placeholder="Select Employee / User" 
-                        [showClear]="true" appendTo="body" styleClass="w-full" />
+              <p-select [options]="formUserOptions()" [(ngModel)]="userId" (onChange)="onUserChange($event.value)"
+                [filter]="true" filterBy="label" placeholder="Select Employee / User" [showClear]="true" appendTo="body"
+                styleClass="w-full" />
               <small class="form-hint" *ngIf="accessLevel === 'PRIVATE'" style="color: #9333ea; font-weight: 600;">
                 * In Private mode, this document is restricted exclusively to the person who created it.
               </small>
@@ -478,9 +509,10 @@
           <!-- Row 5: File Upload & Attachment -->
           <div class="form-group">
             <label class="form-label">Attach Document File (PDF / DOCX)</label>
-            
+
             <div class="file-upload-zone" *ngIf="!fileUrl">
-              <input type="file" #fileInput (change)="onFileSelected($event)" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" style="display: none;" />
+              <input type="file" #fileInput (change)="onFileSelected($event)"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg" style="display: none;" />
               <div class="upload-placeholder" (click)="fileInput.click()">
                 <i class="pi pi-cloud-upload upload-icon"></i>
                 <span class="upload-text">Click to browse or drag and drop document file</span>
@@ -497,8 +529,10 @@
                 </div>
               </div>
               <div class="file-actions-right">
-                <p-button label="Preview" icon="pi pi-eye" size="small" [text]="true" (click)="previewFile(fileUrl, fileName)" />
-                <p-button icon="pi pi-times" size="small" [text]="true" severity="danger" (click)="removeFile()" pTooltip="Remove File" />
+                <p-button label="Preview" icon="pi pi-eye" size="small" [text]="true"
+                  (click)="previewFile(fileUrl, fileName)" />
+                <p-button icon="pi pi-times" size="small" [text]="true" severity="danger" (click)="removeFile()"
+                  pTooltip="Remove File" />
               </div>
             </div>
           </div>
@@ -506,7 +540,8 @@
           <!-- Row 6: Description / Remarks -->
           <div class="form-group">
             <label class="form-label">Description / Remarks</label>
-            <textarea pTextarea [(ngModel)]="description" rows="2" placeholder="Add any background notes, compliance tags, or references..." class="w-full"></textarea>
+            <textarea pTextarea [(ngModel)]="description" rows="2"
+              placeholder="Add any background notes, compliance tags, or references..." class="w-full"></textarea>
           </div>
 
           <!-- Row 7: Status -->
@@ -521,28 +556,28 @@
 
     <ng-template pTemplate="footer">
       <div class="drawer-footer-row flex justify-content-end gap-2">
-        <button pButton pRipple label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="hideDialog()"></button>
-        <button pButton pRipple [label]="dialogMode() === 'create' ? 'Create Document' : 'Save Changes'" 
-                icon="pi pi-check" class="p-button-primary" [loading]="saving()" [disabled]="saving()" (click)="saveDocument()"></button>
+        <button pButton pRipple label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary"
+          (click)="hideDialog()"></button>
+        <button pButton pRipple [label]="dialogMode() === 'create' ? 'Create Document' : 'Save Changes'"
+          icon="pi pi-check" class="p-button-primary" [loading]="saving()" [disabled]="saving()"
+          (click)="saveDocument()"></button>
       </div>
     </ng-template>
   </p-drawer>
 
   <!-- PDF / Document Preview Dialog -->
-  <p-dialog [(visible)]="previewDialog" 
-            [header]="previewFileName() || 'Document Preview'" 
-            [modal]="true" 
-            [style]="{ width: '850px', maxWidth: '96vw', height: '85vh' }" 
-            [draggable]="false" 
-            [resizable]="true" 
-            [maximizable]="true">
-    
+  <p-dialog [(visible)]="previewDialog" [header]="previewFileName() || 'Document Preview'" [modal]="true"
+    [style]="{ width: '850px', maxWidth: '96vw', height: '85vh' }" [draggable]="false" [resizable]="true"
+    [maximizable]="true">
+
     <div class="preview-container" *ngIf="safePreviewUrl()">
       <iframe [src]="safePreviewUrl()" style="width: 100%; height: 100%; border: none; min-height: 65vh;"></iframe>
     </div>
 
     <ng-template pTemplate="footer">
-      <a *ngIf="previewFileUrl()" [href]="resolveFileUrl(previewFileUrl())!" target="_blank" class="p-button p-button-outlined p-button-sm p-button-secondary" style="text-decoration: none; margin-right: 0.5rem;">
+      <a *ngIf="previewFileUrl()" [href]="resolveFileUrl(previewFileUrl())!" target="_blank"
+        class="p-button p-button-outlined p-button-sm p-button-secondary"
+        style="text-decoration: none; margin-right: 0.5rem;">
         <i class="pi pi-external-link" style="margin-right: 0.35rem;"></i> Open in New Tab
       </a>
       <p-button label="Close" icon="pi pi-times" severity="secondary" size="small" (click)="previewDialog.set(false)" />

@@ -40,13 +40,21 @@ export class BulkUploadComponent {
   uploadSuccess = output<void>();
 
   // ── Internal Signals ──────────────────────────────────────────────────
+  taskType = signal<'REGULAR' | 'INTERNAL'>('REGULAR');
   circularId = signal<number | null>(null);
+  mainHeaderId = signal<number | null>(null);
+
   selectedFile = signal<File | null>(null);
   selectedFileName = signal('');
   previewRows = signal<any[]>([]);
   validRows = signal<any[]>([]);
   validating = signal(false);
   uploading = signal(false);
+
+  mainHeaders = computed(() => {
+    const list = this.taskHeaders() || [];
+    return list.filter((h: any) => !h.parent_id);
+  });
 
   hasErrors = computed(() => this.previewRows().some((row) => row.status === 'ERROR'));
   errorCount = computed(() => this.previewRows().filter((row) => row.status === 'ERROR').length);
@@ -62,10 +70,27 @@ export class BulkUploadComponent {
   constructor(private api: ComplianceApiService, private messageService: MessageService, private auth: AuthService) {}
 
   /** Called by parent to seed the circularId and reset state */
-  open(initialCircularId: number | null) {
+  open(initialCircularId: number | null, initialTaskType: 'REGULAR' | 'INTERNAL' = 'REGULAR') {
+    this.taskType.set(initialTaskType);
     this.circularId.set(initialCircularId);
+    this.mainHeaderId.set(null);
     this.selectedFile.set(null);
     this.selectedFileName.set('');
+    this.previewRows.set([]);
+    this.validRows.set([]);
+  }
+
+  setTaskType(type: 'REGULAR' | 'INTERNAL') {
+    this.taskType.set(type);
+    this.previewRows.set([]);
+    this.validRows.set([]);
+    if (type === 'INTERNAL') {
+      this.circularId.set(null);
+    }
+  }
+
+  onMainHeaderChange(id: number | null) {
+    this.mainHeaderId.set(id);
     this.previewRows.set([]);
     this.validRows.set([]);
   }
@@ -92,14 +117,50 @@ export class BulkUploadComponent {
   }
 
   downloadSample() {
-    window.open('./assets/csv/compliance-pro-task-upload-sample.csv', '_blank');
+    const isInternal = this.taskType() === 'INTERNAL';
+    let sampleCsvContent = '';
+    if (isInternal) {
+      sampleCsvContent = 'Task,Header,Priority\n"Verify internal IT user access and decommission dormant accounts","User Access Management","High"\n"Quarterly branch fire safety and hazard inspection drill","Branch Operations","Medium"\n"Review daily teller cash limits and excess cash retention","Cash Management","Low"';
+    } else {
+      sampleCsvContent = 'Task,Header,Priority\n"Ensure customer KYC records are re-verified within stipulated timeline","KYC Compliance","Critical"\n"Submit statutory monthly returns to the regulatory authority","Regulatory Reporting","High"\n"Display updated interest rates on public branch notice boards","Branch Disclosure","Low"';
+    }
+
+    const blob = new Blob([sampleCsvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', isInternal ? 'internal_tasks_sample.csv' : 'circular_tasks_sample.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   // ── Validation ────────────────────────────────────────────────────────
   validateCsv() {
     const file = this.selectedFile();
-    const circularId = this.circularId();
-    if (!file || !circularId) return;
+    const isInternal = this.taskType() === 'INTERNAL';
+    const circularId = isInternal ? null : this.circularId();
+    const mainHeaderId = this.mainHeaderId();
+
+    if (!file) return;
+
+    if (!isInternal && !circularId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Target Circular Required',
+        detail: 'Please select a circular to associate circular tasks with.',
+      });
+      return;
+    }
+
+    if (isInternal && !mainHeaderId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Main Header Required',
+        detail: 'Please select a Main Header for internal tasks.',
+      });
+      return;
+    }
 
     this.validating.set(true);
 
@@ -130,7 +191,7 @@ export class BulkUploadComponent {
         parsed.rows.forEach((row, idx) => {
           const rowNumber = idx + 2;
           const description = (row['task'] || '').trim();
-          const headerName = (row['header'] || '').trim();
+          const headerName = (row['header'] || row['sub_header'] || row['sub header'] || '').trim();
           const priority = (row['priority'] || '').trim();
 
           const errors: string[] = [];
@@ -149,6 +210,11 @@ export class BulkUploadComponent {
             } else {
               errors.push(`Header "${headerName}" does not exist in task headers`);
             }
+          } else {
+            // Directly assign selected main header for internal tasks
+            if (isInternal) {
+              headerId = mainHeaderId;
+            }
           }
 
           let normalizedPriority: string | null = null;
@@ -161,13 +227,21 @@ export class BulkUploadComponent {
             } else {
               errors.push(`Priority must be one of: Critical, High, Medium, Low`);
             }
+          } else {
+            normalizedPriority = 'Medium';
+          }
+
+          let displayHeaderName = headerName;
+          if (!displayHeaderName && headerId) {
+            const h = this.taskHeaders().find(x => x.id === headerId);
+            displayHeaderName = h ? h.name : '';
           }
 
           preview.push({
             rowNumber,
             description,
-            headerName,
-            priority,
+            headerName: displayHeaderName,
+            priority: normalizedPriority,
             status: errors.length > 0 ? 'ERROR' : 'VALID',
             message: errors.join('; ') || 'Ready',
           });
@@ -175,7 +249,7 @@ export class BulkUploadComponent {
           if (errors.length === 0) {
             valid.push({
               description,
-              circular_id: circularId,
+              circular_id: isInternal ? null : circularId,
               header_id: headerId,
               priority: normalizedPriority,
               risk_category: null,

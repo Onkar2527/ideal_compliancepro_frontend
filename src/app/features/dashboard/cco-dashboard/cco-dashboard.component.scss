@@ -5,10 +5,7 @@
 
 /* Hero Section */
 .dashboard-hero {
-  background:
-    radial-gradient(ellipse at 5% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 90% 10%, rgba(24, 61, 107, 0.8) 0%, transparent 55%),
-    linear-gradient(110deg, #0f2942 0%, #0f2942 50%, #142f4e 75%, #183d6b 100%);
+  background: var(--hero-gradient, linear-gradient(110deg, #0f2942 0%, #0f2942 50%, #142f4e 75%, #183d6b 100%));
   border-radius: 16px;
   padding: 2.25rem 2rem;
   color: #ffffff;

@@ -19,12 +19,13 @@ import { TagModule } from 'primeng/tag';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService } from 'primeng/api';
 import { FileUploadModule } from 'primeng/fileupload';
+import { TooltipModule } from 'primeng/tooltip';
 import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
 
 @Component({
   selector: 'app-tasks',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, DialogModule, DrawerModule, ButtonModule, TabsModule, TableComponent, TextareaFieldComponent, SelectFieldComponent, SelectModule, TableModule, ToastModule, TagModule, FileUploadModule, BulkUploadComponent, ConfirmDialogModule],
+  imports: [CommonModule, RouterModule, FormsModule, DialogModule, DrawerModule, ButtonModule, TabsModule, TableComponent, TextareaFieldComponent, SelectFieldComponent, SelectModule, TableModule, ToastModule, TagModule, FileUploadModule, BulkUploadComponent, ConfirmDialogModule, TooltipModule],
   template: `
     @if (cameFromCirculars() && currentCircular()) {
       <div class="card mb-4 surface-card border-round border-1 surface-border p-3 flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
@@ -167,19 +168,49 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
             <ng-container toolbar-actions>
               <div class="flex gap-2 align-items-center">
                 <p-select 
-                  [options]="circulars()" 
-                  optionLabel="title" 
-                  optionValue="id" 
-                  [(ngModel)]="selectedCircularFilter" 
+                  [options]="taskTypeFilterOptions" 
+                  optionLabel="label" 
+                  optionValue="value" 
+                  [(ngModel)]="selectedTaskTypeFilter" 
                   (ngModelChange)="onFilterChange()"
-                  placeholder="Filter by Circular" 
+                  placeholder="All Task Types" 
                   [showClear]="true"
-                  [filter]="true"
-                  filterPlaceholder="Search circular..."
-                  [virtualScroll]="true"
-                  [virtualScrollItemSize]="38"
-                  styleClass="w-20rem h-2.5rem flex align-items-center"
+                  styleClass="w-12rem h-2.5rem flex align-items-center"
                 ></p-select>
+                <div 
+                  *ngIf="selectedTaskTypeFilter !== 'INTERNAL'"
+                  class="inline-flex align-items-center"
+                  [pTooltip]="selectedCircularTitle" 
+                  tooltipPosition="top" 
+                  [tooltipDisabled]="!selectedCircularFilter"
+                >
+                  <p-select 
+                    [options]="circulars()" 
+                    optionLabel="title" 
+                    optionValue="id" 
+                    [(ngModel)]="selectedCircularFilter" 
+                    (ngModelChange)="onFilterChange()"
+                    placeholder="Filter by Circular" 
+                    [showClear]="true"
+                    [filter]="true"
+                    filterPlaceholder="Search circular..."
+                    [virtualScroll]="false"
+                    scrollHeight="260px"
+                    [title]="selectedCircularTitle"
+                    styleClass="w-20rem h-2.5rem flex align-items-center"
+                  >
+                    <ng-template pTemplate="selectedItem" let-selected>
+                      <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis block w-full" [title]="selectedCircularTitle">
+                        {{ selectedCircularTitle }}
+                      </span>
+                    </ng-template>
+                    <ng-template pTemplate="item" let-option>
+                      <span class="w-full block py-1" [title]="option.title" style="white-space: normal; word-break: break-word; line-height: 1.35;">
+                        {{ option.title }}
+                      </span>
+                    </ng-template>
+                  </p-select>
+                </div>
                 <button
                   *ngIf="pendingCount() > 0"
                   pButton
@@ -387,36 +418,88 @@ import { BulkUploadComponent } from './bulk-upload/bulk-upload.component';
               </div>
 
               <div class="grid formgrid p-fluid drawer-form-grid">
-                @if (!selectedCircularId) {
+                <!-- Task Type Selection -->
+                <div class="field col-12 mb-1">
+                  <label class="block text-700 font-medium text-xs text-uppercase mb-2" style="letter-spacing: 0.04em;">Task Type <span class="text-red-500">*</span></label>
+                  <div class="grid formgrid p-fluid">
+                    <div class="col-6">
+                      <div
+                        class="cursor-pointer border-round p-2 flex align-items-center gap-2 transition-all border-2"
+                        [ngClass]="{
+                          'border-primary bg-primary-50 text-primary-900 shadow-1': manualTaskType() === 'REGULAR',
+                          'border-300 surface-card text-700 hover:surface-hover': manualTaskType() !== 'REGULAR'
+                        }"
+                        (click)="setManualTaskType('REGULAR')"
+                      >
+                        <i class="pi pi-book text-sm" [ngClass]="manualTaskType() === 'REGULAR' ? 'text-primary' : 'text-500'"></i>
+                        <span class="font-semibold text-sm">Circular Task</span>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div
+                        class="cursor-pointer border-round p-2 flex align-items-center gap-2 transition-all border-2"
+                        [ngClass]="{
+                          'border-primary bg-primary-50 text-primary-900 shadow-1': manualTaskType() === 'INTERNAL',
+                          'border-300 surface-card text-700 hover:surface-hover': manualTaskType() !== 'INTERNAL'
+                        }"
+                        (click)="setManualTaskType('INTERNAL')"
+                      >
+                        <i class="pi pi-building text-sm" [ngClass]="manualTaskType() === 'INTERNAL' ? 'text-primary' : 'text-500'"></i>
+                        <span class="font-semibold text-sm">Internal Task</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                @if (manualTaskType() === 'REGULAR') {
+                  @if (!selectedCircularId) {
+                    <div class="field col-12">
+                      <app-select-field
+                        label="Select Circular (Optional)"
+                        [field]="manualTaskCircularId"
+                        [options]="circulars()"
+                        optionLabel="title"
+                        optionValue="id"
+                        filterBy="title"
+                        [filter]="true"
+                        [showClear]="true"
+                        placeholder="Select a Circular (Optional)">
+                      </app-select-field>
+                    </div>
+                  }
+
                   <div class="field col-12">
                     <app-select-field
-                      label="Select Circular (Optional)"
-                      [field]="manualTaskCircularId"
-                      [options]="circulars()"
-                      optionLabel="title"
+                      label="Task Header"
+                      [virtualScroll]="false"
+                      [field]="manualTaskHeaderId"
+                      [options]="taskHeaders()"
+                      optionLabel="name"
                       optionValue="id"
-                      filterBy="title"
-                      [filter]="true"
-                      [showClear]="true"
-                      placeholder="Select a Circular (Optional)">
+                      [showAddButton]="true"
+                      addTooltip="Add New Header"
+                      (add)="activeHeaderTarget = 'MANUAL'; showAddHeaderModal = true;"
+                      placeholder="Select a Header (Optional)">
                     </app-select-field>
                   </div>
                 }
 
-                <div class="field col-12">
-                  <app-select-field
-                    label="Task Header"
-                    [virtualScroll]="false"
-                    [field]="manualTaskHeaderId"
-                    [options]="taskHeaders()"
-                    optionLabel="name"
-                    optionValue="id"
-                    [showAddButton]="true"
-                    addTooltip="Add New Header"
-                    (add)="activeHeaderTarget = 'MANUAL'; showAddHeaderModal = true;"
-                    placeholder="Select a Header (Optional)">
-                  </app-select-field>
-                </div>
+                @if (manualTaskType() === 'INTERNAL') {
+                  <div class="field col-12">
+                    <app-select-field
+                      label="Select Main Header"
+                      [field]="manualMainHeaderId"
+                      [options]="mainHeadersList()"
+                      optionLabel="name"
+                      optionValue="id"
+                      filterBy="name"
+                      [required]="true"
+                      [virtualScroll]="false"
+                      (onChange)="onManualMainHeaderChange($event)"
+                      placeholder="Select Main Header to add task under">
+                    </app-select-field>
+                  </div>
+                }
 
                 <div class="field col-12">
                   <app-select-field
@@ -662,6 +745,12 @@ export class TasksComponent implements OnInit {
   limit = 10;
   searchQuery = '';
   selectedCircularFilter: number | null = null;
+  selectedTaskTypeFilter: 'REGULAR' | 'INTERNAL' | null = null;
+  taskTypeFilterOptions = [
+    { label: 'All Task Types', value: null },
+    { label: 'Circular Tasks', value: 'REGULAR' },
+    { label: 'Internal Tasks', value: 'INTERNAL' }
+  ];
 
   totalCount = signal(0);
   pendingCount = signal(0);
@@ -677,9 +766,15 @@ export class TasksComponent implements OnInit {
     return this.selectedCircularId || this.selectedCircularFilter || null;
   }
 
+  get selectedCircularTitle(): string {
+    if (!this.selectedCircularFilter) return '';
+    const circ = (this.circulars() || []).find((c: any) => c.id === this.selectedCircularFilter);
+    return circ ? (circ.title || '') : '';
+  }
+
   onFilterChange() {
     this.page = 1;
-    this.selectedCircularId = this.selectedCircularFilter || null;
+    this.selectedCircularId = this.selectedTaskTypeFilter === 'INTERNAL' ? null : (this.selectedCircularFilter || null);
     this.loadTasks();
   }
 
@@ -793,8 +888,10 @@ export class TasksComponent implements OnInit {
 
   // Manual Task Modal State
   showManualTaskModal = signal(false);
+  manualTaskType = signal<'REGULAR' | 'INTERNAL'>('REGULAR');
   manualTaskDescription = signal('');
   manualTaskHeaderId = signal<number | null>(null);
+  manualMainHeaderId = signal<number | null>(null);
   manualTaskCircularId = signal<number | null>(null);
   manualTaskPriority = signal<string | null>(null);
   manualTaskRiskCategory = signal<string | null>(null);
@@ -804,6 +901,21 @@ export class TasksComponent implements OnInit {
   manualTaskFileUrl = signal<string | null>(null);
   manualTaskFileName = signal<string>('');
   uploadingTaskFile = signal<boolean>(false);
+
+  mainHeadersList = computed(() => {
+    return (this.taskHeaders() || []).filter((h: any) => !h.parent_id);
+  });
+
+  setManualTaskType(type: 'REGULAR' | 'INTERNAL') {
+    this.manualTaskType.set(type);
+    if (type === 'INTERNAL') {
+      this.manualTaskCircularId.set(null);
+    }
+  }
+
+  onManualMainHeaderChange(id: number | null) {
+    this.manualMainHeaderId.set(id);
+  }
 
   onTaskFileSelected(event: any, target: 'EDIT' | 'MANUAL') {
     const files = event.currentFiles || event.files || (event.target?.files ? Array.from(event.target.files) : []);
@@ -949,7 +1061,13 @@ export class TasksComponent implements OnInit {
       params.status = this.activeFilter();
     }
 
-    const circularId = this.selectedCircularFilter || this.selectedCircularId;
+    if (this.selectedTaskTypeFilter === 'INTERNAL') {
+      params.is_internal = true;
+    } else if (this.selectedTaskTypeFilter === 'REGULAR') {
+      params.is_internal = false;
+    }
+
+    const circularId = this.selectedTaskTypeFilter === 'INTERNAL' ? null : (this.selectedCircularFilter || this.selectedCircularId);
     if (circularId) {
       params.circular_id = circularId;
     }
@@ -972,6 +1090,8 @@ export class TasksComponent implements OnInit {
       next: (res) => {
         const mappedTasks = res.data.map((t: any) => ({
           ...t,
+          circular_title: t.circular_title || (t.circular_id ? `Circular #${t.circular_id}` : 'Internal Task'),
+          authority_name: t.authority_name || (t.circular_id ? '—' : 'Internal'),
           created_by_name: t.created_by_username || t.created_by_name || t.creator_name || (t.created_by ? `User #${t.created_by}` : '—'),
           status: t.is_approved ? 'Approved' : 'Pending'
         }));
@@ -1074,8 +1194,10 @@ export class TasksComponent implements OnInit {
   }
 
   openCreateManualTaskModal() {
+    this.manualTaskType.set(this.selectedTaskTypeFilter === 'INTERNAL' ? 'INTERNAL' : 'REGULAR');
     this.manualTaskDescription.set('');
     this.manualTaskHeaderId.set(null);
+    this.manualMainHeaderId.set(null);
     this.manualTaskPriority.set(null);
     this.manualTaskRiskCategory.set(null);
     this.manualTaskBusinessRisk.set(null);
@@ -1089,7 +1211,11 @@ export class TasksComponent implements OnInit {
 
   createManualTask() {
     if (!this.manualTaskDescription().trim()) return;
-    const circularId = this.manualTaskCircularId() || this.selectedCircularId || null;
+    const isInternal = this.manualTaskType() === 'INTERNAL';
+    const circularId = isInternal ? null : (this.manualTaskCircularId() || this.selectedCircularId || null);
+    const headerId = isInternal
+      ? (this.manualMainHeaderId() || null)
+      : (this.manualTaskHeaderId() || null);
 
     this.savingManual.set(true);
     const user = this.auth.currentUser();
@@ -1101,7 +1227,7 @@ export class TasksComponent implements OnInit {
     const payload = {
       description: this.manualTaskDescription(),
       circular_id: circularId || undefined,
-      header_id: this.manualTaskHeaderId() || undefined,
+      header_id: headerId || undefined,
       priority: this.manualTaskPriority() || undefined,
       risk_category: this.manualTaskRiskCategory() || undefined,
       business_risk: this.manualTaskBusinessRisk() || undefined,
@@ -1152,8 +1278,8 @@ export class TasksComponent implements OnInit {
 
   openBulkUploadModal() {
     this.showBulkUploadModal.set(true);
-    // Seed the child component with the active circular and reset its state
-    setTimeout(() => this.bulkUploadDrawer?.open(this.selectedCircularFilter || this.selectedCircularId));
+    const initialType = this.selectedTaskTypeFilter === 'INTERNAL' ? 'INTERNAL' : 'REGULAR';
+    setTimeout(() => this.bulkUploadDrawer?.open(this.selectedCircularFilter || this.selectedCircularId, initialType));
   }
 
 

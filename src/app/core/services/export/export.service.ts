@@ -272,4 +272,164 @@ export class ExportService {
       document.body.removeChild(link);
     }
   }
+
+  /**
+   * Export tabular data to Word (.doc) format
+   */
+  exportToWord(
+    data: any[],
+    columns: { field: string, header: string }[],
+    fileName: string,
+    title: string = 'Compliance Summary Report',
+    metaInfo: string[] = []
+  ) {
+    if (!data || data.length === 0) {
+      console.warn('No data to export');
+      return;
+    }
+
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const tableHeadersHtml = columns.map(c => `<th style="background-color: #1e293b; color: #ffffff; padding: 8px 10px; font-size: 10pt; text-align: left; border: 1px solid #cbd5e1;">${c.header}</th>`).join('');
+
+    const tableRowsHtml = data.map((row, idx) => {
+      const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+      const cells = columns.map(c => {
+        let val = row[c.field];
+        if (val === null || val === undefined) val = '—';
+        return `<td style="padding: 7px 10px; font-size: 9.5pt; border: 1px solid #e2e8f0; vertical-align: top; background-color: ${bgColor};">${val}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    const metaHtml = metaInfo.map(m => `<p style="margin: 3px 0; font-size: 10pt; color: #475569;">${m}</p>`).join('');
+
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>${title}</title>
+        <style>
+          body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; margin: 20px; color: #1e293b; }
+          h1 { color: #0f172a; font-size: 18pt; margin-bottom: 4px; }
+          .header-box { border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 16px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        </style>
+      </head>
+      <body>
+        <div class="header-box">
+          <h1>${title}</h1>
+          <p style="margin: 0 0 6px 0; font-size: 11pt; color: #2563eb; font-weight: bold;">CompliancePro Automated Report</p>
+          <p style="margin: 0; font-size: 9.5pt; color: #64748b;">Generated Date: ${dateStr}</p>
+          ${metaHtml}
+        </div>
+        <table>
+          <thead>
+            <tr>${tableHeadersHtml}</tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/msword;charset=utf-8' });
+    const link = document.createElement('a');
+    const cleanDate = dateStr.replace(/ /g, '-');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${fileName}_${cleanDate}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * Export to PDF / Print Dialog with styled printable document
+   */
+  exportToPdf(
+    data: any[],
+    columns: { field: string, header: string }[],
+    fileName: string,
+    title: string = 'Compliance Summary Report',
+    metaInfo: string[] = []
+  ) {
+    if (!data || data.length === 0) {
+      console.warn('No data to export');
+      return;
+    }
+
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const tableHeadersHtml = columns.map(c => `<th>${c.header}</th>`).join('');
+    const tableRowsHtml = data.map((row) => {
+      const cells = columns.map(c => {
+        let val = row[c.field];
+        if (val === null || val === undefined) val = '—';
+        return `<td>${val}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    const metaHtml = metaInfo.map(m => `<div>${m}</div>`).join('');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to export PDF');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title}</title>
+        <style>
+          @page { size: landscape; margin: 10mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 15px; color: #1e293b; }
+          .header { border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-end; }
+          h1 { margin: 0 0 4px 0; font-size: 20px; color: #0f172a; }
+          .sub { font-size: 11px; color: #2563eb; font-weight: 600; margin: 0; }
+          .meta-box { font-size: 10.5px; color: #64748b; line-height: 1.4; text-align: right; }
+          table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 10px; }
+          th { background: #0f172a; color: #ffffff; text-align: left; padding: 6px 8px; border: 1px solid #cbd5e1; font-weight: 600; }
+          td { padding: 6px 8px; border: 1px solid #e2e8f0; vertical-align: top; word-break: break-word; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>${title}</h1>
+            <p class="sub">CompliancePro Enterprise Task & Compliance Report</p>
+          </div>
+          <div class="meta-box">
+            <div><strong>Generated:</strong> ${dateStr}</div>
+            ${metaHtml}
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>${tableHeadersHtml}</tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
 }
+

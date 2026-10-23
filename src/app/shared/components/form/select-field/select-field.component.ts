@@ -27,7 +27,7 @@ import { TooltipModule } from 'primeng/tooltip';
   imports: [CommonModule, FormsModule, SelectModule, FloatLabelModule, ButtonModule, TooltipModule],
   template: `
     <div class="form-field">
-      <div class="field-wrapper">
+      <div class="field-wrapper" [title]="selectedOptionLabel()">
         @if (hideLabel()) {
           <p-select
             [inputId]="id()"
@@ -49,9 +49,23 @@ import { TooltipModule } from 'primeng/tooltip';
             [scrollHeight]="scrollHeight()"
             [placeholder]="placeholder()"
             [appendTo]="appendTo()"
+            [title]="selectedOptionLabel()"
+            [pTooltip]="selectedOptionLabel()"
+            tooltipPosition="top"
+            [tooltipDisabled]="!selectedOptionLabel()"
             styleClass="w-full"
             [class.ng-invalid]="showError()"
             [class.ng-dirty]="touched()">
+            <ng-template pTemplate="selectedItem" let-selected>
+              <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis block w-full" [title]="selectedOptionLabel()">
+                {{ selectedOptionLabel() }}
+              </span>
+            </ng-template>
+            <ng-template pTemplate="item" let-option>
+              <span class="w-full block py-1" [title]="getOptionLabel(option)" style="white-space: normal; word-break: break-word; line-height: 1.35;">
+                {{ getOptionLabel(option) }}
+              </span>
+            </ng-template>
           </p-select>
         } @else {
           <p-floatlabel variant="on" [class.has-value]="hasValue()">
@@ -74,9 +88,23 @@ import { TooltipModule } from 'primeng/tooltip';
               [virtualScrollItemSize]="virtualScrollItemSize()"
               [scrollHeight]="scrollHeight()"
               [appendTo]="appendTo()"
+              [title]="selectedOptionLabel()"
+              [pTooltip]="selectedOptionLabel()"
+              tooltipPosition="top"
+              [tooltipDisabled]="!selectedOptionLabel()"
               styleClass="w-full"
               [class.ng-invalid]="showError()"
               [class.ng-dirty]="touched()">
+              <ng-template pTemplate="selectedItem" let-selected>
+                <span class="white-space-nowrap overflow-hidden text-overflow-ellipsis block w-full" [title]="selectedOptionLabel()">
+                  {{ selectedOptionLabel() }}
+                </span>
+              </ng-template>
+              <ng-template pTemplate="item" let-option>
+                <span class="w-full block py-1" [title]="getOptionLabel(option)" style="white-space: normal; word-break: break-word; line-height: 1.35;">
+                  {{ getOptionLabel(option) }}
+                </span>
+              </ng-template>
             </p-select>
             <label [for]="id()">
               {{ label() }}
@@ -221,13 +249,13 @@ export class SelectFieldComponent<T = any> {
   editable = input<boolean>(false);
 
   /** Enable virtual scrolling for large datasets */
-  virtualScroll = input<boolean>(true);
+  virtualScroll = input<boolean>(false);
 
   /** Height of each item in virtual scroll (default 38px) */
   virtualScrollItemSize = input<number>(38);
 
   /** Max height of dropdown panel */
-  scrollHeight = input<string>('200px');
+  scrollHeight = input<string>('220px');
 
   /** Target element to attach overlay to (e.g. 'body', or undefined for parent/local attachment) */
   appendTo = input<string | undefined>('body');
@@ -291,6 +319,24 @@ export class SelectFieldComponent<T = any> {
   hasValue = computed(() => {
     const value = this.field()();
     return value !== null && value !== undefined && value !== '';
+  });
+
+  getOptionLabel(opt: any): string {
+    if (!opt) return '';
+    const labelKey = this.optionLabel();
+    return String(opt[labelKey] !== undefined ? opt[labelKey] : (opt.label !== undefined ? opt.label : opt));
+  }
+
+  selectedOptionLabel = computed(() => {
+    const val = this.field()();
+    if (val === null || val === undefined || val === '') return '';
+    const optVal = this.optionValue();
+    const opts = this.safeOptions();
+    const match = opts.find(o => (optVal ? o[optVal] === val : o === val));
+    if (match) {
+      return this.getOptionLabel(match);
+    }
+    return String(val);
   });
 
   onValueChange(value: T | null): void {

@@ -1,0 +1,649 @@
+<div class="summary-container">
+  <!-- Top Header with Actions -->
+  <div class="summary-header-card">
+    <div class="header-info">
+      <div class="header-icon-badge">
+        <i class="pi pi-chart-pie"></i>
+      </div>
+      <div>
+        <h1 class="page-title">Task & Compliance Summary</h1>
+        <p class="page-subtitle">
+          End-to-end audit overview of task sets, recurring cycles, maker/checker comments, and uploaded compliance evidence.
+        </p>
+      </div>
+    </div>
+
+    <!-- Export Actions Toolbar -->
+    <div class="export-toolbar">
+      <div *ngIf="enrichingDetails()" class="syncing-pill" [pTooltip]="'Progressively syncing detailed remarks & proofs in the background'" tooltipPosition="bottom">
+        <i class="pi pi-spin pi-spinner mr-1"></i>
+        <span>Syncing proof & remarks ({{ enrichmentProgress().loaded }}/{{ enrichmentProgress().total }})</span>
+      </div>
+
+      <button 
+        type="button" 
+        pButton 
+        pRipple 
+        class="export-btn export-btn-excel"
+        (click)="exportExcel()" 
+        [disabled]="loading() || filteredRows().length === 0"
+        pTooltip="Export current filtered view to Microsoft Excel (.xlsx)" 
+        tooltipPosition="bottom">
+        <i class="pi pi-file-excel mr-2"></i>
+        <span>Excel</span>
+      </button>
+
+      <button 
+        type="button" 
+        pButton 
+        pRipple 
+        class="export-btn export-btn-word"
+        (click)="exportWord()" 
+        [disabled]="loading() || filteredRows().length === 0"
+        pTooltip="Export current filtered view to Microsoft Word (.doc)" 
+        tooltipPosition="bottom">
+        <i class="pi pi-file-word mr-2"></i>
+        <span>Word / Doc</span>
+      </button>
+
+      <button 
+        type="button" 
+        pButton 
+        pRipple 
+        class="export-btn export-btn-pdf"
+        (click)="exportPdf()" 
+        [disabled]="loading() || filteredRows().length === 0"
+        pTooltip="Print / Download as PDF report" 
+        tooltipPosition="bottom">
+        <i class="pi pi-file-pdf mr-2"></i>
+        <span>PDF</span>
+      </button>
+
+      <button 
+        type="button" 
+        pButton 
+        pRipple 
+        class="refresh-btn"
+        (click)="loadSummaryData()" 
+        [loading]="loading()"
+        pTooltip="Reload latest summary data" 
+        tooltipPosition="bottom">
+        <i class="pi pi-refresh"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metric Summary Cards -->
+  <div class="kpi-grid">
+    <!-- Task Sets -->
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Task Sets</span>
+        <span class="kpi-icon-pill icon-blue"><i class="pi pi-server"></i></span>
+      </div>
+      <div class="kpi-value">{{ stats().totalTaskSets }}</div>
+      <div class="kpi-subtext">Across branches & circulars</div>
+    </div>
+
+    <!-- Cycles Tracked -->
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Cycles Tracked</span>
+        <span class="kpi-icon-pill icon-purple"><i class="pi pi-calendar"></i></span>
+      </div>
+      <div class="kpi-value">{{ stats().totalCycles }}</div>
+      <div class="kpi-subtext">Daily, weekly, monthly cycles</div>
+    </div>
+
+    <!-- Total Tasks -->
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Total Tasks</span>
+        <span class="kpi-icon-pill icon-slate"><i class="pi pi-list-check"></i></span>
+      </div>
+      <div class="kpi-value">{{ stats().totalTasks }}</div>
+      <div class="kpi-subtext">Individual compliance items</div>
+    </div>
+
+    <!-- Compliance Rate -->
+    <div class="kpi-card kpi-rate-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Compliance Rate</span>
+        <span class="kpi-icon-pill icon-emerald"><i class="pi pi-check-circle"></i></span>
+      </div>
+      <div class="kpi-value-row">
+        <span class="kpi-value text-emerald-600">{{ stats().complianceRate }}%</span>
+        <span class="kpi-badge-count bg-emerald-100 text-emerald-800">{{ stats().complied }} Complied</span>
+      </div>
+      <p-progressBar [value]="stats().complianceRate" [showValue]="false" class="kpi-progress" styleClass="h-2 rounded"></p-progressBar>
+      <div class="kpi-rate-breakdown">
+        <span><strong class="text-amber-600">{{ stats().pending }}</strong> Pending</span>
+        <span>•</span>
+        <span><strong class="text-rose-600">{{ stats().notComplied }}</strong> Non-Complied</span>
+      </div>
+    </div>
+
+    <!-- Evidence Uploaded -->
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Evidence Files</span>
+        <span class="kpi-icon-pill icon-indigo"><i class="pi pi-folder-open"></i></span>
+      </div>
+      <div class="kpi-value text-indigo-600">{{ stats().totalEvidenceFiles }}</div>
+      <div class="kpi-subtext">{{ stats().tasksWithEvidence }} tasks with uploaded proof</div>
+    </div>
+  </div>
+
+  <!-- Filters Toolbar -->
+  <div class="filter-panel">
+    <div class="filter-header">
+      <div class="flex items-center gap-2">
+        <i class="pi pi-filter text-primary"></i>
+        <span class="font-semibold text-slate-800 text-sm">Advanced Filter Controls</span>
+        <span class="badge-results-count">{{ filteredRows().length }} Records Found</span>
+      </div>
+
+      <button 
+        type="button" 
+        class="reset-filters-btn"
+        (click)="resetFilters()"
+        pTooltip="Reset all filters to default" 
+        tooltipPosition="left">
+        <i class="pi pi-filter-slash mr-1"></i>
+        <span>Clear Filters</span>
+      </button>
+    </div>
+
+    <div class="filter-grid">
+      <!-- 1. Single Task Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Single Task</label>
+        <p-select 
+          [options]="taskOptions()" 
+          [ngModel]="selectedTaskId()" 
+          (ngModelChange)="selectedTaskId.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Filter by Single Task"
+          [filter]="true"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
+      <!-- 3. Frequency Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Frequency</label>
+        <p-select 
+          [options]="frequencyOptions()" 
+          [ngModel]="selectedFrequency()" 
+          (ngModelChange)="selectedFrequency.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Filter by Frequency"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
+      <!-- 4. Cycle Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Compliance Cycle</label>
+        <p-select 
+          [options]="cycleOptions()" 
+          [ngModel]="selectedCycle()" 
+          (ngModelChange)="selectedCycle.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Filter by Single Cycle"
+          [filter]="true"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
+      <!-- 5. Status Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Compliance Status</label>
+        <p-select 
+          [options]="statusOptions" 
+          [ngModel]="selectedStatus()" 
+          (ngModelChange)="selectedStatus.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Filter by Status"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
+      <!-- 6. Evidence Filter -->
+      <div class="filter-item">
+        <label class="filter-label">Evidence Uploaded</label>
+        <p-select 
+          [options]="evidenceFilterOptions" 
+          [ngModel]="selectedEvidenceFilter()" 
+          (ngModelChange)="selectedEvidenceFilter.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Evidence Filter"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
+      <!-- 7. Search Input -->
+      <div class="filter-item search-filter-item">
+        <label class="filter-label">Search Keyword</label>
+        <div class="search-input-wrapper">
+          <i class="pi pi-search search-icon"></i>
+          <input 
+            type="text" 
+            pInputText 
+            [ngModel]="searchText()" 
+            (ngModelChange)="searchText.set($event)"
+            placeholder="Search task, comments, branch..." 
+            class="search-input" />
+          <i 
+            *ngIf="searchText()" 
+            class="pi pi-times clear-search-icon" 
+            (click)="searchText.set('')">
+          </i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Table Section -->
+  <div class="table-card">
+    <p-table 
+      [value]="filteredRows()" 
+      [paginator]="true" 
+      [rows]="15" 
+      [rowsPerPageOptions]="[10, 15, 25, 50, 100]"
+      [loading]="loading()"
+      responsiveLayout="scroll"
+      styleClass="p-datatable-sm p-datatable-striped custom-summary-table"
+      [tableStyle]="{ 'min-width': '78rem' }">
+      
+      <!-- Table Header -->
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3.5rem;">#</th>
+          <th style="width: 15rem;">Task Set & Scope</th>
+          <th style="width: 12rem;">Frequency & Cycle</th>
+          <th style="width: 18rem;">Task Checklist</th>
+          <th style="width: 8rem;">Status</th>
+          <th style="width: 15rem;">Comments & Remarks</th>
+          <th style="width: 14rem;">Uploaded Evidence</th>
+          <th style="width: 5rem; text-align: center;">Actions</th>
+        </tr>
+      </ng-template>
+
+      <!-- Table Body -->
+      <ng-template pTemplate="body" let-row let-i="rowIndex">
+        <tr class="summary-table-row">
+          <!-- # Index -->
+          <td class="text-xs text-slate-500 font-medium">{{ i + 1 }}</td>
+
+          <!-- Task Set & Scope -->
+          <td>
+            <div class="taskset-cell">
+              <span class="taskset-title" [title]="row.task_set_name">
+                <i class="pi pi-server text-xs text-slate-400 mr-1"></i>
+                {{ row.task_set_name }}
+              </span>
+
+              <div class="scope-badges">
+                <span class="branch-pill" [title]="'Branch: ' + row.branch_name">
+                  <i class="pi pi-building text-xs mr-1"></i>
+                  {{ row.branch_name }}
+                </span>
+                <span *ngIf="row.circular_reference_no" class="circular-pill" [title]="row.circular_title || 'Circular Ref'">
+                  <i class="pi pi-file-pdf text-xs mr-1"></i>
+                  {{ row.circular_reference_no }}
+                </span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Frequency & Cycle -->
+          <td>
+            <div class="cycle-cell">
+              <!-- Frequency Tag -->
+              <span class="freq-badge" [ngClass]="row.frequency_badge_class">
+                <i class="pi pi-clock text-xs mr-1"></i>
+                {{ row.frequency }}
+              </span>
+
+              <!-- Cycle Label Tag -->
+              <span class="cycle-pill" [title]="'Cycle: ' + row.cycle_label">
+                <i class="pi pi-calendar text-xs mr-1"></i>
+                {{ row.cycle_label }}
+              </span>
+
+              <!-- Due Date if available -->
+              <span *ngIf="row.due_date" class="due-date-text">
+                Due: {{ row.due_date | date:'dd MMM yyyy' }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Task Description -->
+          <td>
+            <div class="task-desc-cell">
+              <span *ngIf="row.task_header" class="header-pill">
+                {{ row.task_header }}
+              </span>
+              <p class="task-title-text" [title]="row.task_title">
+                {{ row.task_title }}
+              </p>
+            </div>
+          </td>
+
+          <!-- Compliance Status -->
+          <td>
+            <div class="status-cell">
+              <span 
+                class="status-tag"
+                [ngClass]="row.status_badge_class">
+                <i 
+                  class="pi mr-1 text-xs" 
+                  [ngClass]="{
+                    'pi-check': row.compliance_status === 'COMPLIED' || row.compliance_status === 'APPROVED',
+                    'pi-times': row.compliance_status === 'NOT_COMPLIED' || row.compliance_status === 'NEEDS_REDO',
+                    'pi-clock': row.compliance_status === 'PENDING'
+                  }">
+                </i>
+                {{ row.compliance_status | titlecase }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Comments & Remarks -->
+          <td>
+            <div class="comments-cell">
+              <!-- Maker / Branch remark -->
+              <div *ngIf="row.maker_remarks" class="comment-bubble maker-bubble">
+                <div class="comment-author">
+                  <i class="pi pi-building text-xs mr-1"></i> Branch / Maker:
+                </div>
+                <div class="comment-text" [title]="row.maker_remarks">
+                  "{{ row.maker_remarks }}"
+                </div>
+              </div>
+
+              <!-- Reviewer / CO remark -->
+              <div *ngIf="row.reviewer_remarks" class="comment-bubble reviewer-bubble">
+                <div class="comment-author">
+                  <i class="pi pi-shield text-xs mr-1"></i> Reviewer / CO:
+                </div>
+                <div class="comment-text" [title]="row.reviewer_remarks">
+                  "{{ row.reviewer_remarks }}"
+                </div>
+              </div>
+
+              <!-- If timeline remarks -->
+              <div *ngIf="!row.maker_remarks && !row.reviewer_remarks && row.timeline_remarks" class="comment-bubble timeline-bubble">
+                <div class="comment-author">
+                  <i class="pi pi-history text-xs mr-1"></i> Timeline:
+                </div>
+                <div class="comment-text">{{ row.timeline_remarks }}</div>
+              </div>
+
+              <!-- If no remarks -->
+              <div *ngIf="!row.maker_remarks && !row.reviewer_remarks && !row.timeline_remarks" class="no-comments-text">
+                <span class="text-slate-400 italic text-xs">No comments recorded</span>
+              </div>
+
+              <!-- View History Link if multiple comments -->
+              <button 
+                *ngIf="row.total_comments_count > 0" 
+                type="button" 
+                class="view-comments-btn" 
+                (click)="openRemarksDialog(row)">
+                <i class="pi pi-comments mr-1"></i>
+                Audit Trail ({{ row.total_comments_count }})
+              </button>
+            </div>
+          </td>
+
+          <!-- Uploaded Evidence -->
+          <td>
+            <div class="evidence-cell">
+              <ng-container *ngIf="row.has_evidence; else noEvidenceTpl">
+                <div class="evidence-chips-list">
+                  <div 
+                    *ngFor="let ev of row.evidence_list" 
+                    class="evidence-chip" 
+                    (click)="previewFile(ev)"
+                    [pTooltip]="'Click to preview / view ' + ev.file_name"
+                    tooltipPosition="top">
+                    <i [ngClass]="getFileIcon(ev.file_name)"></i>
+                    <span class="evidence-filename">{{ ev.file_name }}</span>
+                    <button 
+                      type="button" 
+                      class="chip-dl-btn" 
+                      (click)="$event.stopPropagation(); downloadFile(ev)"
+                      pTooltip="Download file" 
+                      tooltipPosition="bottom">
+                      <i class="pi pi-download"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="evidence-meta-row">
+                  <span class="evidence-count-badge">
+                    <i class="pi pi-paperclip mr-1"></i> {{ row.evidence_count }} {{ row.evidence_count === 1 ? 'File' : 'Files' }}
+                  </span>
+                  <button 
+                    *ngIf="row.evidence_count > 1" 
+                    type="button" 
+                    class="view-all-evidence-btn"
+                    (click)="openEvidenceDialog(row)">
+                    View All
+                  </button>
+                </div>
+              </ng-container>
+
+              <ng-template #noEvidenceTpl>
+                <div class="no-evidence-box">
+                  <i class="pi pi-folder text-slate-300 mr-1"></i>
+                  <span class="text-xs text-slate-400">No evidence</span>
+                </div>
+              </ng-template>
+            </div>
+          </td>
+
+          <!-- Actions -->
+          <td style="text-align: center;">
+            <div class="actions-cell">
+              <button 
+                *ngIf="row.assignment_id" 
+                type="button" 
+                pButton 
+                pRipple 
+                class="p-button-text p-button-sm p-button-rounded action-icon-btn"
+                (click)="navigateToAssignment(row.assignment_id)"
+                pTooltip="Go to Assignment Execution Details"
+                tooltipPosition="left">
+                <i class="pi pi-external-link"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+
+      <!-- Empty State -->
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8">
+            <div class="empty-state-box">
+              <div class="empty-icon-circle">
+                <i class="pi pi-filter-slash"></i>
+              </div>
+              <h3 class="empty-title">No Matching Compliance Records Found</h3>
+              <p class="empty-desc">
+                No task records match your current filter selections. Try clearing one or more filters above.
+              </p>
+              <button type="button" pButton class="p-button-outlined p-button-sm" (click)="resetFilters()">
+                <i class="pi pi-refresh mr-2"></i> Reset All Filters
+              </button>
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Comments / Remarks Audit Trail Dialog -->
+  <p-dialog 
+    [(visible)]="showRemarksDialog" 
+    [modal]="true" 
+    [dismissableMask]="true"
+    [style]="{ width: '42rem', maxWidth: '95vw' }" 
+    header="Cycle Comments & Remarks Audit Trail">
+    
+    <div *ngIf="activeRemarksRow() as row" class="remarks-modal-content">
+      <div class="modal-task-header">
+        <h4 class="font-bold text-slate-800 text-sm m-0">{{ row.task_set_name }}</h4>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="freq-badge" [ngClass]="row.frequency_badge_class">{{ row.frequency }}</span>
+          <span class="cycle-pill">{{ row.cycle_label }}</span>
+        </div>
+        <p class="text-xs text-slate-600 mt-2 p-2 bg-slate-50 border rounded">{{ row.task_title }}</p>
+      </div>
+
+      <div class="timeline-container mt-4">
+        <h5 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Remark Trail</h5>
+        
+        <div *ngIf="dialogLoading()" class="flex items-center justify-center p-4 text-slate-500 gap-2">
+          <i class="pi pi-spin pi-spinner text-primary"></i>
+          <span class="text-xs">Fetching latest remarks trail...</span>
+        </div>
+
+        <div *ngIf="!dialogLoading() && row.remarks_history.length === 0" class="text-center py-4 text-slate-400 text-sm">
+          No detailed audit comments found for this task.
+        </div>
+
+        <div *ngFor="let rem of row.remarks_history" class="timeline-item">
+          <div class="timeline-dot" [ngClass]="rem.role.includes('REVIEW') || rem.role.includes('CO') ? 'dot-reviewer' : 'dot-maker'"></div>
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <span class="timeline-role">{{ rem.role }}</span>
+              <span class="timeline-user">({{ rem.username }})</span>
+              <span *ngIf="rem.created_at" class="timeline-time">{{ rem.created_at | date:'dd/MM/yyyy, hh:mm a' }}</span>
+            </div>
+            <div class="timeline-body">{{ rem.remark }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <button pButton label="Close" class="p-button-text p-button-sm" (click)="showRemarksDialog.set(false)"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Evidence List Dialog (For Tasks with Multiple Files) -->
+  <p-dialog 
+    [(visible)]="showEvidenceDialog" 
+    [modal]="true" 
+    [dismissableMask]="true"
+    [style]="{ width: '45rem', maxWidth: '95vw' }" 
+    header="Uploaded Evidence Files">
+    
+    <div *ngIf="activeEvidenceRow() as row" class="evidence-modal-content">
+      <div class="modal-task-header mb-3">
+        <h4 class="font-bold text-slate-800 text-sm m-0">{{ row.task_set_name }}</h4>
+        <span class="cycle-pill mt-1 inline-block">{{ row.cycle_label }}</span>
+        <p class="text-xs text-slate-600 mt-1">{{ row.task_title }}</p>
+      </div>
+
+      <div *ngIf="dialogLoading()" class="flex items-center justify-center p-4 text-slate-500 gap-2">
+        <i class="pi pi-spin pi-spinner text-primary"></i>
+        <span class="text-xs">Checking latest evidence files...</span>
+      </div>
+
+      <div class="evidence-grid-list">
+        <div *ngIf="!dialogLoading() && row.evidence_list.length === 0" class="text-center py-4 text-slate-400 text-sm">
+          No uploaded evidence documents found for this task.
+        </div>
+        <div *ngFor="let ev of row.evidence_list" class="evidence-card-item">
+          <div class="ev-card-icon">
+            <i [ngClass]="getFileIcon(ev.file_name)" style="font-size: 1.5rem;"></i>
+          </div>
+          <div class="ev-card-details">
+            <span class="ev-card-name" [title]="ev.file_name">{{ ev.file_name }}</span>
+            <div class="ev-card-sub">
+              <span>Uploaded by: <strong>{{ ev.uploader_name }}</strong> ({{ ev.uploader_role }})</span>
+              <span *ngIf="ev.uploaded_at">• {{ ev.uploaded_at | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <p *ngIf="ev.description" class="ev-card-desc text-xs text-slate-500 m-0 mt-1">{{ ev.description }}</p>
+          </div>
+          <div class="ev-card-actions">
+            <button 
+              type="button" 
+              pButton 
+              class="p-button-sm p-button-outlined" 
+              (click)="previewFile(ev)"
+              pTooltip="Preview">
+              <i class="pi pi-eye mr-1"></i> Preview
+            </button>
+            <button 
+              type="button" 
+              pButton 
+              class="p-button-sm p-button-secondary p-button-outlined" 
+              (click)="downloadFile(ev)"
+              pTooltip="Download">
+              <i class="pi pi-download"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <button pButton label="Close" class="p-button-text p-button-sm" (click)="showEvidenceDialog.set(false)"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Evidence File Preview Modal -->
+  <p-dialog 
+    [(visible)]="showPreviewModal" 
+    [modal]="true" 
+    [dismissableMask]="true"
+    [style]="{ width: '65rem', maxWidth: '96vw', height: '85vh' }" 
+    [header]="'Evidence Preview: ' + previewFileName()">
+    
+    <div class="preview-container" style="height: calc(85vh - 120px); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <iframe 
+        *ngIf="previewFileType() === 'pdf' && previewSafeUrl()" 
+        [src]="previewSafeUrl()!" 
+        width="100%" 
+        height="100%" 
+        style="border: none; border-radius: 6px;">
+      </iframe>
+
+      <img 
+        *ngIf="previewFileType() === 'image' && previewFileUrl()" 
+        [src]="previewFileUrl()!" 
+        alt="Evidence image preview" 
+        style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px;" />
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="flex justify-between items-center w-full">
+        <a 
+          *ngIf="previewFileUrl()" 
+          [href]="previewFileUrl()!" 
+          target="_blank" 
+          download 
+          class="p-button p-button-sm p-button-outlined">
+          <i class="pi pi-download mr-1"></i> Download File
+        </a>
+        <button pButton label="Close" class="p-button-text p-button-sm" (click)="showPreviewModal.set(false)"></button>
+      </div>
+    </ng-template>
+  </p-dialog>
+</div>

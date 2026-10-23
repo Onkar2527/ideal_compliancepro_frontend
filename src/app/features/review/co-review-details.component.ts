@@ -252,7 +252,7 @@ export class CoReviewDetailsComponent implements OnInit {
             name: this.cleanFileName(d.file_name || d.document_name),
             url: d.file_url,
             date: d.created_at || d.issue_date,
-            source: `Asset Management (${d.document_name})`,
+            source: `Evidence Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
@@ -642,7 +642,11 @@ export class CoReviewDetailsComponent implements OnInit {
                     status: 'ACTIVE',
                     access_level: 'PUBLIC',
                     is_evidence: true,
-                    source_type: 'TASK_EVIDENCE'
+                    source_type: 'TASK_EVIDENCE',
+                    task_set_id: this.assignmentMeta()?.task_set_id ? Number(this.assignmentMeta()?.task_set_id) : null,
+                    task_set_name: asgName || this.assignmentMeta()?.task_set_name || null,
+                    frequency: this.assignmentMeta()?.frequency || null,
+                    cycle_label: this.complianceCycleInfo()?.cycleLabel || null
                   });
                 });
               }

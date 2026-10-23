@@ -71,6 +71,12 @@ export class AppMenu implements OnInit {
     // 1. GENERAL Section
     const generalItems: MenuItem[] = [];
     generalItems.push({ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/home'] });
+    generalItems.push({
+      label: 'Compliance Summary',
+      icon: 'pi pi-fw pi-chart-pie',
+      routerLink: ['/summary'],
+      routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+    });
 
     if (['admin', 'co', 'cco'].includes(userRole)) {
       generalItems.push({
@@ -143,41 +149,42 @@ export class AppMenu implements OnInit {
 
     if (canAccessMasters) {
       masterItems.push({ label: 'Authority Master', icon: 'pi pi-fw pi-building', routerLink: ['/admin/authorities'] });
-
-      const circularSubItems: MenuItem[] = [
-        { label: 'Circular List', icon: 'pi pi-fw pi-list', routerLink: ['/circulars'] },
-        {
-          label: 'Task Master',
-          icon: 'pi pi-fw pi-check-square',
-          routerLink: ['/tasks'],
-          routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
-        },
-        { label: 'Task Header Master', icon: 'pi pi-fw pi-tags', routerLink: ['/admin/task-headers'] }
-      ];
+      masterItems.push({
+        label: 'Circular Master',
+        icon: 'pi pi-fw pi-file-pdf',
+        routerLink: ['/circulars'],
+        routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+      });
+      masterItems.push({
+        label: 'Task Master',
+        icon: 'pi pi-fw pi-check-square',
+        routerLink: ['/tasks'],
+        routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+      });
+      masterItems.push({
+        label: 'Task Header Master',
+        icon: 'pi pi-fw pi-tags',
+        routerLink: ['/admin/task-headers'],
+        routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+      });
 
       // Flag check: CCO task set access (when cco_task_set_access is 1, CCO has Task Set Master; when 0, hidden)
       const canAccessTaskSets = userRole !== 'cco' || this.api.canCcoAccessTaskSets();
       if (canAccessTaskSets) {
-        circularSubItems.push({
+        masterItems.push({
           label: 'Task Set Master',
           icon: 'pi pi-fw pi-server',
           routerLink: ['/task-sets'],
           routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
         });
       }
-
-      masterItems.push({
-        label: 'Circular Master',
-        icon: 'pi pi-fw pi-file-pdf',
-        items: circularSubItems
-      });
     }
 
-    // Asset Management - Accessible to all roles including sub department
+    // Evidence Management - Accessible to all roles including sub department
     const canAccessDocuments = isAdminOrCoOrCco || ['branch', 'branch_user', 'department', 'sub_department'].includes(userRole);
     if (canAccessDocuments) {
       masterItems.push({
-        label: 'Asset Management',
+        label: 'Evidence Management',
         icon: 'pi pi-fw pi-folder-open',
         routerLink: ['/admin/documents'],
         routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }

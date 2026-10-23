@@ -195,8 +195,8 @@ import { ConfirmationService } from 'primeng/api';
     <!-- Task Headers Groups -->
     <ng-container *ngFor="let group of taskGroups()">
       <div class="task-group-container mb-4" style="margin-bottom: 1.25rem;">
-        <!-- Group Header Banner (Light Dark Slate Navy) -->
-        <div class="task-group-header-bar" style="background: linear-gradient(90deg, #1e3a5f 0%, #2c4f7c 100%); color: white; padding: 0.45rem 1rem; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <!-- Group Header Banner (Dynamic Medium-Dark Tone) -->
+        <div class="task-group-header-bar" style="background: var(--topbar-bg, linear-gradient(90deg, #1e3a5f 0%, #2c4f7c 100%)); color: white; padding: 0.45rem 1rem; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <i class="pi pi-folder" style="font-size: 0.85rem; color: #93c5fd;"></i>
             <span style="font-weight: 800; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #ffffff;">
@@ -1555,7 +1555,7 @@ export class AssignmentDetailsComponent implements OnInit {
       }
     });
 
-    // Also fetch from Document Master for this department & company-wide assets
+    // Also fetch from Document Master for this department & company-wide evidences
     this.api.getDocuments().subscribe({
       next: (docs) => {
         const deptDocs = (docs || [])
@@ -1582,7 +1582,7 @@ export class AssignmentDetailsComponent implements OnInit {
             name: this.cleanFileName(d.file_name || d.document_name),
             url: d.file_url,
             date: d.created_at || d.issue_date,
-            source: `Asset Management (${d.document_name})`,
+            source: `Evidence Management (${d.document_name})`,
             type: 'DOC_MASTER'
           }));
 
@@ -2406,7 +2406,11 @@ export class AssignmentDetailsComponent implements OnInit {
                       status: 'ACTIVE',
                       access_level: 'PUBLIC',
                       is_evidence: true,
-                      source_type: 'TASK_EVIDENCE'
+                      source_type: 'TASK_EVIDENCE',
+                      task_set_id: taskSetId ? Number(taskSetId) : null,
+                      task_set_name: asgName || null,
+                      frequency: this.frequency() || null,
+                      cycle_label: this.complianceCycleInfo()?.cycleLabel || null
                     });
                   });
                 }

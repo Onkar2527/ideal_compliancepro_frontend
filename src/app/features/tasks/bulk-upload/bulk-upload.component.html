@@ -33,26 +33,101 @@
             <span class="section-line"></span>
           </div>
 
-          <div class="grid formgrid p-fluid drawer-form-grid">
-            <div class="field col-12">
-              <app-select-field
-                label="Select Target Circular"
-                [field]="circularId"
-                [options]="circulars()"
-                optionLabel="title"
-                optionValue="id"
-                filterBy="title"
-                [required]="true"
-                [virtualScroll]="true"
-                placeholder="Select Circular to associate tasks with">
-              </app-select-field>
+          <!-- Task Type Choice -->
+          <div class="mb-3">
+            <label class="block text-700 font-medium text-xs text-uppercase mb-2" style="letter-spacing: 0.04em;">Task Type <span class="text-red-500">*</span></label>
+            <div class="grid formgrid p-fluid">
+              <div class="col-6">
+                <div
+                  class="cursor-pointer border-round p-3 flex align-items-center gap-3 transition-all border-2"
+                  [ngClass]="{
+                    'border-primary bg-primary-50 text-primary-900 shadow-1': taskType() === 'REGULAR',
+                    'border-300 surface-card text-700 hover:surface-hover': taskType() !== 'REGULAR'
+                  }"
+                  (click)="setTaskType('REGULAR')"
+                >
+                  <div class="w-2.5rem h-2.5rem border-round flex align-items-center justify-content-center flex-shrink-0"
+                       [ngClass]="taskType() === 'REGULAR' ? 'bg-primary text-white' : 'bg-100 text-500'">
+                    <i class="pi pi-book text-base"></i>
+                  </div>
+                  <div class="overflow-hidden">
+                    <div class="font-semibold text-sm line-height-2">Circular Task</div>
+                    <div class="text-xs text-500 line-height-1 mt-1">Regulatory circular linked</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div
+                  class="cursor-pointer border-round p-3 flex align-items-center gap-3 transition-all border-2"
+                  [ngClass]="{
+                    'border-primary bg-primary-50 text-primary-900 shadow-1': taskType() === 'INTERNAL',
+                    'border-300 surface-card text-700 hover:surface-hover': taskType() !== 'INTERNAL'
+                  }"
+                  (click)="setTaskType('INTERNAL')"
+                >
+                  <div class="w-2.5rem h-2.5rem border-round flex align-items-center justify-content-center flex-shrink-0"
+                       [ngClass]="taskType() === 'INTERNAL' ? 'bg-primary text-white' : 'bg-100 text-500'">
+                    <i class="pi pi-building text-base"></i>
+                  </div>
+                  <div class="overflow-hidden">
+                    <div class="font-semibold text-sm line-height-2">Internal Task</div>
+                    <div class="text-xs text-500 line-height-1 mt-1">Directly under Main Header</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <!-- Circular Task: Target Circular -->
+          @if (taskType() === 'REGULAR') {
+            <div class="grid formgrid p-fluid drawer-form-grid">
+              <div class="field col-12">
+                <app-select-field
+                  label="Select Target Circular"
+                  [field]="circularId"
+                  [options]="circulars()"
+                  optionLabel="title"
+                  optionValue="id"
+                  filterBy="title"
+                  [required]="true"
+                  [virtualScroll]="false"
+                  scrollHeight="220px"
+                  placeholder="Select Circular to associate tasks with">
+                </app-select-field>
+              </div>
+            </div>
+          }
+
+          <!-- Internal Task: Main Header -->
+          @if (taskType() === 'INTERNAL') {
+            <div class="grid formgrid p-fluid drawer-form-grid">
+              <div class="field col-12">
+                <app-select-field
+                  label="Select Main Header"
+                  [field]="mainHeaderId"
+                  [options]="mainHeaders()"
+                  optionLabel="name"
+                  optionValue="id"
+                  filterBy="name"
+                  [required]="true"
+                  [virtualScroll]="false"
+                  scrollHeight="220px"
+                  (onChange)="onMainHeaderChange($event)"
+                  placeholder="Select Main Header to add tasks under">
+                </app-select-field>
+              </div>
+            </div>
+          }
 
           <div class="surface-100 border-round p-3 mb-4 text-sm line-height-3 text-700 mt-2">
             <div>• Upload only CSV files (.csv)</div>
             <div>• Required columns: <strong>Task</strong> (description)</div>
-            <div>• Priority can be: <em>Critical, High, Medium, Low</em></div>
+            <div>• Optional columns: <strong>Priority</strong> (<em>Critical, High, Medium, Low</em>)</div>
+            @if (taskType() === 'REGULAR') {
+              <div class="text-primary mt-1 font-medium">• Tasks will be linked to the selected circular.</div>
+            } @else {
+              <div class="text-primary mt-1 font-medium">• Tasks will be categorized directly under the selected Main Header.</div>
+            }
           </div>
 
           <div class="border-2 border-dashed border-300 border-round p-4 text-center mt-3 cursor-pointer" (click)="fileInput.click()">
@@ -93,7 +168,7 @@
             <p-button
               icon="pi pi-shield"
               label="Validate CSV"
-              [disabled]="!selectedFile() || !circularId() || validating()"
+              [disabled]="!selectedFile() || (taskType() === 'REGULAR' ? !circularId() : !mainHeaderId()) || validating()"
               [loading]="validating()"
               (click)="validateCsv()">
             </p-button>

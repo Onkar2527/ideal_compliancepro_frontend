@@ -46,4 +46,19 @@
     --ap-shadow-card: 0 12px 30px rgba(28, 35, 70, 0.10);
 
     --ap-primary-soft: color-mix(in srgb, var(--primary-color) 10%, #ffffff);
+
+    /* Dynamic Color Theme Tokens */
+    --topbar-bg: linear-gradient(135deg, #133b5c 0%, #1a4f7c 100%);
+    --topbar-border: rgba(255, 255, 255, 0.15);
+    --topbar-text: #ffffff;
+    --topbar-text-secondary: rgba(255, 255, 255, 0.75);
+    --topbar-action-bg: rgba(255, 255, 255, 0.12);
+    --topbar-action-border: rgba(255, 255, 255, 0.2);
+    --topbar-action-hover: rgba(255, 255, 255, 0.22);
+    --hero-gradient: linear-gradient(110deg, #0369a1 0%, #0284c7 50%, #38bdf8 100%);
+    --sidebar-bg: #f0f6fa;
+    --menu-active-bg: #e0f2fe;
+    --menu-active-color: #0369a1;
+    --menu-active-border: #0284c7;
+    --primary-light-rgba: rgba(2, 132, 199, 0.15);
 }

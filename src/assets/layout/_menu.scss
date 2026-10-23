@@ -13,9 +13,9 @@
         left var(--layout-section-transition-duration),
         width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
-    /* LIGHT MODE: Banking Cool Blue-Grey Sidebar (Non-white) */
-    background: #f0f4f8;
-    border-right: 1px solid #cbd5e1;
+    /* LIGHT MODE: Dynamic Light Sidebar */
+    background: var(--sidebar-bg, #f0f4f8);
+    border-right: 1px solid var(--surface-border, #cbd5e1);
     box-shadow: inset -1px 0 0 rgba(15, 41, 66, 0.02), 4px 0 16px rgba(15, 41, 66, 0.02);
     border-radius: 0;
     padding: 0.85rem 0.625rem;
@@ -65,7 +65,7 @@
             text-transform: uppercase;
             font-weight: 800;
             letter-spacing: 0.08em;
-            color: #0f2942; /* Banking Navy for clear structural headers */
+            color: var(--primary-color, #0f2942); /* Uses theme color for clear structural headers */
             margin: 1.25rem 0.35rem 0.45rem;
             padding: 0.25rem 0.4rem;
             position: relative;
@@ -77,8 +77,8 @@
                 left: 0.4rem;
                 width: 1.25rem;
                 height: 2px;
-                background-color: #0284c7; /* Banking Blue indicator */
-                opacity: 0.5;
+                background-color: var(--primary-color, #0284c7); /* Theme indicator */
+                opacity: 0.75;
                 border-radius: 2px;
             }
         }
@@ -167,33 +167,33 @@
 
             &.active-route {
                 font-weight: 600;
-                color: #0369a1; /* Sky Blue-700 for active item text */
-                background: #e0f2fe; /* Light Blue-100 active item backdrop */
-                border-left-color: #0284c7; /* Solid blue active indicator */
-                box-shadow: 0 1px 2px rgba(2, 132, 199, 0.05);
+                color: var(--menu-active-color, #0369a1);
+                background: var(--menu-active-bg, #e0f2fe);
+                border-left-color: var(--menu-active-border, #0284c7);
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
                 .layout-menuitem-icon {
-                    color: #0369a1;
+                    color: var(--menu-active-color, #0369a1);
                     transform: scale(1.06);
                 }
                 
                 .layout-submenu-toggler {
-                    color: #0369a1;
+                    color: var(--menu-active-color, #0369a1);
                 }
             }
 
             &:hover:not(.active-route) {
-                background-color: #e2e8f0; /* Slate-200 hover */
-                color: #0f2942; /* Banking Navy hover text */
+                background-color: var(--surface-hover, #e2e8f0);
+                color: var(--primary-color, #0f2942);
                 transform: translateX(4px);
 
                 .layout-menuitem-icon {
-                    color: #0369a1;
+                    color: var(--primary-color, #0369a1);
                 }
             }
 
             &:focus-visible {
-                outline: 2px solid #0284c7;
+                outline: 2px solid var(--primary-color, #0284c7);
                 outline-offset: -2px;
             }
         }

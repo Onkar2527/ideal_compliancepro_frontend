@@ -1,31 +1,40 @@
 @if (cameFromCirculars() && currentCircular()) {
-  <div class="card mb-4 surface-card border-round border-1 surface-border p-3 flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
-    <div class="flex-1">
-      <div class="flex align-items-center gap-2 mb-2 flex-wrap">
-        <span class="text-xs font-semibold px-2 py-0.5 bg-primary-100 text-primary-900 border-round">
-          {{ currentCircular()?.authority_name || 'Circular' }}
-        </span>
-        <span class="text-xs font-medium text-500">Ref: {{ currentCircular()?.reference_no || 'N/A' }}</span>
-        <span class="text-xs font-medium text-500">Date: {{ currentCircular()?.published_date | date:'dd MMM yyyy' }}</span>
-        <p-tag [value]="currentCircular()?.priority || 'Medium'" [severity]="prioritySeverity(currentCircular()?.priority || '')"></p-tag>
-      </div>
-      <h6 class="m-0 text-lg font-bold text-900 line-height-3" style="font-size: 1.1rem;">{{ currentCircular()?.title }}</h6>
-      <p class="m-0 text-xs text-600 mt-1" style="max-height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-        {{ currentCircular()?.description || 'No description provided.' }}
-      </p>
+<div
+  class="card mb-4 surface-card border-round border-1 surface-border p-3 flex flex-column md:flex-row md:align-items-center md:justify-content-between gap-3">
+  <div class="flex-1">
+    <div class="flex align-items-center gap-2 mb-2 flex-wrap">
+      <span class="text-xs font-semibold px-2 py-0.5 bg-primary-100 text-primary-900 border-round">
+        {{ currentCircular()?.authority_name || 'Circular' }}
+      </span>
+      <span class="text-xs font-medium text-500">Ref: {{ currentCircular()?.reference_no || 'N/A' }}</span>
+      <span class="text-xs font-medium text-500">Date: {{ currentCircular()?.published_date | date:'dd MMM yyyy'
+        }}</span>
+      <p-tag [value]="currentCircular()?.priority || 'Medium'"
+        [severity]="prioritySeverity(currentCircular()?.priority || '')"></p-tag>
     </div>
-    <div class="flex align-items-center gap-2 flex-shrink-0">
-      @if (currentCircular()?.file_url) {
-        <a [href]="getFileUrl(currentCircular()?.file_url)" target="_blank" class="p-button p-button-outlined p-button-secondary p-button-sm flex align-items-center gap-2" style="text-decoration: none;">
-          <i class="pi pi-file-pdf"></i><span>Download PDF</span>
-        </a>
-      }
-      @if (cameFromTasks()) {
-        <button pButton pRipple type="button" icon="pi pi-arrow-left" label="Back to Tasks" class="p-button-outlined p-button-primary p-button-sm" (click)="goBackToTasks()"></button>
-      }
-      <button pButton pRipple type="button" icon="pi pi-arrow-left" label="Back to Circulars" class="p-button-outlined p-button-secondary p-button-sm" (click)="goBackToCirculars()"></button>
-    </div>
+    <h6 class="m-0 text-lg font-bold text-900 line-height-3" style="font-size: 1.1rem;">{{ currentCircular()?.title }}
+    </h6>
+    <p class="m-0 text-xs text-600 mt-1"
+      style="max-height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+      {{ currentCircular()?.description || 'No description provided.' }}
+    </p>
   </div>
+  <div class="flex align-items-center gap-2 flex-shrink-0">
+    @if (currentCircular()?.file_url) {
+    <a [href]="getFileUrl(currentCircular()?.file_url)" target="_blank"
+      class="p-button p-button-outlined p-button-secondary p-button-sm flex align-items-center gap-2"
+      style="text-decoration: none;">
+      <i class="pi pi-file-pdf"></i><span>Download PDF</span>
+    </a>
+    }
+    @if (cameFromTasks()) {
+    <button pButton pRipple type="button" icon="pi pi-arrow-left" label="Back to Tasks"
+      class="p-button-outlined p-button-primary p-button-sm" (click)="goBackToTasks()"></button>
+    }
+    <button pButton pRipple type="button" icon="pi pi-arrow-left" label="Back to Circulars"
+      class="p-button-outlined p-button-secondary p-button-sm" (click)="goBackToCirculars()"></button>
+  </div>
+</div>
 }
 
 <div class="card">
@@ -33,96 +42,51 @@
     <h5 class="m-0 text-xl font-semibold">Task Sets Master</h5>
     <div class="flex align-items-center gap-2">
       @if (cameFromCirculars() && !currentCircular()) {
-        <button
-          pButton
-          type="button"
-          icon="pi pi-arrow-left"
-          label="Back to Circulars"
-          class="p-button-outlined p-button-secondary h-2.5rem flex align-items-center"
-          (click)="goBackToCirculars()">
-        </button>
+      <button pButton type="button" icon="pi pi-arrow-left" label="Back to Circulars"
+        class="p-button-outlined p-button-secondary h-2.5rem flex align-items-center" (click)="goBackToCirculars()">
+      </button>
       }
       @if (selectedCircularLabel()) {
-        <div class="flex align-items-center gap-2 bg-blue-50 border-1 border-blue-200 border-round px-3 py-2 h-2.5rem">
-          <i class="pi pi-filter text-blue-600 text-sm"></i>
-          <span class="text-blue-800 text-sm font-medium">Filtered: {{ selectedCircularLabel() }}</span>
-          <button pButton pRipple icon="pi pi-times" class="p-button-text p-button-sm p-button-rounded text-blue-600" pTooltip="Clear filter" (click)="selectedCircularFilter.set(null)"></button>
-        </div>
+      <div class="flex align-items-center gap-2 bg-blue-50 border-1 border-blue-200 border-round px-3 py-2 h-2.5rem">
+        <i class="pi pi-filter text-blue-600 text-sm"></i>
+        <span class="text-blue-800 text-sm font-medium">Filtered: {{ selectedCircularLabel() }}</span>
+        <button pButton pRipple icon="pi pi-times" class="p-button-text p-button-sm p-button-rounded text-blue-600"
+          pTooltip="Clear filter" (click)="selectedCircularFilter.set(null)"></button>
+      </div>
       }
     </div>
   </div>
-    <app-table
-        [data]="filteredTaskSets()"
-        [columns]="tableColumns"
-        [actions]="tableActions"
-        [loading]="loading()"
-        [loadingRowIds]="loadingRowIds()"
-        (onRefresh)="loadData(true)"
-        (onAdd)="openCreateModal()"
-        [showAddButton]="canAccessTaskSets()"
-        [showRefreshButton]="true"
-        [showBulkUploadButton]="canAccessTaskSets()"
-        bulkUploadButtonLabel="Bulk Upload (Internal)"
-        (onBulkUpload)="openBulkUploadModal()"
-        [paginator]="true"
-        [rows]="10"
-    >
-      <ng-container toolbar-actions>
-        <div class="flex align-items-center gap-2 flex-wrap">
-          <p-select
-            [options]="circularFilterOptions()"
-            [ngModel]="selectedCircularFilter()"
-            (ngModelChange)="selectedCircularFilter.set($event)"
-            (onShow)="ensureCircularsLoaded()"
-            placeholder="Filter by Circular"
-            [showClear]="true"
-            [filter]="true"
-            filterPlaceholder="Search circular..."
-            [virtualScroll]="true"
-            [virtualScrollItemSize]="38"
-            styleClass="w-13rem max-w-full h-2.5rem flex align-items-center"
-            panelStyleClass="circular-dropdown-panel"
-          ></p-select>
+  <app-table [data]="filteredTaskSets()" [columns]="tableColumns" [actions]="tableActions" [loading]="loading()"
+    [loadingRowIds]="loadingRowIds()" (onRefresh)="loadData(true)" (onAdd)="openCreateModal()"
+    [showAddButton]="canAccessTaskSets()" [showRefreshButton]="true" [showBulkUploadButton]="canAccessTaskSets()"
+    bulkUploadButtonLabel="Bulk Upload (Internal)" (onBulkUpload)="openBulkUploadModal()" [paginator]="true"
+    [rows]="10">
+    <ng-container toolbar-actions>
+      <div class="flex align-items-center gap-2 flex-wrap">
+        <p-select [options]="circularFilterOptions()" [ngModel]="selectedCircularFilter()"
+          (ngModelChange)="selectedCircularFilter.set($event)" (onShow)="ensureCircularsLoaded()"
+          placeholder="Filter by Circular" [showClear]="true" [filter]="true" filterPlaceholder="Search circular..."
+          [virtualScroll]="true" [virtualScrollItemSize]="38"
+          styleClass="w-13rem max-w-full h-2.5rem flex align-items-center"
+          panelStyleClass="circular-dropdown-panel"></p-select>
 
-          <p-select
-            [options]="frequencyFilterOptions()"
-            [ngModel]="selectedFrequencyFilter()"
-            (ngModelChange)="selectedFrequencyFilter.set($event)"
-            placeholder="Filter by Frequency"
-            [showClear]="true"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="w-11rem max-w-full h-2.5rem flex align-items-center"
-          ></p-select>
+        <p-select [options]="frequencyFilterOptions()" [ngModel]="selectedFrequencyFilter()"
+          (ngModelChange)="selectedFrequencyFilter.set($event)" placeholder="Filter by Frequency" [showClear]="true"
+          optionLabel="label" optionValue="value"
+          styleClass="w-11rem max-w-full h-2.5rem flex align-items-center"></p-select>
 
-          <p-select
-            [options]="branchFilterOptions()"
-            [ngModel]="selectedBranchFilter()"
-            (ngModelChange)="selectedBranchFilter.set($event)"
-            placeholder="Filter by Dept/Branch"
-            [showClear]="true"
-            [filter]="true"
-            filterPlaceholder="Search department..."
-            optionLabel="label"
-            optionValue="value"
-            styleClass="w-12rem max-w-full h-2.5rem flex align-items-center"
-          ></p-select>
-        </div>
-      </ng-container>
-    </app-table>
-  </div>
+        <p-select [options]="branchFilterOptions()" [ngModel]="selectedBranchFilter()"
+          (ngModelChange)="selectedBranchFilter.set($event)" placeholder="Filter by Dept/Branch" [showClear]="true"
+          [filter]="true" filterPlaceholder="Search department..." optionLabel="label" optionValue="value"
+          styleClass="w-12rem max-w-full h-2.5rem flex align-items-center"></p-select>
+      </div>
+    </ng-container>
+  </app-table>
+</div>
 
 <!-- ══════════════════ Bulk Upload Dialog ══════════════════ -->
-<p-dialog
-  [(visible)]="showBulkUploadDialog"
-  [modal]="true"
-  [closable]="true"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '780px', maxWidth: '95vw' }"
-  appendTo="body"
-  styleClass="bulk-upload-dialog"
->
+<p-dialog [(visible)]="showBulkUploadDialog" [modal]="true" [closable]="true" [draggable]="false" [resizable]="false"
+  [style]="{ width: '780px', maxWidth: '95vw' }" appendTo="body" styleClass="bulk-upload-dialog">
   <ng-template pTemplate="header">
     <div class="flex align-items-center gap-3">
       <span class="bulk-dialog-icon"><i class="pi pi-file-excel"></i></span>
@@ -138,90 +102,72 @@
 
       <!-- Step 1: Drop Zone -->
       @if (!bulkPreviewRows().length) {
-        <div
-          class="bulk-drop-zone"
-          [class.dragging]="isDraggingOver()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-          (click)="bulkHiddenInput.click()"
-        >
-          <input
-            #bulkHiddenInput
-            type="file"
-            accept=".xlsx,.xls"
-            style="display:none"
-            (change)="onBulkFileChange($event)"
-          />
-          <div class="drop-icon"><i class="pi pi-cloud-upload"></i></div>
-          <div class="drop-title">Drag &amp; drop your XLSX file here</div>
-          <div class="drop-subtitle">or click to browse</div>
-          <div class="drop-formats">Accepts: .xlsx, .xls</div>
-        </div>
+      <div class="bulk-drop-zone" [class.dragging]="isDraggingOver()" (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" (click)="bulkHiddenInput.click()">
+        <input #bulkHiddenInput type="file" accept=".xlsx,.xls" style="display:none"
+          (change)="onBulkFileChange($event)" />
+        <div class="drop-icon"><i class="pi pi-cloud-upload"></i></div>
+        <div class="drop-title">Drag &amp; drop your XLSX file here</div>
+        <div class="drop-subtitle">or click to browse</div>
+        <div class="drop-formats">Accepts: .xlsx, .xls</div>
+      </div>
       }
 
       <!-- Step 2: Preview -->
       @if (bulkPreviewRows().length) {
-        <div class="bulk-preview">
-          <div class="preview-header">
-            <div class="flex align-items-center gap-2 flex-wrap">
-              <i class="pi pi-check-circle text-green-500"></i>
-              <span class="font-semibold text-900">{{ bulkSelectedFileName() }}</span>
-              <p-tag [value]="bulkPreviewRows().length + ' rows'" severity="info"></p-tag>
-              <p-tag [value]="bulkPreviewSetCount() + ' task set(s)'" severity="success"></p-tag>
-            </div>
-            <button
-              pButton
-              type="button"
-              icon="pi pi-times"
-              label="Change File"
-              class="p-button-text p-button-secondary p-button-sm"
-              (click)="clearBulkFile()"
-            ></button>
+      <div class="bulk-preview">
+        <div class="preview-header">
+          <div class="flex align-items-center gap-2 flex-wrap">
+            <i class="pi pi-check-circle text-green-500"></i>
+            <span class="font-semibold text-900">{{ bulkSelectedFileName() }}</span>
+            <p-tag [value]="bulkPreviewRows().length + ' rows'" severity="info"></p-tag>
+            <p-tag [value]="bulkPreviewSetCount() + ' task set(s)'" severity="success"></p-tag>
           </div>
-
-          <div class="preview-table-wrap">
-            <p-table
-              [value]="bulkPreviewRows()"
-              [scrollable]="true"
-              scrollHeight="280px"
-              styleClass="p-datatable-sm p-datatable-striped"
-            >
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="min-width:130px">Set Name</th>
-                  <th style="min-width:170px">Task Name</th>
-                  <th style="min-width:120px">Task Header</th>
-                  <th style="min-width:140px">Branch / Dept</th>
-                  <th style="min-width:110px">Type</th>
-                  <th style="min-width:100px">Authority</th>
-                  <th style="min-width:90px">Priority</th>
-                  <th style="min-width:100px">Frequency</th>
-                  <th style="min-width:100px">Start Date</th>
-                  <th style="min-width:100px">End Date</th>
-                  <th style="min-width:80px">Due</th>
-                  <th style="min-width:90px">Reporting</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
-                <tr [class.preview-set-start]="rowIndex === 0 || row.set_name !== bulkPreviewRows()[rowIndex - 1].set_name">
-                  <td><span class="font-semibold text-primary">{{ row.set_name }}</span></td>
-                  <td>{{ row.task_name }}</td>
-                  <td>{{ row.task_header }}</td>
-                  <td>{{ row.department_branch_name }}</td>
-                  <td><span [class]="row.for_branch_or_department?.toLowerCase() === 'department' ? 'badge-dept' : 'badge-branch'">{{ row.for_branch_or_department || 'branch' }}</span></td>
-                  <td>{{ row.authority }}</td>
-                  <td>{{ row.priority }}</td>
-                  <td>{{ row.frequency }}</td>
-                  <td>{{ row.start_date }}</td>
-                  <td>{{ row.end_date }}</td>
-                  <td>{{ row.due }}</td>
-                  <td>{{ row.reporting }}</td>
-                </tr>
-              </ng-template>
-            </p-table>
-          </div>
+          <button pButton type="button" icon="pi pi-times" label="Change File"
+            class="p-button-text p-button-secondary p-button-sm" (click)="clearBulkFile()"></button>
         </div>
+
+        <div class="preview-table-wrap">
+          <p-table [value]="bulkPreviewRows()" [scrollable]="true" scrollHeight="280px"
+            styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="min-width:130px">Set Name</th>
+                <th style="min-width:170px">Task Name</th>
+                <th style="min-width:120px">Task Header</th>
+                <th style="min-width:140px">Branch / Dept</th>
+                <th style="min-width:110px">Type</th>
+                <th style="min-width:100px">Authority</th>
+                <th style="min-width:90px">Priority</th>
+                <th style="min-width:100px">Frequency</th>
+                <th style="min-width:100px">Start Date</th>
+                <th style="min-width:100px">End Date</th>
+                <th style="min-width:80px">Due</th>
+                <th style="min-width:90px">Reporting</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr
+                [class.preview-set-start]="rowIndex === 0 || row.set_name !== bulkPreviewRows()[rowIndex - 1].set_name">
+                <td><span class="font-semibold text-primary">{{ row.set_name }}</span></td>
+                <td>{{ row.task_name }}</td>
+                <td>{{ row.task_header }}</td>
+                <td>{{ row.department_branch_name }}</td>
+                <td><span
+                    [class]="row.for_branch_or_department?.toLowerCase() === 'department' ? 'badge-dept' : 'badge-branch'">{{
+                    row.for_branch_or_department || 'branch' }}</span></td>
+                <td>{{ row.authority }}</td>
+                <td>{{ row.priority }}</td>
+                <td>{{ row.frequency }}</td>
+                <td>{{ row.start_date }}</td>
+                <td>{{ row.end_date }}</td>
+                <td>{{ row.due }}</td>
+                <td>{{ row.reporting }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
       }
 
     </div>
@@ -229,25 +175,13 @@
 
   <ng-template pTemplate="footer">
     <div class="flex align-items-center justify-content-between w-full">
-      <button
-        pButton
-        type="button"
-        icon="pi pi-download"
-        label="Download Template"
-        class="p-button-text p-button-success"
-        (click)="downloadTemplate()"
-      ></button>
+      <button pButton type="button" icon="pi pi-download" label="Download Template"
+        class="p-button-text p-button-success" (click)="downloadTemplate()"></button>
       <div class="flex gap-2">
-        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="closeBulkUploadModal()"></button>
-        <button
-          pButton
-          type="button"
-          label="Upload & Create"
-          icon="pi pi-upload"
-          [loading]="saving()"
-          [disabled]="!bulkPreviewRows().length || saving()"
-          (click)="submitBulkUpload()"
-        ></button>
+        <button pButton type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary"
+          (click)="closeBulkUploadModal()"></button>
+        <button pButton type="button" label="Upload & Create" icon="pi pi-upload" [loading]="saving()"
+          [disabled]="!bulkPreviewRows().length || saving()" (click)="submitBulkUpload()"></button>
       </div>
     </div>
   </ng-template>
@@ -255,16 +189,10 @@
 
 <!-- Task Set Form Drawer -->
 
-<p-drawer 
-  [visible]="showFormDrawer()" 
-  (visibleChange)="showFormDrawer.set($event)" 
-  [position]="isDrawerFullScreen() ? 'full' : 'right'" 
-  [fullScreen]="isDrawerFullScreen()" 
-  [style]="isDrawerFullScreen() ? { width: '100vw', maxWidth: '100vw', height: '100vh', margin: '0' } : { width: '94vw', maxWidth: '1560px' }" 
-  styleClass="task-set-form-drawer"
-  appendTo="body" 
-  [modal]="true" 
-  [showCloseIcon]="false">
+<p-drawer [visible]="showFormDrawer()" (visibleChange)="showFormDrawer.set($event)"
+  [position]="isDrawerFullScreen() ? 'full' : 'right'" [fullScreen]="isDrawerFullScreen()"
+  [style]="isDrawerFullScreen() ? { width: '100vw', maxWidth: '100vw', height: '100vh', margin: '0' } : { width: '94vw', maxWidth: '1560px' }"
+  styleClass="task-set-form-drawer" appendTo="body" [modal]="true" [showCloseIcon]="false">
   <ng-template pTemplate="header">
     <div class="drawer-header-row">
       <div class="drawer-title-wrap">
@@ -273,28 +201,19 @@
         </span>
         <div>
           <div class="text-900 font-semibold text-xl">{{ isEditMode ? 'Edit Task Set' : 'New Task Set' }}</div>
-          <div class="text-600 text-sm mt-1">{{ isEditMode ? 'Modify task set configuration' : 'Define a new compliance task set' }}</div>
+          <div class="text-600 text-sm mt-1">{{ isEditMode ? 'Modify task set configuration' : 'Define a new compliance
+            task set' }}</div>
         </div>
       </div>
       <div class="flex align-items-center gap-1">
-        <button 
-          pButton 
-          pRipple 
-          type="button" 
-          [icon]="isDrawerFullScreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'" 
-          class="p-button-text p-button-rounded text-600 hover:text-900" 
-          [pTooltip]="isDrawerFullScreen() ? 'Restore side drawer' : 'Full screen'"
-          tooltipPosition="bottom"
+        <button pButton pRipple type="button"
+          [icon]="isDrawerFullScreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+          class="p-button-text p-button-rounded text-600 hover:text-900"
+          [pTooltip]="isDrawerFullScreen() ? 'Restore side drawer' : 'Full screen'" tooltipPosition="bottom"
           (click)="toggleDrawerFullScreen()">
         </button>
-        <button 
-          pButton 
-          pRipple 
-          type="button" 
-          icon="pi pi-times" 
-          class="p-button-text p-button-rounded text-600 hover:text-900" 
-          pTooltip="Close"
-          tooltipPosition="bottom"
+        <button pButton pRipple type="button" icon="pi pi-times"
+          class="p-button-text p-button-rounded text-600 hover:text-900" pTooltip="Close" tooltipPosition="bottom"
           (click)="showFormDrawer.set(false)">
         </button>
       </div>
@@ -312,315 +231,286 @@
         </div>
         <div class="grid formgrid p-fluid drawer-form-grid">
           <div class="field col-12 md:col-6">
-            <app-select-field 
-              label="Task Set Type" 
-              [field]="newTaskSetType" 
-              [options]="taskSetTypeOptions" 
-              optionLabel="label" 
-              optionValue="value" 
-              [required]="true"
-              (onChange)="onTypeChange($event)">
+            <app-select-field label="Task Set Type" [field]="newTaskSetType" [options]="taskSetTypeOptions"
+              optionLabel="label" optionValue="value" [required]="true" (onChange)="onTypeChange($event)">
             </app-select-field>
           </div>
 
           <!-- REGULAR: Circular dropdown -->
           @if (newTaskSetType() === 'REGULAR') {
-            <div class="field col-12 md:col-6">
-              <app-select-field
-                label="Circular"
-                [field]="newTaskSetCircularId"
-                [options]="circularFilterOptions()"
-                optionLabel="label"
-                optionValue="value"
-                filterBy="label"
-                [showClear]="true"
-                [required]="true"
-                [virtualScroll]="true"
-                [virtualScrollItemSize]="38"
-                placeholder="Select Circular"
-                (onShow)="ensureCircularsLoaded()"
-                (onChange)="onCircularSelected($event)">
-              </app-select-field>
-            </div>
+          <div class="field col-12 md:col-6">
+            <app-select-field label="Circular" [field]="newTaskSetCircularId" [options]="circularFilterOptions()"
+              optionLabel="label" optionValue="value" filterBy="label" [showClear]="true" [required]="true"
+              [virtualScroll]="true" [virtualScrollItemSize]="38" placeholder="Select Circular"
+              (onShow)="ensureCircularsLoaded()" (onChange)="onCircularSelected($event)">
+            </app-select-field>
+          </div>
 
-            <!-- Recommendation Panel for Selected Circular -->
-            @if (circularRecommendation(); as rec) {
-              <div class="field col-12 p-0">
-                <div class="circular-rec-card">
-                  <div class="rec-card-header flex align-items-center justify-content-between flex-wrap gap-2">
-                    <div class="flex align-items-center gap-2">
-                      <span class="rec-sparkle-badge">
-                        <i class="pi pi-sparkles"></i> Circular Guidelines & Recommendation
-                      </span>
-                      <span class="rec-header-title">
-                        {{ rec.circularRef ? (rec.circularRef + ' — ') : '' }}{{ rec.circularTitle }}
-                      </span>
+          <!-- Recommendation Panel for Selected Circular -->
+          @if (circularRecommendation(); as rec) {
+          <div class="field col-12 p-0">
+            <div class="circular-rec-card">
+              <div class="rec-card-header flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="flex align-items-center gap-2">
+                  <span class="rec-sparkle-badge">
+                    <i class="pi pi-sparkles"></i> Circular Guidelines & Recommendation
+                  </span>
+                  <span class="rec-header-title">
+                    {{ rec.circularRef ? (rec.circularRef + ' — ') : '' }}{{ rec.circularTitle }}
+                  </span>
+                </div>
+                <div class="flex align-items-center gap-2">
+                  <span class="rec-task-count-pill">
+                    <i class="pi pi-check-square"></i> {{ rec.totalTasks }} Checklist Item{{ rec.totalTasks > 1 ? 's' :
+                    '' }}
+                  </span>
+                  @if (rec.suggestedFrequencyCode && newTaskSetFrequency() !== rec.suggestedFrequencyCode) {
+                  <button pButton type="button" icon="pi pi-bolt"
+                    [label]="'Apply Frequency (' + rec.suggestedFrequencyLabel + ')'"
+                    class="p-button-sm p-button-success p-button-outlined rec-apply-btn"
+                    (click)="applyRecommendedFrequency(rec.suggestedFrequencyCode)">
+                  </button>
+                  }
+                </div>
+              </div>
+
+              <div class="rec-card-body grid m-0">
+                <!-- Primary Department (Software Assignment) -->
+                <div class="col-12 md:col-6 p-1">
+                  <div class="rec-data-box">
+                    <div class="rec-box-label">
+                      <i class="pi pi-building text-primary"></i> Primary Department (Software Assignment)
                     </div>
-                    <div class="flex align-items-center gap-2">
-                      <span class="rec-task-count-pill">
-                        <i class="pi pi-check-square"></i> {{ rec.totalTasks }} Checklist Item{{ rec.totalTasks > 1 ? 's' : '' }}
-                      </span>
-                      @if (rec.suggestedFrequencyCode && newTaskSetFrequency() !== rec.suggestedFrequencyCode) {
-                        <button 
-                          pButton 
-                          type="button" 
-                          icon="pi pi-bolt" 
-                          [label]="'Apply Frequency (' + rec.suggestedFrequencyLabel + ')'" 
-                          class="p-button-sm p-button-success p-button-outlined rec-apply-btn"
-                          (click)="applyRecommendedFrequency(rec.suggestedFrequencyCode)">
-                        </button>
+                    <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
+                      @for (dept of rec.primaryDepartments; track dept) {
+                      <span class="rec-pill rec-pill-dept">{{ dept }}</span>
+                      }
+                      @if (!rec.primaryDepartments.length) {
+                      <span class="text-500 text-xs italic">Not specified in sheet</span>
                       }
                     </div>
                   </div>
+                </div>
 
-                  <div class="rec-card-body grid m-0">
-                    <!-- Primary Department (Software Assignment) -->
-                    <div class="col-12 md:col-6 p-1">
-                      <div class="rec-data-box">
-                        <div class="rec-box-label">
-                          <i class="pi pi-building text-primary"></i> Primary Department (Software Assignment)
-                        </div>
-                        <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
-                          @for (dept of rec.primaryDepartments; track dept) {
-                            <span class="rec-pill rec-pill-dept">{{ dept }}</span>
-                          }
-                          @if (!rec.primaryDepartments.length) {
-                            <span class="text-500 text-xs italic">Not specified in sheet</span>
-                          }
-                        </div>
-                      </div>
+                <!-- Recommended Frequency -->
+                <div class="col-12 md:col-6 p-1">
+                  <div class="rec-data-box">
+                    <div class="rec-box-label">
+                      <i class="pi pi-clock text-orange-500"></i> Recommended Frequency
                     </div>
-
-                    <!-- Recommended Frequency -->
-                    <div class="col-12 md:col-6 p-1">
-                      <div class="rec-data-box">
-                        <div class="rec-box-label">
-                          <i class="pi pi-clock text-orange-500"></i> Recommended Frequency
-                        </div>
-                        <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
-                          @for (freq of rec.frequencies; track freq) {
-                            <span class="rec-pill rec-pill-freq">{{ freq }}</span>
-                          }
-                          @if (!rec.frequencies.length) {
-                            <span class="text-500 text-xs italic">Not specified in sheet</span>
-                          }
-                        </div>
-                      </div>
+                    <div class="flex flex-wrap gap-1.5 mt-1.5 align-items-center">
+                      @for (freq of rec.frequencies; track freq) {
+                      <span class="rec-pill rec-pill-freq">{{ freq }}</span>
+                      }
+                      @if (!rec.frequencies.length) {
+                      <span class="text-500 text-xs italic">Not specified in sheet</span>
+                      }
                     </div>
                   </div>
                 </div>
               </div>
-            }
+            </div>
+          </div>
+          }
           }
 
           <!-- INTERNAL: Main Header & Reference Number -->
           @if (newTaskSetType() === 'INTERNAL') {
-            <div class="field col-12 md:col-6">
-              <span class="font-medium text-sm text-700 mb-1 block">Main Header <span class="text-red-500">*</span></span>
-              <p-select
-                [options]="mainHeadersList()"
-                optionLabel="display_name"
-                optionValue="id"
-                placeholder="Select Main Header..."
-                [ngModel]="newTaskSetMainHeaderId()"
-                (ngModelChange)="onMainHeaderSelected($event)"
-                [filter]="true"
-                filterBy="display_name,name"
-                [showClear]="true"
-                styleClass="w-full">
-              </p-select>
-            </div>
-            <div class="field col-12 md:col-6">
-              <app-text-field
-                label="Reference Number"
-                [field]="newTaskSetReferenceNo"
-                placeholder="e.g. IT-CYBER-2026">
-              </app-text-field>
-            </div>
+          <div class="field col-12 md:col-6">
+            <span class="font-medium text-sm text-700 mb-1 block">Main Header <span class="text-red-500">*</span></span>
+            <p-select [options]="mainHeadersList()" optionLabel="display_name" optionValue="id"
+              placeholder="Select Main Header..." [ngModel]="newTaskSetMainHeaderId()"
+              (ngModelChange)="onMainHeaderSelected($event)" [filter]="true" filterBy="display_name,name"
+              [showClear]="true" styleClass="w-full">
+            </p-select>
+          </div>
+          <div class="field col-12 md:col-6">
+            <app-text-field label="Reference Name" [field]="newTaskSetReferenceNo" placeholder="e.g. IT-CYBER-2026">
+            </app-text-field>
+          </div>
           }
 
           <div class="field col-12 md:col-6">
             <app-text-field label="Task Set Name" [field]="newTaskSetName" [required]="true"></app-text-field>
           </div>
           <div class="field col-12 md:col-6">
-            <app-select-field
-              label="Task Set Frequency"
-              [field]="newTaskSetFrequency"
-              [options]="frequencies"
-              optionLabel="label"
-              optionValue="value"
-              [required]="true">
+            <app-select-field label="Task Set Frequency" [field]="newTaskSetFrequency" [options]="frequencies"
+              optionLabel="label" optionValue="value" [required]="true">
             </app-select-field>
           </div>
           <div class="field col-12 md:col-6">
-            <app-date-field label="Start Date" [field]="newTaskSetStartDate" dateFormat="dd/mm/yy" [required]="true"></app-date-field>
+            <app-date-field label="Start Date" [field]="newTaskSetStartDate" dateFormat="dd/mm/yy"
+              [required]="true"></app-date-field>
           </div>
           <div class="field col-12 md:col-6">
-            <app-date-field label="End Date" [field]="newTaskSetEndDate" dateFormat="dd/mm/yy" [required]="true"></app-date-field>
+            <app-date-field label="End Date" [field]="newTaskSetEndDate" dateFormat="dd/mm/yy"
+              [required]="true"></app-date-field>
           </div>
 
 
           <!-- ══ FREQUENCY-BASED SCHEDULE FIELDS (For ALL types except 1-Time Use) ══ -->
           @if (newTaskSetFrequency() && newTaskSetFrequency() !== '6') {
 
-            <!-- DAILY → Assignment Time + Due Time + Reporting Time -->
-            @if (newTaskSetFrequency() === '0') {
+          <!-- DAILY → Assignment Time + Due Time + Reporting Time -->
+          @if (newTaskSetFrequency() === '0') {
+          <div class="field col-12 md:col-4">
+            <span class="font-medium text-sm text-700 mb-1 block">Assignment Time <span
+                class="text-red-500">*</span></span>
+            <input type="time" class="p-inputtext p-component w-full" [ngModel]="newTaskSetAssignmentTime()"
+              (ngModelChange)="newTaskSetAssignmentTime.set($event)" />
+          </div>
+          <div class="field col-12 md:col-4">
+            <span class="font-medium text-sm text-700 mb-1 block">Due Time <span class="text-red-500">*</span></span>
+            <input type="time" class="p-inputtext p-component w-full" [ngModel]="newTaskSetDueTime()"
+              (ngModelChange)="newTaskSetDueTime.set($event)" />
+          </div>
+          <div class="field col-12 md:col-4">
+            <span class="font-medium text-sm text-700 mb-1 block">Reporting Time <span
+                class="text-red-500">*</span></span>
+            <input type="time" class="p-inputtext p-component w-full" [ngModel]="newTaskSetReportingTime()"
+              (ngModelChange)="newTaskSetReportingTime.set($event)" />
+          </div>
+          }
+
+          <!-- WEEKLY → Assignment / Due / Reporting Day of Week Chips -->
+          @if (newTaskSetFrequency() === '7') {
+          <div class="field col-12">
+            <div class="grid formgrid">
               <div class="field col-12 md:col-4">
-                <span class="font-medium text-sm text-700 mb-1 block">Assignment Time <span class="text-red-500">*</span></span>
-                <input type="time" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetAssignmentTime()" (ngModelChange)="newTaskSetAssignmentTime.set($event)" />
+                <span class="font-medium text-sm text-700 mb-2 block">Assignment Day <span
+                    class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1">
+                  @for (day of dayOfWeekOptions; track day.value) {
+                  <div
+                    class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
+                    [class]="newTaskSetAssignmentDayOfWeek() === day.value ? 'bg-primary text-white border-1 border-primary' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
+                    (click)="newTaskSetAssignmentDayOfWeek.set(day.value)">
+                    {{ day.label.substring(0, 3) }}
+                  </div>
+                  }
+                </div>
               </div>
               <div class="field col-12 md:col-4">
-                <span class="font-medium text-sm text-700 mb-1 block">Due Time <span class="text-red-500">*</span></span>
-                <input type="time" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetDueTime()" (ngModelChange)="newTaskSetDueTime.set($event)" />
+                <span class="font-medium text-sm text-700 mb-2 block">Due Day <span class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1">
+                  @for (day of dayOfWeekOptions; track day.value) {
+                  <div
+                    class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
+                    [class]="newTaskSetDueDayOfWeek() === day.value ? 'bg-red-500 text-white border-1 border-red-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
+                    (click)="newTaskSetDueDayOfWeek.set(day.value)">
+                    {{ day.label.substring(0, 3) }}
+                  </div>
+                  }
+                </div>
               </div>
               <div class="field col-12 md:col-4">
-                <span class="font-medium text-sm text-700 mb-1 block">Reporting Time <span class="text-red-500">*</span></span>
-                <input type="time" class="p-inputtext p-component w-full"
-                  [ngModel]="newTaskSetReportingTime()" (ngModelChange)="newTaskSetReportingTime.set($event)" />
-              </div>
-            }
-
-            <!-- WEEKLY → Assignment / Due / Reporting Day of Week Chips -->
-            @if (newTaskSetFrequency() === '7') {
-              <div class="field col-12">
-                <div class="grid formgrid">
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Assignment Day <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1">
-                      @for (day of dayOfWeekOptions; track day.value) {
-                        <div 
-                          class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
-                          [class]="newTaskSetAssignmentDayOfWeek() === day.value ? 'bg-primary text-white border-1 border-primary' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
-                          (click)="newTaskSetAssignmentDayOfWeek.set(day.value)">
-                          {{ day.label.substring(0, 3) }}
-                        </div>
-                      }
-                    </div>
+                <span class="font-medium text-sm text-700 mb-2 block">Reporting Day <span
+                    class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1">
+                  @for (day of dayOfWeekOptions; track day.value) {
+                  <div
+                    class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
+                    [class]="newTaskSetReportingDayOfWeek() === day.value ? 'bg-blue-500 text-white border-1 border-blue-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
+                    (click)="newTaskSetReportingDayOfWeek.set(day.value)">
+                    {{ day.label.substring(0, 3) }}
                   </div>
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Due Day <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1">
-                      @for (day of dayOfWeekOptions; track day.value) {
-                        <div 
-                          class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
-                          [class]="newTaskSetDueDayOfWeek() === day.value ? 'bg-red-500 text-white border-1 border-red-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
-                          (click)="newTaskSetDueDayOfWeek.set(day.value)">
-                          {{ day.label.substring(0, 3) }}
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Reporting Day <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1">
-                      @for (day of dayOfWeekOptions; track day.value) {
-                        <div 
-                          class="flex align-items-center justify-content-center px-3 py-1 border-round cursor-pointer text-sm font-medium transition-colors"
-                          [class]="newTaskSetReportingDayOfWeek() === day.value ? 'bg-blue-500 text-white border-1 border-blue-500' : 'bg-surface-0 text-700 border-1 surface-border hover:surface-100'"
-                          (click)="newTaskSetReportingDayOfWeek.set(day.value)">
-                          {{ day.label.substring(0, 3) }}
-                        </div>
-                      }
-                    </div>
-                  </div>
+                  }
                 </div>
               </div>
-            }
+            </div>
+          </div>
+          }
 
-            <!-- FORTNIGHT / MONTHLY → Visual 31-Day Grids -->
-            @if (newTaskSetFrequency() === '1' || newTaskSetFrequency() === '2') {
-              <div class="field col-12">
-                <div class="grid formgrid">
-                  <div class="field col-12 xl:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Assignment Days <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1 max-w-20rem">
-                      @for (day of daysArray; track day) {
-                        <div 
-                          class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
-                          style="width: 28px; height: 28px;"
-                          [class]="isDayOfMonthSelected(newTaskSetAssignmentDaysOfMonth, day) ? 'bg-primary text-white border-1 border-primary shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-primary-50'"
-                          (click)="toggleDayOfMonth(newTaskSetAssignmentDaysOfMonth, day)">
-                          {{ day }}
-                        </div>
-                      }
-                    </div>
+          <!-- FORTNIGHT / MONTHLY → Visual 31-Day Grids -->
+          @if (newTaskSetFrequency() === '1' || newTaskSetFrequency() === '2') {
+          <div class="field col-12">
+            <div class="grid formgrid">
+              <div class="field col-12 xl:col-4">
+                <span class="font-medium text-sm text-700 mb-2 block">Assignment Days <span
+                    class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1 max-w-20rem">
+                  @for (day of daysArray; track day) {
+                  <div
+                    class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
+                    style="width: 28px; height: 28px;"
+                    [class]="isDayOfMonthSelected(newTaskSetAssignmentDaysOfMonth, day) ? 'bg-primary text-white border-1 border-primary shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-primary-50'"
+                    (click)="toggleDayOfMonth(newTaskSetAssignmentDaysOfMonth, day)">
+                    {{ day }}
                   </div>
-                  <div class="field col-12 xl:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Due Days <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1 max-w-20rem">
-                      @for (day of daysArray; track day) {
-                        <div 
-                          class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
-                          style="width: 28px; height: 28px;"
-                          [class]="isDayOfMonthSelected(newTaskSetDueDaysOfMonth, day) ? 'bg-red-500 text-white border-1 border-red-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-red-50'"
-                          (click)="toggleDayOfMonth(newTaskSetDueDaysOfMonth, day)">
-                          {{ day }}
-                        </div>
-                      }
-                    </div>
-                  </div>
-                  <div class="field col-12 xl:col-4">
-                    <span class="font-medium text-sm text-700 mb-2 block">Reporting Days <span class="text-red-500">*</span></span>
-                    <div class="flex flex-wrap gap-1 max-w-20rem">
-                      @for (day of daysArray; track day) {
-                        <div 
-                          class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
-                          style="width: 28px; height: 28px;"
-                          [class]="isDayOfMonthSelected(newTaskSetReportingDaysOfMonth, day) ? 'bg-blue-500 text-white border-1 border-blue-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-blue-50'"
-                          (click)="toggleDayOfMonth(newTaskSetReportingDaysOfMonth, day)">
-                          {{ day }}
-                        </div>
-                      }
-                    </div>
-                  </div>
+                  }
                 </div>
               </div>
-            }
-
-            <!-- QUARTERLY / SEMIANNUALLY / YEARLY → Month & Day of Schedule Dropdowns -->
-            @if (['3','4','5'].includes(newTaskSetFrequency())) {
-              <div class="field col-12">
-                <div class="grid formgrid">
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-1 block">Assignment Schedule <span class="text-red-500">*</span></span>
-                    <app-text-field
-                      label=""
-                      [field]="newTaskSetAssignmentSchedule"
-                      placeholder="e.g. Day 1 of Month 1">
-                    </app-text-field>
+              <div class="field col-12 xl:col-4">
+                <span class="font-medium text-sm text-700 mb-2 block">Due Days <span
+                    class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1 max-w-20rem">
+                  @for (day of daysArray; track day) {
+                  <div
+                    class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
+                    style="width: 28px; height: 28px;"
+                    [class]="isDayOfMonthSelected(newTaskSetDueDaysOfMonth, day) ? 'bg-red-500 text-white border-1 border-red-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-red-50'"
+                    (click)="toggleDayOfMonth(newTaskSetDueDaysOfMonth, day)">
+                    {{ day }}
                   </div>
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-1 block">Due Schedule <span class="text-red-500">*</span></span>
-                    <app-text-field
-                      label=""
-                      [field]="newTaskSetDueSchedule"
-                      placeholder="e.g. Day 15 of Month 1">
-                    </app-text-field>
-                  </div>
-                  <div class="field col-12 md:col-4">
-                    <span class="font-medium text-sm text-700 mb-1 block">Reporting Schedule <span class="text-red-500">*</span></span>
-                    <app-text-field
-                      label=""
-                      [field]="newTaskSetReportingSchedule"
-                      placeholder="e.g. Day 20 of Month 1">
-                    </app-text-field>
-                  </div>
+                  }
                 </div>
               </div>
-            }
-
-            }
-
-            @if (scheduleValidationError()) {
-              <div class="field col-12">
-                <div class="p-3 border-round bg-red-50 border-1 border-red-200 text-red-700 flex align-items-center gap-2 text-sm font-medium">
-                  <i class="pi pi-exclamation-triangle"></i>
-                  <span>{{ scheduleValidationError() }}</span>
+              <div class="field col-12 xl:col-4">
+                <span class="font-medium text-sm text-700 mb-2 block">Reporting Days <span
+                    class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-1 max-w-20rem">
+                  @for (day of daysArray; track day) {
+                  <div
+                    class="flex align-items-center justify-content-center border-round cursor-pointer text-xs font-medium transition-colors"
+                    style="width: 28px; height: 28px;"
+                    [class]="isDayOfMonthSelected(newTaskSetReportingDaysOfMonth, day) ? 'bg-blue-500 text-white border-1 border-blue-500 shadow-1' : 'bg-surface-0 text-600 border-1 surface-border hover:bg-blue-50'"
+                    (click)="toggleDayOfMonth(newTaskSetReportingDaysOfMonth, day)">
+                    {{ day }}
+                  </div>
+                  }
                 </div>
               </div>
-            }
+            </div>
+          </div>
+          }
+
+          <!-- QUARTERLY / SEMIANNUALLY / YEARLY → Month & Day of Schedule Dropdowns -->
+          @if (['3','4','5'].includes(newTaskSetFrequency())) {
+          <div class="field col-12">
+            <div class="grid formgrid">
+              <div class="field col-12 md:col-4">
+                <span class="font-medium text-sm text-700 mb-1 block">Assignment Schedule <span
+                    class="text-red-500">*</span></span>
+                <app-text-field label="" [field]="newTaskSetAssignmentSchedule" placeholder="e.g. Day 1 of Month 1">
+                </app-text-field>
+              </div>
+              <div class="field col-12 md:col-4">
+                <span class="font-medium text-sm text-700 mb-1 block">Due Schedule <span
+                    class="text-red-500">*</span></span>
+                <app-text-field label="" [field]="newTaskSetDueSchedule" placeholder="e.g. Day 15 of Month 1">
+                </app-text-field>
+              </div>
+              <div class="field col-12 md:col-4">
+                <span class="font-medium text-sm text-700 mb-1 block">Reporting Schedule <span
+                    class="text-red-500">*</span></span>
+                <app-text-field label="" [field]="newTaskSetReportingSchedule" placeholder="e.g. Day 20 of Month 1">
+                </app-text-field>
+              </div>
+            </div>
+          </div>
+          }
+
+          }
+
+          @if (scheduleValidationError()) {
+          <div class="field col-12">
+            <div
+              class="p-3 border-round bg-red-50 border-1 border-red-200 text-red-700 flex align-items-center gap-2 text-sm font-medium">
+              <i class="pi pi-exclamation-triangle"></i>
+              <span>{{ scheduleValidationError() }}</span>
+            </div>
+          </div>
+          }
 
         </div>
       </section>
@@ -634,12 +524,12 @@
             <i class="pi pi-check-circle mr-1"></i>{{ targetTasks.length }} Tasks Selected
           </span>
         </div>
-        
+
         <div class="dual-transfer-grid">
-          
+
           <!-- ══ Left Panel: Available Tasks ══ -->
           <div class="dual-panel">
-            
+
             <!-- Panel Header & Controls -->
             <div class="dual-panel-header-available">
               <div class="flex align-items-center gap-2">
@@ -652,14 +542,13 @@
 
               <div class="flex align-items-center gap-1.5">
                 <button pButton label="Create & Add Task" icon="pi pi-plus" size="small" severity="primary"
-                        styleClass="h-1.85rem text-xs font-semibold px-2"
-                        (click)="openCreateTaskChoice()"
-                        pTooltip="Create new task(s) (Single or Bulk CSV) and add directly to this set" tooltipPosition="top"></button>
-                <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="secondary" [outlined]="true"
-                        [disabled]="filteredAvailableTasks().length === 0"
-                        styleClass="h-1.85rem text-xs font-semibold px-2.5"
-                        (click)="addAllAvailableTasks()"
-                        pTooltip="Add all filtered available tasks to selection" tooltipPosition="top"></button>
+                  styleClass="h-1.85rem text-xs font-semibold px-2" (click)="openCreateTaskChoice()"
+                  pTooltip="Create new task(s) (Single or Bulk CSV) and add directly to this set"
+                  tooltipPosition="top"></button>
+                <button pButton label="Add All" icon="pi pi-angle-double-right" size="small" severity="secondary"
+                  [outlined]="true" [disabled]="filteredAvailableTasks().length === 0"
+                  styleClass="h-1.85rem text-xs font-semibold px-2.5" (click)="addAllAvailableTasks()"
+                  pTooltip="Add all filtered available tasks to selection" tooltipPosition="top"></button>
               </div>
             </div>
 
@@ -667,74 +556,59 @@
             <div class="search-sub-bar-available flex align-items-center gap-2 flex-wrap px-2.5 py-1.5 border-bottom-1">
               <p-iconfield iconPosition="left" class="flex-1" style="min-width: 140px;">
                 <p-inputicon styleClass="pi pi-search text-xs" />
-                <input pInputText type="text" [ngModel]="availableSearchText()" (ngModelChange)="availableSearchText.set($event)" 
-                       placeholder="Search available tasks..." 
-                       class="w-full h-2rem text-xs" />
+                <input pInputText type="text" [ngModel]="availableSearchText()"
+                  (ngModelChange)="availableSearchText.set($event)" placeholder="Search available tasks..."
+                  class="w-full h-2rem text-xs" />
               </p-iconfield>
 
-              <p-select *ngIf="newTaskSetType() === 'REGULAR'"
-                        [options]="circularFilterOptions()"
-                        [ngModel]="formCircularFilter()"
-                        (ngModelChange)="formCircularFilter.set($event)"
-                        (onShow)="ensureCircularsLoaded()"
-                        placeholder="All Circulars"
-                        [showClear]="true"
-                        optionLabel="label"
-                        optionValue="value"
-                        [filter]="true"
-                        filterBy="label"
-                        class="w-12rem"
-                        styleClass="h-2rem text-xs flex align-items-center"
-                        panelStyleClass="circular-dropdown-panel"
-                        appendTo="body"></p-select>
+              <p-select *ngIf="newTaskSetType() === 'REGULAR'" [options]="circularFilterOptions()"
+                [ngModel]="formCircularFilter()" (ngModelChange)="formCircularFilter.set($event)"
+                (onShow)="ensureCircularsLoaded()" placeholder="All Circulars" [showClear]="true" optionLabel="label"
+                optionValue="value" [filter]="true" filterBy="label" class="w-12rem"
+                styleClass="h-2rem text-xs flex align-items-center" panelStyleClass="circular-dropdown-panel"
+                appendTo="body"></p-select>
 
               <p-select *ngIf="newTaskSetType() === 'INTERNAL' && taskHeaderOptions().length > 0"
-                        [options]="taskHeaderOptions()"
-                        [ngModel]="availableHeaderFilter()"
-                        (ngModelChange)="availableHeaderFilter.set($event)"
-                        placeholder="All Headers"
-                        [showClear]="true"
-                        class="w-11rem"
-                        styleClass="h-2rem text-xs flex align-items-center"
-                        panelStyleClass="header-dropdown-panel"
-                        appendTo="body"></p-select>
+                [options]="taskHeaderOptions()" [ngModel]="availableHeaderFilter()"
+                (ngModelChange)="availableHeaderFilter.set($event)" placeholder="All Headers" [showClear]="true"
+                class="w-11rem" styleClass="h-2rem text-xs flex align-items-center"
+                panelStyleClass="header-dropdown-panel" appendTo="body"></p-select>
             </div>
 
             <!-- Available Tasks Table -->
             <div style="height: 23rem; display: flex; flex-direction: column;">
-              <p-table [value]="filteredAvailableTasks()" 
-                       [paginator]="true" 
-                       [rows]="7" 
-                       [rowsPerPageOptions]="[7, 15, 30]"
-                       [loading]="loadingFormDetails() || loadingPreviousTasks()"
-                       styleClass="p-datatable-sm p-datatable-striped"
-                       [scrollable]="true"
-                       scrollHeight="flex">
+              <p-table [value]="filteredAvailableTasks()" [paginator]="true" [rows]="7"
+                [rowsPerPageOptions]="[7, 15, 30]" [loading]="loadingFormDetails() || loadingPreviousTasks()"
+                styleClass="p-datatable-sm p-datatable-striped" [scrollable]="true" scrollHeight="flex">
                 <ng-template pTemplate="header">
                   <tr>
                     <th style="width: 42px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Add</th>
                     <th style="width: 34px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">#</th>
                     <th style="white-space: nowrap; padding: 0.4rem 0.5rem;">Description</th>
-                    <th style="width: 72px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Priority</th>
+                    <th style="width: 72px; text-align: center; white-space: nowrap; padding: 0.4rem 0.25rem;">Priority
+                    </th>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-task let-i="rowIndex">
                   <tr>
                     <td style="text-align: center; width: 42px; padding: 0.35rem 0.25rem;">
-                      <button pButton icon="pi pi-plus" size="small" [rounded]="true" severity="primary" 
-                              styleClass="w-1.75rem h-1.75rem"
-                              pTooltip="Add to Set" tooltipPosition="top"
-                              (click)="addSingleTask(task)"></button>
+                      <button pButton icon="pi pi-plus" size="small" [rounded]="true" severity="primary"
+                        styleClass="w-1.75rem h-1.75rem" pTooltip="Add to Set" tooltipPosition="top"
+                        (click)="addSingleTask(task)"></button>
                     </td>
-                    <td style="text-align: center; width: 34px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.25rem;">
+                    <td
+                      style="text-align: center; width: 34px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.25rem;">
                       {{ i + 1 }}
                     </td>
                     <td class="task-desc-cell" style="font-size: 0.775rem; line-height: 1.35; padding: 0.35rem 0.5rem;">
-                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;" [title]="task.description">
+                      <div
+                        style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;"
+                        [title]="task.description">
                         {{ task.description }}
                       </div>
-                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                      <div
+                        style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
                         <span *ngIf="task.header_name" class="chip-subtle task-tag-header">
                           <i class="pi pi-tag" style="font-size: 0.58rem;"></i> {{ task.header_name }}
                         </span>
@@ -744,7 +618,8 @@
                       </div>
                     </td>
                     <td style="text-align: center; width: 72px; padding: 0.35rem 0.25rem;">
-                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
+                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)"
+                        [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
                   </tr>
                 </ng-template>
@@ -765,7 +640,7 @@
 
           <!-- ══ Right Panel: Selected Tasks ══ -->
           <div class="dual-panel">
-            
+
             <!-- Panel Header & Controls -->
             <div class="dual-panel-header-selected">
               <div class="flex align-items-center gap-2">
@@ -781,44 +656,35 @@
                 <span class="text-xs font-bold text-slate-600 hidden sm:inline-flex align-items-center gap-1">
                   Due All:
                 </span>
-                
-                <button type="button"
-                        (click)="applyDaysToAllSelectedTasks(10)"
-                        class="due-preset-btn"
-                        [class.preset-active]="activeDueDaysPreset() === 10"
-                        pTooltip="Set +10 days for all tasks" tooltipPosition="top">
+
+                <button type="button" (click)="applyDaysToAllSelectedTasks(10)" class="due-preset-btn"
+                  [class.preset-active]="activeDueDaysPreset() === 10" pTooltip="Set +10 days for all tasks"
+                  tooltipPosition="top">
                   <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 10" style="font-size: 0.6rem;"></i>
                   +10D
                 </button>
 
-                <button type="button"
-                        (click)="applyDaysToAllSelectedTasks(20)"
-                        class="due-preset-btn"
-                        [class.preset-active]="activeDueDaysPreset() === 20"
-                        pTooltip="Set +20 days for all tasks" tooltipPosition="top">
+                <button type="button" (click)="applyDaysToAllSelectedTasks(20)" class="due-preset-btn"
+                  [class.preset-active]="activeDueDaysPreset() === 20" pTooltip="Set +20 days for all tasks"
+                  tooltipPosition="top">
                   <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 20" style="font-size: 0.6rem;"></i>
                   +20D
                 </button>
 
-                <button type="button"
-                        (click)="applyDaysToAllSelectedTasks(30)"
-                        class="due-preset-btn"
-                        [class.preset-active]="activeDueDaysPreset() === 30"
-                        pTooltip="Set +30 days for all tasks" tooltipPosition="top">
+                <button type="button" (click)="applyDaysToAllSelectedTasks(30)" class="due-preset-btn"
+                  [class.preset-active]="activeDueDaysPreset() === 30" pTooltip="Set +30 days for all tasks"
+                  tooltipPosition="top">
                   <i class="pi pi-check" *ngIf="activeDueDaysPreset() === 30" style="font-size: 0.6rem;"></i>
                   +30D
                 </button>
 
-                <input type="date"
-                       [ngModel]="bulkSelectedDueDate()"
-                       (ngModelChange)="applyCustomDueDateToAll($event)"
-                       class="due-custom-date-input hidden md:inline-block"
-                       pTooltip="Pick custom due date for all tasks" tooltipPosition="top" />
+                <input type="date" [ngModel]="bulkSelectedDueDate()" (ngModelChange)="applyCustomDueDateToAll($event)"
+                  class="due-custom-date-input hidden md:inline-block" pTooltip="Pick custom due date for all tasks"
+                  tooltipPosition="top" />
 
                 <button pButton label="Clear All" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
-                        styleClass="h-1.75rem text-xs font-semibold px-2 ml-1"
-                        (click)="removeAllSelectedTasks()"
-                        pTooltip="Remove all selected tasks" tooltipPosition="top"></button>
+                  styleClass="h-1.75rem text-xs font-semibold px-2 ml-1" (click)="removeAllSelectedTasks()"
+                  pTooltip="Remove all selected tasks" tooltipPosition="top"></button>
               </div>
 
               <!-- When tasks are checked, show active selection status and Deselect in header -->
@@ -827,36 +693,31 @@
                   <i class="pi pi-check-circle"></i> {{ checkedTaskCount() }} of {{ targetTasks.length }} Selected
                 </span>
                 <button pButton label="Deselect" icon="pi pi-times" size="small" severity="secondary" [outlined]="true"
-                        styleClass="h-1.75rem text-xs font-semibold px-2"
-                        (click)="clearCheckedTasks()"></button>
+                  styleClass="h-1.75rem text-xs font-semibold px-2" (click)="clearCheckedTasks()"></button>
               </div>
             </div>
 
             <!-- Sub-Bar: Standard Search & Assign All (When NO tasks checked) -->
-            <div *ngIf="checkedTaskCount() === 0" class="search-sub-bar-selected flex align-items-center justify-content-between gap-2 px-2.5 py-1.5 border-bottom-1 surface-border bg-slate-50 flex-wrap sm:flex-nowrap">
+            <div *ngIf="checkedTaskCount() === 0"
+              class="search-sub-bar-selected flex align-items-center justify-content-between gap-2 px-2.5 py-1.5 border-bottom-1 surface-border bg-slate-50 flex-wrap sm:flex-nowrap">
               <p-iconfield iconPosition="left" class="flex-1" style="min-width: 140px;">
                 <p-inputicon styleClass="pi pi-search text-xs" />
-                <input pInputText type="text" [ngModel]="selectedSearchText()" (ngModelChange)="selectedSearchText.set($event)" 
-                       placeholder="Search selected tasks..." 
-                       class="w-full h-2rem text-xs" />
+                <input pInputText type="text" [ngModel]="selectedSearchText()"
+                  (ngModelChange)="selectedSearchText.set($event)" placeholder="Search selected tasks..."
+                  class="w-full h-2rem text-xs" />
               </p-iconfield>
 
-              <div *ngIf="showDeptColumn() && targetTasks.length > 0" class="flex align-items-center gap-1.5 flex-shrink-0">
-                <span class="text-xs font-bold text-slate-700 hidden sm:inline-flex align-items-center gap-1 whitespace-nowrap">
+              <div *ngIf="showDeptColumn() && targetTasks.length > 0"
+                class="flex align-items-center gap-1.5 flex-shrink-0">
+                <span
+                  class="text-xs font-bold text-slate-700 hidden sm:inline-flex align-items-center gap-1 whitespace-nowrap">
                   <i class="pi pi-building text-primary" style="font-size: 0.75rem;"></i> Assign All:
                 </span>
-                <p-select 
-                  [options]="branchDropdownOptions()" 
-                  [ngModel]="bulkSelectedSubDeptId()"
-                  (onChange)="applyBulkSubDeptToSelectedTasks($event.value)"
-                  optionLabel="label" 
-                  optionValue="value" 
-                  placeholder="Direct (Self)"
-                  styleClass="h-2rem text-xs bulk-assign-select"
-                  [style]="{ 'min-width': '165px', 'max-width': '220px' }"
-                  panelStyleClass="subdept-dropdown-panel"
-                  appendTo="body"
-                  [showClear]="true"
+                <p-select [options]="branchDropdownOptions()" [ngModel]="bulkSelectedSubDeptId()"
+                  (onChange)="applyBulkSubDeptToSelectedTasks($event.value)" optionLabel="label" optionValue="value"
+                  placeholder="Direct (Self)" styleClass="h-2rem text-xs bulk-assign-select"
+                  [style]="{ 'min-width': '165px', 'max-width': '220px' }" panelStyleClass="subdept-dropdown-panel"
+                  appendTo="body" [showClear]="true"
                   pTooltip="Assign all selected tasks at once (single task adjustments can still be made below)"
                   tooltipPosition="top">
                 </p-select>
@@ -864,26 +725,20 @@
             </div>
 
             <!-- Sub-Bar: Dedicated High-Contrast Group Action Bar (When 1+ tasks ARE checked) -->
-            <div *ngIf="checkedTaskCount() > 0" class="group-action-bar flex align-items-center justify-content-between gap-2 px-3 py-1.5 border-bottom-1 flex-wrap animate-fadein">
+            <div *ngIf="checkedTaskCount() > 0"
+              class="group-action-bar flex align-items-center justify-content-between gap-2 px-3 py-1.5 border-bottom-1 flex-wrap animate-fadein">
               <!-- Left: Assign to department -->
               <div *ngIf="showDeptColumn()" class="flex align-items-center gap-2">
                 <span class="text-xs font-bold text-blue-900 whitespace-nowrap flex align-items-center gap-1">
                   <i class="pi pi-building text-primary font-bold"></i> Assign Checked ({{ checkedTaskCount() }}):
                 </span>
-                <p-select 
-                  [options]="branchDropdownOptions()" 
-                  [ngModel]="groupSelectedSubDeptId()"
-                  (onChange)="applyGroupSubDeptToCheckedTasks($event.value)"
-                  optionLabel="label" 
-                  optionValue="value" 
+                <p-select [options]="branchDropdownOptions()" [ngModel]="groupSelectedSubDeptId()"
+                  (onChange)="applyGroupSubDeptToCheckedTasks($event.value)" optionLabel="label" optionValue="value"
                   [placeholder]="'Assign ' + checkedTaskCount() + ' tasks to...'"
                   styleClass="h-2rem text-xs border-blue-400 font-semibold bg-white"
-                  [style]="{ 'min-width': '185px', 'max-width': '240px' }"
-                  panelStyleClass="subdept-dropdown-panel"
-                  appendTo="body"
-                  [showClear]="false"
-                  pTooltip="Assign checked tasks to this department and sync with Task Set"
-                  tooltipPosition="top">
+                  [style]="{ 'min-width': '185px', 'max-width': '240px' }" panelStyleClass="subdept-dropdown-panel"
+                  appendTo="body" [showClear]="false"
+                  pTooltip="Assign checked tasks to this department and sync with Task Set" tooltipPosition="top">
                 </p-select>
               </div>
 
@@ -891,49 +746,49 @@
               <div class="flex align-items-center gap-2 flex-wrap">
                 <div class="flex align-items-center gap-1">
                   <span class="text-xs font-bold text-slate-700 hidden lg:inline">Due:</span>
-                  <button type="button" (click)="applyDaysToSelectedTasks(10)" class="due-preset-btn" pTooltip="Set +10 days for checked tasks" tooltipPosition="top">+10D</button>
-                  <button type="button" (click)="applyDaysToSelectedTasks(20)" class="due-preset-btn" pTooltip="Set +20 days for checked tasks" tooltipPosition="top">+20D</button>
-                  <button type="button" (click)="applyDaysToSelectedTasks(30)" class="due-preset-btn" pTooltip="Set +30 days for checked tasks" tooltipPosition="top">+30D</button>
-                  <input type="date" [ngModel]="bulkSelectedDueDate()" (ngModelChange)="applyCustomDueDateToSelected($event)" class="due-custom-date-input" pTooltip="Set custom due date for checked tasks" tooltipPosition="top" />
+                  <button type="button" (click)="applyDaysToSelectedTasks(10)" class="due-preset-btn"
+                    pTooltip="Set +10 days for checked tasks" tooltipPosition="top">+10D</button>
+                  <button type="button" (click)="applyDaysToSelectedTasks(20)" class="due-preset-btn"
+                    pTooltip="Set +20 days for checked tasks" tooltipPosition="top">+20D</button>
+                  <button type="button" (click)="applyDaysToSelectedTasks(30)" class="due-preset-btn"
+                    pTooltip="Set +30 days for checked tasks" tooltipPosition="top">+30D</button>
+                  <input type="date" [ngModel]="bulkSelectedDueDate()"
+                    (ngModelChange)="applyCustomDueDateToSelected($event)" class="due-custom-date-input"
+                    pTooltip="Set custom due date for checked tasks" tooltipPosition="top" />
                 </div>
 
                 <span class="text-slate-300 font-light hidden sm:inline">|</span>
 
-                <button pButton [label]="'Remove (' + checkedTaskCount() + ')'" icon="pi pi-trash" size="small" severity="danger" [outlined]="true"
-                        styleClass="h-1.85rem text-xs font-semibold px-2"
-                        (click)="removeCheckedTasks()"
-                        pTooltip="Remove checked tasks from set" tooltipPosition="top"></button>
+                <button pButton [label]="'Remove (' + checkedTaskCount() + ')'" icon="pi pi-trash" size="small"
+                  severity="danger" [outlined]="true" styleClass="h-1.85rem text-xs font-semibold px-2"
+                  (click)="removeCheckedTasks()" pTooltip="Remove checked tasks from set"
+                  tooltipPosition="top"></button>
               </div>
             </div>
 
             <!-- Selected Tasks Table -->
             <div style="height: 24rem; display: flex; flex-direction: column;">
-              <p-table [value]="filteredSelectedTasks()" 
-                       [paginator]="true" 
-                       [rows]="7" 
-                       [rowsPerPageOptions]="[7, 15, 30]"
-                       [loading]="loadingFormDetails()"
-                       styleClass="p-datatable-sm p-datatable-striped"
-                       [scrollable]="true"
-                       scrollHeight="flex">
+              <p-table [value]="filteredSelectedTasks()" [paginator]="true" [rows]="7"
+                [rowsPerPageOptions]="[7, 15, 30]" [loading]="loadingFormDetails()"
+                styleClass="p-datatable-sm p-datatable-striped" [scrollable]="true" scrollHeight="flex">
                 <ng-template pTemplate="header">
                   <tr>
                     <th style="width: 36px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;">
-                      <input 
-                        type="checkbox" 
-                        class="task-row-checkbox"
-                        [checked]="isAllSelectedTasksChecked()"
-                        (change)="toggleAllSelectedTasksCheck()"
-                        pTooltip="Select / Deselect all visible tasks"
+                      <input type="checkbox" class="task-row-checkbox" [checked]="isAllSelectedTasksChecked()"
+                        (change)="toggleAllSelectedTasksCheck()" pTooltip="Select / Deselect all visible tasks"
                         tooltipPosition="top" />
                     </th>
-                    <th style="width: 36px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;" pTooltip="Remove task from set" tooltipPosition="top">
+                    <th style="width: 36px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;"
+                      pTooltip="Remove task from set" tooltipPosition="top">
                       <i class="pi pi-trash text-slate-400 text-xs"></i>
                     </th>
                     <th style="width: 32px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;">#</th>
                     <th style="white-space: nowrap; padding: 0.45rem 0.6rem;">Description</th>
-                    <th style="width: 76px; text-align: center; white-space: nowrap; padding: 0.45rem 0.3rem;">Priority</th>
-                    <th *ngIf="showDeptColumn()" style="width: 175px; white-space: nowrap; padding: 0.45rem 0.4rem;" pTooltip="Assignee / Department (editable per task below)" tooltipPosition="top">Assignee / Dept</th>
+                    <th style="width: 76px; text-align: center; white-space: nowrap; padding: 0.45rem 0.3rem;">Priority
+                    </th>
+                    <th *ngIf="showDeptColumn()" style="width: 175px; white-space: nowrap; padding: 0.45rem 0.4rem;"
+                      pTooltip="Assignee / Department (editable per task below)" tooltipPosition="top">Assignee / Dept
+                    </th>
                     <th style="width: 130px; white-space: nowrap; padding: 0.45rem 0.4rem;">Due Date</th>
                   </tr>
                 </ng-template>
@@ -941,26 +796,26 @@
                 <ng-template pTemplate="body" let-task let-i="rowIndex">
                   <tr [class.row-checked]="isTaskChecked(task.id)">
                     <td style="text-align: center; width: 36px; padding: 0.35rem 0.2rem;">
-                      <input 
-                        type="checkbox" 
-                        class="task-row-checkbox"
-                        [checked]="isTaskChecked(task.id)"
+                      <input type="checkbox" class="task-row-checkbox" [checked]="isTaskChecked(task.id)"
                         (change)="toggleTaskCheck(task.id)" />
                     </td>
                     <td style="text-align: center; width: 36px; padding: 0.35rem 0.2rem;">
                       <button pButton icon="pi pi-times" size="small" [rounded]="true" severity="danger" [text]="true"
-                              styleClass="w-1.75rem h-1.75rem"
-                              pTooltip="Remove from Set" tooltipPosition="top"
-                              (click)="removeSingleTask(task)"></button>
+                        styleClass="w-1.75rem h-1.75rem" pTooltip="Remove from Set" tooltipPosition="top"
+                        (click)="removeSingleTask(task)"></button>
                     </td>
-                    <td style="text-align: center; width: 32px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.2rem;">
+                    <td
+                      style="text-align: center; width: 32px; font-weight: 700; color: #64748b; font-size: 0.725rem; padding: 0.35rem 0.2rem;">
                       {{ i + 1 }}
                     </td>
                     <td class="task-desc-cell" style="font-size: 0.775rem; line-height: 1.35; padding: 0.35rem 0.6rem;">
-                      <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;" [title]="task.description">
+                      <div
+                        style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500;"
+                        [title]="task.description">
                         {{ task.description }}
                       </div>
-                      <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.25rem; flex-wrap: wrap;">
+                      <div
+                        style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.25rem; flex-wrap: wrap;">
                         <span *ngIf="task.header_name" class="chip-subtle task-tag-header">
                           <i class="pi pi-tag" style="font-size: 0.58rem;"></i> {{ task.header_name }}
                         </span>
@@ -970,34 +825,31 @@
                       </div>
                     </td>
                     <td style="text-align: center; width: 76px; padding: 0.35rem 0.3rem;">
-                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)" [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
+                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)"
+                        [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                     </td>
                     <td *ngIf="showDeptColumn()" style="width: 175px; padding: 0.35rem 0.4rem;">
-                      <p-select 
-                        [options]="branchDropdownOptions()" 
-                        [ngModel]="task.sub_dept_id" 
-                        (onChange)="onTaskSubDeptChanged(task, $event.value)"
-                        optionLabel="label" 
-                        optionValue="value" 
-                        placeholder="Direct (Self)"
-                        styleClass="w-full h-1.85rem text-xs"
-                        panelStyleClass="subdept-dropdown-panel"
-                        appendTo="body"
-                        [showClear]="true">
+                      <p-select [options]="branchDropdownOptions()" [ngModel]="task.sub_dept_id"
+                        (onChange)="onTaskSubDeptChanged(task, $event.value)" optionLabel="label" optionValue="value"
+                        placeholder="Direct (Self)" styleClass="w-full h-1.85rem text-xs"
+                        panelStyleClass="subdept-dropdown-panel" appendTo="body" [showClear]="true">
                       </p-select>
                     </td>
                     <td style="width: 130px; padding: 0.35rem 0.4rem;">
-                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-1.85rem text-xs" style="padding: 0.2rem 0.35rem;" />
+                      <input type="date" pInputText [(ngModel)]="task.due_date" class="w-full h-1.85rem text-xs"
+                        style="padding: 0.2rem 0.35rem;" />
                     </td>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="emptymessage">
                   <tr>
-                    <td [attr.colspan]="showDeptColumn() ? 7 : 6" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                    <td [attr.colspan]="showDeptColumn() ? 7 : 6"
+                      style="text-align: center; padding: 3rem 1rem; color: #64748b;">
                       <i class="pi pi-check-circle text-3xl text-emerald-300 block mb-2"></i>
                       <span class="text-xs font-semibold text-slate-700 block">No tasks selected yet</span>
-                      <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> from the Available Tasks on the left</small>
+                      <small class="text-xs text-slate-400">Click <strong>"+ Add"</strong> from the Available Tasks on
+                        the left</small>
                     </td>
                   </tr>
                 </ng-template>
@@ -1005,7 +857,7 @@
             </div>
 
           </div>
-          
+
         </div>
       </section>
 
@@ -1016,19 +868,14 @@
           <span class="section-kicker">Assigned Branches</span>
           <span class="section-line"></span>
           <span class="text-xs text-600 font-semibold flex-shrink-0">(Required for Auto-Generation)</span>
-          <i [class]="showBranchAssignment() ? 'pi pi-chevron-up text-600 ml-1' : 'pi pi-chevron-down text-600 ml-1'"></i>
+          <i
+            [class]="showBranchAssignment() ? 'pi pi-chevron-up text-600 ml-1' : 'pi pi-chevron-down text-600 ml-1'"></i>
         </div>
         <div *ngIf="showBranchAssignment()" class="grid formgrid p-fluid drawer-form-grid animate-fadein">
           <div class="field col-12">
             <span class="font-medium text-sm text-700 mb-1 block">Select Branches/Departments</span>
-            <p-multiSelect
-              [options]="branches()"
-              [(ngModel)]="selectedBranches"
-              optionLabel="name"
-              placeholder="Choose one or more branches..."
-              display="chip"
-              styleClass="w-full"
-              appendTo="body">
+            <p-multiSelect [options]="branches()" [(ngModel)]="selectedBranches" optionLabel="name"
+              placeholder="Choose one or more branches..." display="chip" styleClass="w-full" appendTo="body">
             </p-multiSelect>
           </div>
         </div>
@@ -1039,171 +886,154 @@
 
   <ng-template pTemplate="footer">
     <div class="drawer-footer-row">
-      <button pButton pRipple type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="showFormDrawer.set(false)"></button>
-      <button pButton pRipple type="button" [label]="isEditMode ? 'Save Changes' : 'Create Task Set'" icon="pi pi-check" [loading]="saving()" [disabled]="!isFormValid() || saving()" (click)="saveTaskSet()"></button>
+      <button pButton pRipple type="button" label="Cancel" icon="pi pi-times"
+        class="p-button-outlined p-button-secondary" (click)="showFormDrawer.set(false)"></button>
+      <button pButton pRipple type="button" [label]="isEditMode ? 'Save Changes' : 'Create Task Set'" icon="pi pi-check"
+        [loading]="saving()" [disabled]="!isFormValid() || saving()" (click)="saveTaskSet()"></button>
     </div>
   </ng-template>
 </p-drawer>
 
 <!-- Inline Create Task Dialog (Replaces nested drawer to prevent focus trap & overlay freeze) -->
-<p-dialog 
-  [visible]="showInlineTaskDrawer()" 
-  (visibleChange)="showInlineTaskDrawer.set($event)"
-  [modal]="true"
-  [focusTrap]="false"
-  [dismissableMask]="false"
-  header="Create &amp; Add Task"
-  [style]="{ width: '100%', maxWidth: '780px', margin: '1rem' }"
-  appendTo="body"
->
+<p-dialog [visible]="showInlineTaskDrawer()" (visibleChange)="showInlineTaskDrawer.set($event)" [modal]="true"
+  [focusTrap]="false" [dismissableMask]="false" header="Create &amp; Add Task"
+  [style]="{ width: '100%', maxWidth: '780px', margin: '1rem' }" appendTo="body">
   @if (showInlineTaskDrawer()) {
-    <div class="drawer-content-shell p-1">
-      <section class="drawer-section">
-        <div class="section-heading">
-          <span class="section-kicker">Task Details</span>
-          <span class="section-line"></span>
+  <div class="drawer-content-shell p-1">
+    <section class="drawer-section">
+      <div class="section-heading">
+        <span class="section-kicker">Task Details</span>
+        <span class="section-line"></span>
+      </div>
+
+      <div class="grid formgrid p-fluid drawer-form-grid">
+        <div class="field col-12" *ngIf="newTaskSetType() === 'REGULAR'">
+          <app-select-field label="Select Circular (Optional)" [field]="inlineTaskCircularId"
+            [options]="circularFilterOptions()" optionLabel="label" optionValue="value" filterBy="label" [filter]="true"
+            [showClear]="true" (onShow)="ensureCircularsLoaded()">
+          </app-select-field>
         </div>
 
-        <div class="grid formgrid p-fluid drawer-form-grid">
-          <div class="field col-12" *ngIf="newTaskSetType() === 'REGULAR'">
-            <app-select-field
-              label="Select Circular (Optional)"
-              [field]="inlineTaskCircularId"
-              [options]="circularFilterOptions()"
-              optionLabel="label"
-              optionValue="value"
-              filterBy="label"
-              [filter]="true"
-              [showClear]="true"
-              (onShow)="ensureCircularsLoaded()">
-            </app-select-field>
-          </div>
+        <div class="field col-12">
+          <app-select-field label="Task Header" [virtualScroll]="false" [field]="inlineTaskHeaderId"
+            [options]="taskHeaders()" optionLabel="name" optionValue="id" [showAddButton]="true"
+            addTooltip="Add New Header" (add)="showAddHeaderModal = true;">
+          </app-select-field>
+        </div>
 
-          <div class="field col-12">
-            <app-select-field
-              label="Task Header"
-              [virtualScroll]="false"
-              [field]="inlineTaskHeaderId"
-              [options]="taskHeaders()"
-              optionLabel="name"
-              optionValue="id"
-              [showAddButton]="true"
-              addTooltip="Add New Header"
-              (add)="showAddHeaderModal = true;">
-            </app-select-field>
-          </div>
+        <div class="field col-12">
+          <app-select-field label="Priority" [field]="inlineTaskPriority" [options]="priorityOptions"
+            optionLabel="label" optionValue="value" [virtualScroll]="false">
+          </app-select-field>
+        </div>
 
-          <div class="field col-12">
-            <app-select-field
-              label="Priority"
-              [field]="inlineTaskPriority"
-              [options]="priorityOptions"
-              optionLabel="label"
-              optionValue="value"
-              [virtualScroll]="false">
-            </app-select-field>
-          </div>
+        <div class="field col-12">
+          <app-textarea-field label="Description" [field]="inlineTaskDescription" [rows]="5" [autoResize]="true"
+            [required]="true" placeholder="Enter task description">
+          </app-textarea-field>
+        </div>
 
-          <div class="field col-12">
-            <app-textarea-field
-              label="Description"
-              [field]="inlineTaskDescription"
-              [rows]="5"
-              [autoResize]="true"
-              [required]="true"
-              placeholder="Enter task description">
-            </app-textarea-field>
-          </div>
+        <div class="field col-12">
+          <span class="font-semibold text-sm text-gray-700 block mb-2">
+            Attachment (Optional) <span class="text-gray-400 text-xs font-normal">(CSV, Excel, PDF)</span>
+          </span>
 
-          <div class="field col-12">
-            <span class="font-semibold text-sm text-gray-700 block mb-2">
-              Attachment (Optional) <span class="text-gray-400 text-xs font-normal">(CSV, Excel, PDF)</span>
-            </span>
-
-            <div *ngIf="inlineTaskFileUrl()" class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
-              <div class="flex align-items-center gap-3 min-width-0 flex-1">
-                <span class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round" style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
-                  <i class="pi pi-file text-xl"></i>
-                </span>
-                <div class="min-width-0 flex-1">
-                  <div class="font-semibold text-900 text-sm" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;" [title]="inlineTaskFileName() || 'Attached File'">
-                    {{ inlineTaskFileName() || 'Attached File' }}
-                  </div>
-                  <a [href]="getFileUrl(inlineTaskFileUrl())" target="_blank" class="text-xs text-indigo-600 hover:underline">View Document</a>
+          <div *ngIf="inlineTaskFileUrl()"
+            class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
+            <div class="flex align-items-center gap-3 min-width-0 flex-1">
+              <span
+                class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round"
+                style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
+                <i class="pi pi-file text-xl"></i>
+              </span>
+              <div class="min-width-0 flex-1">
+                <div class="font-semibold text-900 text-sm"
+                  style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;"
+                  [title]="inlineTaskFileName() || 'Attached File'">
+                  {{ inlineTaskFileName() || 'Attached File' }}
                 </div>
+                <a [href]="getFileUrl(inlineTaskFileUrl())" target="_blank"
+                  class="text-xs text-indigo-600 hover:underline">View Document</a>
               </div>
-              <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded p-button-danger p-button-sm" (click)="removeInlineTaskFile()"></button>
             </div>
+            <button pButton pRipple type="button" icon="pi pi-times"
+              class="p-button-text p-button-rounded p-button-danger p-button-sm"
+              (click)="removeInlineTaskFile()"></button>
+          </div>
 
-            <p-fileupload
-              *ngIf="!inlineTaskFileUrl()"
-              name="inlineTaskFile"
-              accept=".pdf,.csv,.xlsx,.xls"
-              [multiple]="false"
-              [customUpload]="true"
-              [showUploadButton]="false"
-              [showCancelButton]="false"
-              chooseLabel="Choose File (CSV, Excel, PDF)"
-              chooseIcon="pi pi-upload"
-              styleClass="circular-file-upload"
-              (onSelect)="onInlineTaskFileSelected($event)"
-              (onRemove)="removeInlineTaskFile()"
-              (onClear)="removeInlineTaskFile()">
-              <ng-template pTemplate="file" let-file let-index="index" let-removeFileCallback="removeFileCallback">
-                <div class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
-                  <div class="flex align-items-center gap-3 min-width-0 flex-1">
-                    <span class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round animate-fadein" style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
-                      <i class="pi pi-file text-xl"></i>
-                    </span>
-                    <div class="min-width-0 flex-1">
-                      <div class="font-semibold text-900 text-sm" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;" [title]="file.name">{{ file.name }}</div>
-                      <div class="text-xs text-600 mt-1" *ngIf="file.size">{{ (file.size / 1024 / 1024).toFixed(3) }} MB</div>
+          <p-fileupload *ngIf="!inlineTaskFileUrl()" name="inlineTaskFile" accept=".pdf,.csv,.xlsx,.xls"
+            [multiple]="false" [customUpload]="true" [showUploadButton]="false" [showCancelButton]="false"
+            chooseLabel="Choose File (CSV, Excel, PDF)" chooseIcon="pi pi-upload" styleClass="circular-file-upload"
+            (onSelect)="onInlineTaskFileSelected($event)" (onRemove)="removeInlineTaskFile()"
+            (onClear)="removeInlineTaskFile()">
+            <ng-template pTemplate="file" let-file let-index="index" let-removeFileCallback="removeFileCallback">
+              <div
+                class="flex align-items-center justify-content-between p-3 border-round border-1 border-300 mb-2 bg-surface-card w-full gap-2">
+                <div class="flex align-items-center gap-3 min-width-0 flex-1">
+                  <span
+                    class="inline-flex align-items-center justify-content-center bg-indigo-100 text-indigo-600 border-round animate-fadein"
+                    style="width: 2.5rem; height: 2.5rem; flex: 0 0 auto;">
+                    <i class="pi pi-file text-xl"></i>
+                  </span>
+                  <div class="min-width-0 flex-1">
+                    <div class="font-semibold text-900 text-sm"
+                      style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 280px;"
+                      [title]="file.name">{{ file.name }}</div>
+                    <div class="text-xs text-600 mt-1" *ngIf="file.size">{{ (file.size / 1024 / 1024).toFixed(3) }} MB
                     </div>
                   </div>
-                  <div class="flex align-items-center gap-3 flex-shrink-0">
-                    <span *ngIf="uploadingInlineTaskFile()" class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 border-round">Uploading...</span>
-                    <span *ngIf="!uploadingInlineTaskFile() && inlineTaskFileUrl()" class="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 border-round">Uploaded</span>
-                    <button pButton pRipple type="button" icon="pi pi-times" class="p-button-text p-button-rounded p-button-danger p-button-sm" (click)="removeFileCallback($event, index); removeInlineTaskFile()"></button>
-                  </div>
                 </div>
-              </ng-template>
-            </p-fileupload>
-          </div>
+                <div class="flex align-items-center gap-3 flex-shrink-0">
+                  <span *ngIf="uploadingInlineTaskFile()"
+                    class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-1 border-round">Uploading...</span>
+                  <span *ngIf="!uploadingInlineTaskFile() && inlineTaskFileUrl()"
+                    class="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 border-round">Uploaded</span>
+                  <button pButton pRipple type="button" icon="pi pi-times"
+                    class="p-button-text p-button-rounded p-button-danger p-button-sm"
+                    (click)="removeFileCallback($event, index); removeInlineTaskFile()"></button>
+                </div>
+              </div>
+            </ng-template>
+          </p-fileupload>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
+  </div>
   }
 
   <ng-template pTemplate="footer">
     <div class="flex align-items-center justify-content-end gap-2 w-full">
-      <button pButton pRipple type="button" label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary" (click)="closeInlineTaskDrawer()"></button>
-      <button pButton pRipple type="button" label="Create &amp; Add Task" icon="pi pi-check" [loading]="savingInlineTask()" [disabled]="!isInlineTaskValid() || savingInlineTask()" (click)="saveInlineTask()"></button>
+      <button pButton pRipple type="button" label="Cancel" icon="pi pi-times"
+        class="p-button-outlined p-button-secondary" (click)="closeInlineTaskDrawer()"></button>
+      <button pButton pRipple type="button" label="Create &amp; Add Task" icon="pi pi-check"
+        [loading]="savingInlineTask()" [disabled]="!isInlineTaskValid() || savingInlineTask()"
+        (click)="saveInlineTask()"></button>
     </div>
   </ng-template>
 </p-dialog>
 
 <!-- Quick Add Header Modal in Task Sets -->
-<p-dialog header="Add New Task Header" [(visible)]="showAddHeaderModal" [modal]="true" [focusTrap]="false" [style]="{ width: '100%', 'max-width': '30rem', 'margin': '1rem' }">
+<p-dialog header="Add New Task Header" [(visible)]="showAddHeaderModal" [modal]="true" [focusTrap]="false"
+  [style]="{ width: '100%', 'max-width': '30rem', 'margin': '1rem' }">
   <div class="flex flex-column gap-3 mt-4">
     <div class="flex flex-column gap-2">
       <span class="font-medium text-sm text-700">Header Name</span>
-      <input id="quickAddHeaderNameInput" type="text" [(ngModel)]="newHeaderName" class="p-inputtext w-full" placeholder="e.g. KYC Compliance">
+      <input id="quickAddHeaderNameInput" type="text" [(ngModel)]="newHeaderName" class="p-inputtext w-full"
+        placeholder="e.g. KYC Compliance">
     </div>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" class="p-button-outlined p-button-secondary" (click)="showAddHeaderModal = false"></button>
-    <button pButton type="button" label="Save Header" [disabled]="!newHeaderName.trim()" (click)="quickAddHeader()"></button>
+    <button pButton type="button" label="Cancel" class="p-button-outlined p-button-secondary"
+      (click)="showAddHeaderModal = false"></button>
+    <button pButton type="button" label="Save Header" [disabled]="!newHeaderName.trim()"
+      (click)="quickAddHeader()"></button>
   </ng-template>
 </p-dialog>
 
 <!-- ── Create & Add Task Choice Modal (Single vs Bulk CSV) ── -->
-<p-dialog [visible]="showCreateTaskChoiceModal()" 
-          (visibleChange)="showCreateTaskChoiceModal.set($event)"
-          [modal]="true" 
-          [focusTrap]="false"
-          [dismissableMask]="true" 
-          header="Create &amp; Add Task" 
-          [style]="{ width: '100%', 'max-width': '38rem', 'margin': '1rem' }">
+<p-dialog [visible]="showCreateTaskChoiceModal()" (visibleChange)="showCreateTaskChoiceModal.set($event)" [modal]="true"
+  [focusTrap]="false" [dismissableMask]="true" header="Create &amp; Add Task"
+  [style]="{ width: '100%', 'max-width': '38rem', 'margin': '1rem' }">
   <div class="p-1">
     <p class="text-xs text-slate-500 mb-3 line-height-3 mt-0">
       Choose how you want to add new compliance tasks to this Task Set:
@@ -1220,7 +1050,8 @@
           Create an individual task with custom description, risk categories, and document attachments.
         </p>
         <div class="mt-3">
-          <span class="inline-flex align-items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 border-round border-1 border-blue-200">
+          <span
+            class="inline-flex align-items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 border-round border-1 border-blue-200">
             Form Drawer <i class="pi pi-arrow-right text-xs"></i>
           </span>
         </div>
@@ -1236,7 +1067,8 @@
           Upload a spreadsheet (.csv or .xlsx) to import multiple tasks and assign specific departments in bulk.
         </p>
         <div class="mt-3">
-          <span class="inline-flex align-items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 border-round border-1 border-emerald-200">
+          <span
+            class="inline-flex align-items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 border-round border-1 border-emerald-200">
             CSV / Excel Import <i class="pi pi-arrow-right text-xs"></i>
           </span>
         </div>
@@ -1245,21 +1077,16 @@
   </div>
 
   <ng-template pTemplate="footer">
-    <button pButton label="Cancel" icon="pi pi-times" [outlined]="true" severity="secondary" 
-            (click)="showCreateTaskChoiceModal.set(false)"></button>
+    <button pButton label="Cancel" icon="pi pi-times" [outlined]="true" severity="secondary"
+      (click)="showCreateTaskChoiceModal.set(false)"></button>
   </ng-template>
 </p-dialog>
 
 <!-- ── Bulk CSV / Excel Task Import Modal (Enhanced UI) ── -->
-<p-dialog [visible]="showInlineBulkTaskModal()" 
-          (visibleChange)="showInlineBulkTaskModal.set($event)"
-          [modal]="true" 
-          [focusTrap]="false"
-          [maximizable]="true" 
-          [dismissableMask]="false"
-          styleClass="bulk-import-dialog"
-          [style]="{ width: '95vw', 'max-width': '1140px', 'margin': '1rem' }">
-  
+<p-dialog [visible]="showInlineBulkTaskModal()" (visibleChange)="showInlineBulkTaskModal.set($event)" [modal]="true"
+  [focusTrap]="false" [maximizable]="true" [dismissableMask]="false" styleClass="bulk-import-dialog"
+  [style]="{ width: '95vw', 'max-width': '1140px', 'margin': '1rem' }">
+
   <ng-template pTemplate="header">
     <div class="bulk-modal-header-row">
       <div class="bulk-modal-title-wrap">
@@ -1268,11 +1095,13 @@
         </span>
         <div>
           <div class="text-slate-900 font-bold text-lg line-height-2">Bulk Create &amp; Assign Tasks to Set</div>
-          <div class="text-slate-500 text-xs font-normal">Import tasks via spreadsheet and assign departments with due dates</div>
+          <div class="text-slate-500 text-xs font-normal">Import tasks via spreadsheet and assign departments with due
+            dates</div>
         </div>
       </div>
       <div *ngIf="inlineBulkPreviewRows().length > 0" class="flex align-items-center gap-2">
-        <span class="text-xs font-bold px-2.5 py-1 border-round-full bg-emerald-100 text-emerald-800 border-1 border-emerald-300">
+        <span
+          class="text-xs font-bold px-2.5 py-1 border-round-full bg-emerald-100 text-emerald-800 border-1 border-emerald-300">
           <i class="pi pi-check-circle mr-1 text-emerald-600"></i>{{ inlineBulkPreviewRows().length }} Tasks Loaded
         </span>
       </div>
@@ -1280,7 +1109,7 @@
   </ng-template>
 
   <div class="flex flex-column gap-3 p-1">
-    
+
     <!-- Top Information Banner & Template Download (Compact) -->
     <div class="bulk-template-card">
       <div class="flex align-items-center gap-2">
@@ -1289,8 +1118,11 @@
         </div>
         <div class="flex align-items-center gap-2 flex-wrap">
           <span class="text-xs font-bold text-slate-800">Spreadsheet Task Importer</span>
-          <span class="text-xs font-semibold px-1.5 py-0.2 border-round bg-emerald-100 text-emerald-800 border-1 border-emerald-200" style="font-size: 0.7rem;">XLSX / CSV</span>
-          <span class="text-xs text-slate-500 hidden sm:inline">• Upload tasks with priorities, departments &amp; due dates</span>
+          <span
+            class="text-xs font-semibold px-1.5 py-0.2 border-round bg-emerald-100 text-emerald-800 border-1 border-emerald-200"
+            style="font-size: 0.7rem;">XLSX / CSV</span>
+          <span class="text-xs text-slate-500 hidden sm:inline">• Upload tasks with priorities, departments &amp; due
+            dates</span>
         </div>
       </div>
       <button type="button" class="btn-download-template" (click)="downloadInlineTaskCsvTemplate()">
@@ -1299,24 +1131,29 @@
     </div>
 
     <!-- Drag & Drop Upload Zone (when no file selected yet) -->
-    <div *ngIf="!inlineBulkFile()"
-         class="bulk-drop-zone p-5"
-         [class.dragging]="isInlineDraggingOver()"
-         (dragover)="onInlineDragOver($event)"
-         (dragleave)="onInlineDragLeave($event)"
-         (drop)="onInlineDrop($event)"
-         (click)="inlineCsvFileInput.click()">
-      <input #inlineCsvFileInput type="file" accept=".csv, .xlsx, .xls" style="display: none" (change)="onInlineCsvFileChange($event)" />
-      <div class="w-4rem h-4rem border-round-xl bg-emerald-50 text-emerald-600 flex align-items-center justify-content-center mb-3 shadow-1 border-1 border-emerald-200">
+    <div *ngIf="!inlineBulkFile()" class="bulk-drop-zone p-5" [class.dragging]="isInlineDraggingOver()"
+      (dragover)="onInlineDragOver($event)" (dragleave)="onInlineDragLeave($event)" (drop)="onInlineDrop($event)"
+      (click)="inlineCsvFileInput.click()">
+      <input #inlineCsvFileInput type="file" accept=".csv, .xlsx, .xls" style="display: none"
+        (change)="onInlineCsvFileChange($event)" />
+      <div
+        class="w-4rem h-4rem border-round-xl bg-emerald-50 text-emerald-600 flex align-items-center justify-content-center mb-3 shadow-1 border-1 border-emerald-200">
         <i class="pi pi-cloud-upload text-3xl"></i>
       </div>
-      <span class="text-base font-bold text-slate-800">Drag and drop CSV or Excel file here, or <span class="text-emerald-600 underline cursor-pointer">browse from device</span></span>
+      <span class="text-base font-bold text-slate-800">Drag and drop CSV or Excel file here, or <span
+          class="text-emerald-600 underline cursor-pointer">browse from device</span></span>
       <span class="text-xs text-slate-500 mt-1">Accepts .xlsx, .xls, .csv spreadsheets with auto-detected columns</span>
       <div class="flex align-items-center gap-2 mt-3">
-        <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Task Description</span>
-        <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Priority</span>
-        <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Department</span>
-        <span class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Due Date</span>
+        <span
+          class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Task
+          Description</span>
+        <span
+          class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Priority</span>
+        <span
+          class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Department</span>
+        <span
+          class="text-xs font-semibold px-2 py-0.5 border-round bg-slate-100 text-slate-600 border-1 border-slate-200">Due
+          Date</span>
       </div>
     </div>
 
@@ -1324,7 +1161,8 @@
     <div *ngIf="inlineBulkFile()" class="flex flex-column gap-2.5">
       <div class="bulk-active-file-card">
         <div class="flex align-items-center gap-2.5">
-          <div class="w-2.25rem h-2.25rem border-round-lg bg-emerald-100 text-emerald-700 flex align-items-center justify-content-center flex-shrink-0">
+          <div
+            class="w-2.25rem h-2.25rem border-round-lg bg-emerald-100 text-emerald-700 flex align-items-center justify-content-center flex-shrink-0">
             <i class="pi pi-file text-base"></i>
           </div>
           <div>
@@ -1337,10 +1175,11 @@
         </div>
         <div class="flex align-items-center gap-2">
           <button pButton label="Replace File" icon="pi pi-sync" size="small" [outlined]="true" severity="secondary"
-                  class="h-2rem text-xs border-round-lg px-2.5" (click)="inlineCsvFileInput.click()"></button>
-          <input #inlineCsvFileInput type="file" accept=".csv, .xlsx, .xls" style="display: none" (change)="onInlineCsvFileChange($event)" />
+            class="h-2rem text-xs border-round-lg px-2.5" (click)="inlineCsvFileInput.click()"></button>
+          <input #inlineCsvFileInput type="file" accept=".csv, .xlsx, .xls" style="display: none"
+            (change)="onInlineCsvFileChange($event)" />
           <button pButton label="Remove" icon="pi pi-trash" size="small" [outlined]="true" severity="danger"
-                  class="h-2rem text-xs border-round-lg px-2.5" (click)="clearInlineBulkFile()"></button>
+            class="h-2rem text-xs border-round-lg px-2.5" (click)="clearInlineBulkFile()"></button>
         </div>
       </div>
 
@@ -1351,20 +1190,13 @@
           <span class="toolbar-label">
             <i class="pi pi-building text-indigo-500"></i> Batch Assign Department:
           </span>
-          <p-select [options]="branchDropdownOptions()" 
-                    [ngModel]="bulkAssignDeptId()" 
-                    (ngModelChange)="bulkAssignDeptId.set($event)"
-                    optionLabel="label" 
-                    optionValue="value" 
-                    placeholder="Direct (Self-Compliance)"
-                    styleClass="h-2.2rem text-xs border-round-lg"
-                    panelStyleClass="subdept-dropdown-panel"
-                    appendTo="body"
-                    [showClear]="true">
+          <p-select [options]="branchDropdownOptions()" [ngModel]="bulkAssignDeptId()"
+            (ngModelChange)="bulkAssignDeptId.set($event)" optionLabel="label" optionValue="value"
+            placeholder="Direct (Self-Compliance)" styleClass="h-2.2rem text-xs border-round-lg"
+            panelStyleClass="subdept-dropdown-panel" appendTo="body" [showClear]="true">
           </p-select>
           <button pButton label="Apply to All" icon="pi pi-check" size="small" severity="primary"
-                  class="h-2.2rem text-xs px-3 border-round-lg font-bold"
-                  (click)="applyBulkDeptToAll()"></button>
+            class="h-2.2rem text-xs px-3 border-round-lg font-bold" (click)="applyBulkDeptToAll()"></button>
         </div>
 
         <!-- Apply Due Date Preset to All -->
@@ -1372,16 +1204,19 @@
           <span class="toolbar-label">
             <i class="pi pi-calendar text-emerald-600"></i> Quick Due Date:
           </span>
-          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(10)" pTooltip="Set +10 days for all parsed tasks" tooltipPosition="top">+10 Days</button>
-          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(20)" pTooltip="Set +20 days for all parsed tasks" tooltipPosition="top">+20 Days</button>
-          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(30)" pTooltip="Set +30 days for all parsed tasks" tooltipPosition="top">+30 Days</button>
+          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(10)"
+            pTooltip="Set +10 days for all parsed tasks" tooltipPosition="top">+10 Days</button>
+          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(20)"
+            pTooltip="Set +20 days for all parsed tasks" tooltipPosition="top">+20 Days</button>
+          <button type="button" class="due-preset-chip" (click)="applyBulkDueDaysToAll(30)"
+            pTooltip="Set +30 days for all parsed tasks" tooltipPosition="top">+30 Days</button>
         </div>
       </div>
 
       <!-- Parsed Tasks Table with editable fields and department dropdown -->
       <div class="bulk-grid-container" style="max-height: 25rem; overflow-y: auto;">
         <p-table [value]="inlineBulkPreviewRows()" [paginator]="inlineBulkPreviewRows().length > 10" [rows]="10"
-                 styleClass="bulk-grid-table p-datatable-sm">
+          styleClass="bulk-grid-table p-datatable-sm">
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 44px; text-align: center;">#</th>
@@ -1415,15 +1250,15 @@
                 <span class="bulk-row-idx">{{ i + 1 }}</span>
               </td>
               <td>
-                <input type="text" pInputText [(ngModel)]="row.description" class="bulk-cell-input" placeholder="Task description..." />
+                <input type="text" pInputText [(ngModel)]="row.description" class="bulk-cell-input"
+                  placeholder="Task description..." />
               </td>
               <td style="width: 125px;">
                 <p-select [options]="priorityOptions" [(ngModel)]="row.priority" optionLabel="label" optionValue="value"
-                          styleClass="bulk-cell-input" appendTo="body">
+                  styleClass="bulk-cell-input" appendTo="body">
                   <ng-template pTemplate="selectedItem" let-selected>
                     <div class="flex align-items-center gap-1.5" *ngIf="selected">
-                      <span class="w-0.5rem h-0.5rem border-round-circle"
-                            [ngClass]="{
+                      <span class="w-0.5rem h-0.5rem border-round-circle" [ngClass]="{
                               'bg-red-500': selected.value === 'Critical' || selected.value === 'High',
                               'bg-amber-500': selected.value === 'Medium',
                               'bg-emerald-500': selected.value === 'Low'
@@ -1434,20 +1269,15 @@
                 </p-select>
               </td>
               <td style="width: 220px;">
-                <p-select [options]="branchDropdownOptions()" 
-                          [(ngModel)]="row.sub_dept_id" 
-                          optionLabel="label" 
-                          optionValue="value" 
-                          placeholder="Direct (Self-Compliance)"
-                          styleClass="bulk-cell-input"
-                          panelStyleClass="subdept-dropdown-panel"
-                          appendTo="body"
-                          [showClear]="true">
+                <p-select [options]="branchDropdownOptions()" [(ngModel)]="row.sub_dept_id" optionLabel="label"
+                  optionValue="value" placeholder="Direct (Self-Compliance)" styleClass="bulk-cell-input"
+                  panelStyleClass="subdept-dropdown-panel" appendTo="body" [showClear]="true">
                   <ng-template pTemplate="selectedItem" let-selected>
                     <div class="flex align-items-center gap-1.5" *ngIf="selected">
                       <i class="pi pi-building text-xs text-indigo-500" *ngIf="selected.value"></i>
                       <i class="pi pi-user text-xs text-slate-400" *ngIf="!selected.value"></i>
-                      <span class="font-semibold text-xs" [class.text-indigo-700]="selected.value" [class.text-slate-600]="!selected.value">
+                      <span class="font-semibold text-xs" [class.text-indigo-700]="selected.value"
+                        [class.text-slate-600]="!selected.value">
                         {{ selected.label }}
                       </span>
                     </div>
@@ -1459,7 +1289,7 @@
               </td>
               <td style="text-align: center; width: 48px;">
                 <button type="button" class="bulk-trash-btn" pTooltip="Remove task from import" tooltipPosition="top"
-                        (click)="removeInlineBulkRow(i)">
+                  (click)="removeInlineBulkRow(i)">
                   <i class="pi pi-trash"></i>
                 </button>
               </td>
@@ -1481,17 +1311,17 @@
 
   <ng-template pTemplate="footer">
     <div class="flex align-items-center justify-content-between w-full">
-      <div class="flex align-items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 border-round-lg border-1 border-slate-200">
+      <div
+        class="flex align-items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 border-round-lg border-1 border-slate-200">
         <i class="pi pi-info-circle text-blue-600"></i>
         <span>Tasks will be created and added to <strong>Selected Tasks</strong> with sub-dept delegations.</span>
       </div>
       <div class="flex align-items-center gap-2">
         <button pButton label="Cancel" icon="pi pi-times" [outlined]="true" severity="secondary"
-                class="px-3.5 py-2 font-semibold border-round-lg"
-                (click)="showInlineBulkTaskModal.set(false)"></button>
+          class="px-3.5 py-2 font-semibold border-round-lg" (click)="showInlineBulkTaskModal.set(false)"></button>
         <button type="button" class="btn-submit-bulk flex align-items-center gap-2"
-                [disabled]="inlineBulkPreviewRows().length === 0 || savingInlineBulkTasks()"
-                (click)="submitInlineBulkTasks()">
+          [disabled]="inlineBulkPreviewRows().length === 0 || savingInlineBulkTasks()"
+          (click)="submitInlineBulkTasks()">
           <i class="pi" [ngClass]="savingInlineBulkTasks() ? 'pi-spin pi-spinner' : 'pi-check'"></i>
           <span>Create &amp; Add to Set ({{ inlineBulkPreviewRows().length }})</span>
         </button>
@@ -1499,5 +1329,3 @@
     </div>
   </ng-template>
 </p-dialog>
-
-
