@@ -4,18 +4,17 @@
   <div class="page-header-card">
     <div class="header-left">
       <div class="header-icon-wrapper">
-        <i class="pi pi-folder-open text-primary text-2xl"></i>
+        <i class="pi pi-file text-primary text-2xl"></i>
       </div>
       <div>
-        <h2 class="page-title">Evidence Management</h2>
-        <p class="page-subtitle">Manage, store, and track organizational, regulatory, policy, and evidence documents
-          with role-based access control</p>
+        <h2 class="page-title">Internal Circular / Docs</h2>
+        <p class="page-subtitle">Manage, store, and track internal circulars, organizational documents, and policies with role-based access control</p>
       </div>
     </div>
     <div class="header-actions">
       <p-button label="Refresh" icon="pi pi-refresh" [outlined]="true" severity="secondary" size="small"
         (click)="loadDocuments(true)" />
-      <p-button label="Add Document" icon="pi pi-plus" severity="primary" size="small" (click)="openNew()" />
+      <p-button label="Add Circular / Doc" icon="pi pi-plus" severity="primary" size="small" (click)="openNew()" />
     </div>
   </div>
 
@@ -23,7 +22,7 @@
   <div class="kpi-grid">
     <div class="kpi-card kpi-total">
       <div class="kpi-content">
-        <span class="kpi-label">Total Documents</span>
+        <span class="kpi-label">Total Circulars / Docs</span>
         <span class="kpi-value">{{ totalCount() }}</span>
       </div>
       <div class="kpi-icon-box">
@@ -33,7 +32,7 @@
 
     <div class="kpi-card kpi-active">
       <div class="kpi-content">
-        <span class="kpi-label">Active Documents</span>
+        <span class="kpi-label">Active Circulars / Docs</span>
         <span class="kpi-value text-green-700">{{ activeCount() }}</span>
       </div>
       <div class="kpi-icon-box bg-green-50">
@@ -81,18 +80,6 @@
     </div>
 
     <div class="filter-controls">
-      <!-- Type Filter (Master Documents vs Task Evidence) -->
-      <p-select [options]="typeFilterOptions" [(ngModel)]="selectedTypeFilter" placeholder="Item Type"
-        styleClass="filter-dropdown" />
-
-      <!-- Task Set Filter -->
-      <p-select [options]="taskSetFilterOptions()" [ngModel]="selectedTaskSetFilter()" (ngModelChange)="selectedTaskSetFilter.set($event)"
-        [filter]="true" filterBy="label" [showClear]="true" placeholder="Filter by Task Set" styleClass="filter-dropdown" />
-
-      <!-- Frequency Filter -->
-      <p-select [options]="frequencyFilterOptions()" [ngModel]="selectedFrequencyFilter()" (ngModelChange)="selectedFrequencyFilter.set($event)"
-        [showClear]="true" placeholder="Filter by Frequency" styleClass="filter-dropdown" />
-
       <!-- Department Filter -->
       <p-select [options]="deptFilterOptions()" [(ngModel)]="selectedDeptFilter" [filter]="true" filterBy="label"
         [showClear]="true" placeholder="Department / Branch" styleClass="filter-dropdown" />
@@ -116,15 +103,14 @@
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 45px;">#</th>
-          <th style="min-width: 220px;">Document Details</th>
-          <th style="min-width: 170px;">Task Set & Frequency</th>
+          <th style="min-width: 250px;">Document Details</th>
           <th style="min-width: 125px;">Access Level</th>
           <th style="min-width: 150px;">Department / Branch</th>
           <th style="min-width: 140px;">Owner / User</th>
           <th style="min-width: 105px;">Issue Date</th>
           <th style="min-width: 150px;">Effective Period</th>
           <th style="min-width: 105px;">Status</th>
-          <th style="min-width: 130px; text-align: right;">Actions</th>
+          <th style="min-width: 140px; text-align: right;">Actions</th>
         </tr>
       </ng-template>
 
@@ -142,40 +128,12 @@
                 <div class="flex items-center gap-2"
                   style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                   <span class="doc-name">{{ doc.document_name }}</span>
-                  <span *ngIf="doc.is_evidence"
-                    style="background: rgba(99, 102, 241, 0.12); color: #4338ca; border: 1px solid rgba(99, 102, 241, 0.28); font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.45rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
-                    <i class="pi pi-check-circle" style="font-size: 0.65rem;"></i> Evidence
-                  </span>
                 </div>
                 <div class="doc-sub-meta" *ngIf="doc.document_number || doc.description">
-                  <span class="doc-ref-badge" *ngIf="doc.document_number">{{ doc.is_evidence ? doc.document_number :
-                    ('Ref: ' + doc.document_number) }}</span>
+                  <span class="doc-ref-badge" *ngIf="doc.document_number">Ref: {{ doc.document_number }}</span>
                   <span class="doc-desc" *ngIf="doc.description" [title]="doc.description">{{ doc.description }}</span>
                 </div>
               </div>
-            </div>
-          </td>
-
-          <!-- Task Set & Frequency -->
-          <td>
-            <div class="taskset-cell" *ngIf="doc.task_set_name || (doc.is_evidence && doc.document_number?.startsWith('TASK: '))">
-              <div class="taskset-title flex items-center">
-                <i class="pi pi-list-check text-indigo-500 mr-1" style="font-size: 0.74rem;"></i>
-                <span class="font-semibold text-xs" style="color: #1e293b;">{{ doc.task_set_name || (doc.document_number ? doc.document_number.replace('TASK: ', '') : 'Task Set') }}</span>
-              </div>
-              <div class="taskset-sub mt-1 flex flex-wrap gap-1 items-center" *ngIf="doc.frequency || getCycleLabel(doc)">
-                <span [class]="'freq-badge ' + getFrequencyBadgeClass(doc.frequency)" *ngIf="doc.frequency">
-                  <i class="pi pi-clock mr-1" style="font-size: 0.62rem;"></i>
-                  {{ getFrequencyLabel(doc.frequency) }}
-                </span>
-                <span class="cycle-badge" *ngIf="getCycleLabel(doc)">
-                  <i class="pi pi-calendar mr-1" style="font-size: 0.62rem;"></i>
-                  {{ getCycleLabel(doc) }}
-                </span>
-              </div>
-            </div>
-            <div *ngIf="!doc.task_set_name && !(doc.is_evidence && doc.document_number?.startsWith('TASK: '))">
-              <span style="color: #94a3b8; font-size: 0.78rem;">—</span>
             </div>
           </td>
 
@@ -296,10 +254,14 @@
           <!-- Actions -->
           <td style="text-align: right;">
             <div class="action-buttons-cell">
-              <!-- View / Download PDF button -->
+              <!-- View / Preview button -->
               <p-button *ngIf="doc.file_url" icon="pi pi-eye" [text]="true" severity="info" size="small"
                 (click)="previewFile(doc.file_url, doc.file_name || doc.document_name)" pTooltip="Preview Document"
                 tooltipPosition="top" />
+
+              <!-- Download button -->
+              <p-button *ngIf="doc.file_url" icon="pi pi-download" [text]="true" severity="success" size="small"
+                (click)="downloadDocument(doc)" pTooltip="Download Document" tooltipPosition="top" />
 
               <p-button *ngIf="canEditDocument(doc)" icon="pi pi-pencil" [text]="true" severity="secondary" size="small"
                 (click)="editDocument(doc)" pTooltip="Edit Document" tooltipPosition="top" />
@@ -314,12 +276,12 @@
       <!-- Empty State -->
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="10" class="empty-state-cell">
+          <td colspan="9" class="empty-state-cell">
             <div class="empty-state-content">
               <i class="pi pi-folder-open empty-icon"></i>
-              <p class="empty-title">No documents found</p>
-              <p class="empty-subtitle">Click "Add Document" above to create and store your first document.</p>
-              <p-button label="Add First Document" icon="pi pi-plus" size="small" severity="primary"
+              <p class="empty-title">No internal circulars or docs found</p>
+              <p class="empty-subtitle">Click "Add Circular / Doc" above to create and store your first entry.</p>
+              <p-button label="Add First Circular / Doc" icon="pi pi-plus" size="small" severity="primary"
                 (click)="openNew()" />
             </div>
           </td>
@@ -341,10 +303,10 @@
           </span>
           <div>
             <div class="text-900 font-semibold text-xl">
-              {{ dialogMode() === 'create' ? 'Add New Document' : 'Edit Document Details' }}
+              {{ dialogMode() === 'create' ? 'Add Internal Circular / Doc' : 'Edit Circular / Doc Details' }}
             </div>
             <div class="text-600 text-sm mt-1">
-              {{ dialogMode() === 'create' ? 'Upload and register a new compliance or regulatory document' : 'Update
+              {{ dialogMode() === 'create' ? 'Upload and register a new internal circular or document' : 'Update
               document properties, assignment, or privacy' }}
             </div>
           </div>
@@ -558,7 +520,7 @@
       <div class="drawer-footer-row flex justify-content-end gap-2">
         <button pButton pRipple label="Cancel" icon="pi pi-times" class="p-button-outlined p-button-secondary"
           (click)="hideDialog()"></button>
-        <button pButton pRipple [label]="dialogMode() === 'create' ? 'Create Document' : 'Save Changes'"
+        <button pButton pRipple [label]="dialogMode() === 'create' ? 'Save Circular / Doc' : 'Save Changes'"
           icon="pi pi-check" class="p-button-primary" [loading]="saving()" [disabled]="saving()"
           (click)="saveDocument()"></button>
       </div>
@@ -575,12 +537,18 @@
     </div>
 
     <ng-template pTemplate="footer">
-      <a *ngIf="previewFileUrl()" [href]="resolveFileUrl(previewFileUrl())!" target="_blank"
-        class="p-button p-button-outlined p-button-sm p-button-secondary"
-        style="text-decoration: none; margin-right: 0.5rem;">
-        <i class="pi pi-external-link" style="margin-right: 0.35rem;"></i> Open in New Tab
-      </a>
-      <p-button label="Close" icon="pi pi-times" severity="secondary" size="small" (click)="previewDialog.set(false)" />
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <p-button *ngIf="previewFileUrl()" label="Download" icon="pi pi-download" size="small" severity="success"
+            [outlined]="true" (click)="downloadCurrentPreview()" />
+          <a *ngIf="previewFileUrl()" [href]="resolveFileUrl(previewFileUrl())!" target="_blank"
+            class="p-button p-button-outlined p-button-sm p-button-secondary"
+            style="text-decoration: none;">
+            <i class="pi pi-external-link" style="margin-right: 0.35rem;"></i> Open in New Tab
+          </a>
+        </div>
+        <p-button label="Close" icon="pi pi-times" severity="secondary" size="small" (click)="previewDialog.set(false)" />
+      </div>
     </ng-template>
   </p-dialog>
 

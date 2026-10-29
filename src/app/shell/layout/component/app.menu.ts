@@ -180,13 +180,19 @@ export class AppMenu implements OnInit {
       }
     }
 
-    // Evidence Management - Accessible to all roles including sub department
+    // Internal Circular / Docs & Evidence Management - Accessible to all roles including sub department
     const canAccessDocuments = isAdminOrCoOrCco || ['branch', 'branch_user', 'department', 'sub_department'].includes(userRole);
     if (canAccessDocuments) {
       masterItems.push({
-        label: 'Evidence Management',
-        icon: 'pi pi-fw pi-folder-open',
+        label: 'Internal Circular / Docs',
+        icon: 'pi pi-fw pi-file',
         routerLink: ['/admin/documents'],
+        routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
+      });
+      masterItems.push({
+        label: 'Evidence Management',
+        icon: 'pi pi-fw pi-paperclip',
+        routerLink: ['/admin/evidence'],
         routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
       });
     }

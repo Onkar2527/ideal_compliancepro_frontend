@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
@@ -252,11 +252,11 @@ import { ConfirmationService } from 'primeng/api';
 
                 <!-- Task Attachment Download Link -->
                 <div *ngIf="t.file_url" style="margin-top: 0.35rem;">
-                  <a [href]="getFileUrl(t.file_url)" target="_blank" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold no-underline transition-colors" title="Download Task Attachment" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background-color: var(--surface-hover, #f1f5f9); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; text-decoration: none; font-size: 0.75rem; font-weight: 700;">
+                  <button type="button" (click)="downloadFile(t.file_url)" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold no-underline transition-colors border-none cursor-pointer" title="Download Task Attachment" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background-color: var(--surface-hover, #f1f5f9); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
                     <i class="pi pi-file" style="color: var(--primary-color, #4f46e5);"></i>
                     <span>Attached Task Document</span>
                     <i class="pi pi-download text-xs" style="margin-left: 0.25rem; color: var(--text-color-secondary, #94a3b8);"></i>
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
@@ -303,7 +303,7 @@ import { ConfirmationService } from 'primeng/api';
                   </div>
 
                   <div class="flex items-center justify-between" style="display: flex; align-items: center; justify-content: space-between;">
-                    <span class="text-xs font-medium" *ngIf="t.due_date" style="color: var(--text-color-secondary, #64748b);">Default Due Date: <strong style="color: var(--text-color, #1e293b);">{{ t.due_date | date:'dd-MM-yyyy' }}</strong></span>
+                    <span class="text-xs font-medium" *ngIf="hasTaskDueDate(t)" style="color: var(--text-color-secondary, #64748b);">Default Due Date: <strong style="color: var(--text-color, #1e293b);">{{ t.due_date | date:'dd-MM-yyyy' }}</strong></span>
                     <span class="text-xs font-bold px-2 py-0.5 rounded-full" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" *ngIf="t.review_status === 'REJECTED'">
                       Rejected
                     </span>
@@ -413,12 +413,13 @@ import { ConfirmationService } from 'primeng/api';
                 
                 <!-- Card Header Line: Due Date & Mode / Assignee (Single Line matching Topbar) -->
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; width: 100%; padding-bottom: 0.45rem; border-bottom: 1px solid var(--surface-border, #e2e8f0); box-sizing: border-box; min-width: 0;">
-                  <!-- Due Date Badge -->
-                  <div class="task-due-badge">
+                  <!-- Due Date Badge (only shown when an explicit due date is given for this task) -->
+                  <div class="task-due-badge" *ngIf="hasTaskDueDate(t)">
                     <i class="pi pi-calendar" style="color: var(--primary-color, #0f2942); font-size: 0.75rem;"></i>
                     <span style="color: var(--text-color-secondary, #64748b); font-weight: 600;">Due:</span>
-                    <span style="color: var(--text-color, #0f2942); font-weight: 800;">{{ (t.due_date ? (t.due_date | date:'dd/MM/yyyy') : (proposedTimeline() | date:'dd/MM/yyyy')) }}</span>
+                    <span style="color: var(--text-color, #0f2942); font-weight: 800;">{{ t.due_date | date:'dd/MM/yyyy' }}</span>
                   </div>
+                  <div *ngIf="!hasTaskDueDate(t)"></div>
 
                   <!-- Sub-Department Delegation Control (Shown ONLY to Head Department / Admin) -->
                   <div *ngIf="availableSubDepts().length > 1 && isHeadDepartmentUser() && !isReviewer() && assignmentStatus() !== 'COMPLETED'" 
@@ -516,15 +517,188 @@ import { ConfirmationService } from 'primeng/api';
                       </div>
                     </div>
 
-                    <div class="subdept-submission-remarks" *ngIf="t.remarks">
-                      <span style="font-weight: 700; color: var(--text-color-secondary, #64748b);">Sub-Dept Remarks:</span> "{{ t.remarks }}"
+                    <!-- Sub-Dept Remarks with Edit and Save option -->
+                    <div class="subdept-submission-remarks" 
+                         style="background: var(--surface-hover, #f8fafc); padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid var(--surface-border, #e2e8f0); margin-top: 0.25rem;">
+                      
+                      <!-- View Mode (when not editing) -->
+                      <div *ngIf="!t.isEditingRemark" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                        <div style="flex: 1; min-width: 0; font-size: 0.775rem;">
+                          <span style="font-weight: 700; color: var(--text-color-secondary, #64748b);">Sub-Dept Remarks:</span>
+                          <span *ngIf="t.remarks" style="margin-left: 0.35rem; color: var(--text-color, #0f172a); font-weight: 600;">"{{ t.remarks }}"</span>
+                          <span *ngIf="!t.remarks" style="margin-left: 0.35rem; color: #94a3b8; font-style: italic;">No remarks provided</span>
+                        </div>
+                        <button *ngIf="t.remarks && t.remarks.trim() && assignmentStatus() !== 'COMPLETED'"
+                                type="button" 
+                                (click)="startEditSubDeptRemark(t)" 
+                                title="Edit Sub-Department Remark"
+                                style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); cursor: pointer; color: #4f46e5; padding: 0.2rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.72rem; font-weight: 700; border-radius: 4px;"
+                                class="hover:bg-indigo-50">
+                          <i class="pi pi-pencil" style="font-size: 0.72rem;"></i>
+                          <span>Edit Remark</span>
+                        </button>
+                      </div>
+
+                      <!-- Edit Mode -->
+                      <div *ngIf="t.isEditingRemark" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                          <span style="font-size: 0.725rem; font-weight: 700; color: #4f46e5; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <i class="pi pi-pencil" style="font-size: 0.7rem;"></i> Edit Sub-Dept Remark
+                          </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                          <input type="text" 
+                                 pInputText 
+                                 [(ngModel)]="t.editedRemark" 
+                                 placeholder="Enter or modify sub-department remark..." 
+                                 (keyup.enter)="saveSubDeptRemark(t)"
+                                 (keyup.escape)="cancelEditSubDeptRemark(t)"
+                                 style="flex: 1; font-size: 0.78rem; height: 2rem; border-radius: 4px; padding: 0.25rem 0.5rem;" />
+                          <button type="button" 
+                                  (click)="saveSubDeptRemark(t)" 
+                                  [disabled]="t.savingRemark"
+                                  title="Save Remark"
+                                  style="background: #10b981; border: 1px solid #059669; color: white; cursor: pointer; padding: 0.25rem 0.55rem; height: 2rem; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 700; border-radius: 4px;">
+                            <i class="pi" [ngClass]="t.savingRemark ? 'pi-spin pi-spinner' : 'pi-check'" style="font-size: 0.72rem;"></i>
+                            <span>Save</span>
+                          </button>
+                          <button type="button" 
+                                  (click)="cancelEditSubDeptRemark(t)" 
+                                  [disabled]="t.savingRemark"
+                                  title="Cancel Edit"
+                                  style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #64748b; cursor: pointer; padding: 0.25rem 0.5rem; height: 2rem; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; border-radius: 4px;">
+                            <i class="pi pi-times" style="font-size: 0.72rem;"></i>
+                            <span>Cancel</span>
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
 
-                    <div *ngIf="t.has_evidence && t.evidence_url" style="margin-top: 0.15rem;">
-                      <a [href]="t.evidence_url" target="_blank" class="evidence-link" style="font-size: 0.75rem; font-weight: 700; color: #ef4444; display: inline-flex; align-items: center; gap: 0.25rem; text-decoration: none;">
-                        <i [class]="getFileIcon(t.evidence_url)" [style.color]="getFileIconColor(t.evidence_url)"></i> View Sub-Dept Evidence
-                      </a>
+                    <!-- Sub-Dept Evidence Display / Head Upload Section -->
+                    <div style="margin-top: 0.35rem;">
+                      <!-- If evidence exists, show list with View, Download, Delete, and Add Evidence -->
+                      <div *ngIf="t.has_evidence && t.evidence_url; else noEvidenceTpl">
+                        <div *ngIf="t.evidence_history && t.evidence_history.length > 0; else singleSubEvidenceTpl" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                          <div *ngFor="let ev of t.evidence_history; let evIdx = index" 
+                               style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: #fff5f5; border: 1px solid #fecaca; border-radius: 6px; padding: 0.35rem 0.6rem;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem; min-width: 0; flex: 1;">
+                              <i [class]="getFileIcon(ev.file_name || ev.file_url)" [style.color]="getFileIconColor(ev.file_name || ev.file_url)" style="font-size: 0.95rem;"></i>
+                              <a [href]="resolveFileUrl(ev.file_url)" target="_blank" class="evidence-link" style="font-size: 0.76rem; font-weight: 700; color: #dc2626; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ cleanFileName(ev.file_name || ev.file_url || 'Evidence Document') }}
+                              </a>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                              <button type="button" (click)="previewFileUrlDirect(ev.file_url, ev.file_name)" 
+                                      style="background: #ffffff; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #dc2626; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-eye" style="font-size: 0.68rem;"></i> Preview
+                              </button>
+                              <button type="button" (click)="downloadFile(ev.file_url, ev.file_name)" 
+                                      style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #475569; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-download" style="font-size: 0.68rem;"></i> Download
+                              </button>
+                              <button type="button" (click)="deleteTaskEvidenceDirect(t, ev)" 
+                                      title="Delete this evidence file"
+                                      style="background: #fef2f2; border: 1px solid #f87171; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #b91c1c; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-trash" style="font-size: 0.68rem;"></i> Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <ng-template #singleSubEvidenceTpl>
+                          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: #fff5f5; border: 1px solid #fecaca; border-radius: 6px; padding: 0.35rem 0.6rem;">
+                            <div style="display: flex; align-items: center; gap: 0.35rem; min-width: 0; flex: 1;">
+                              <i [class]="getFileIcon(t.evidence_url)" [style.color]="getFileIconColor(t.evidence_url)" style="font-size: 0.95rem;"></i>
+                              <a [href]="resolveFileUrl(t.evidence_url)" target="_blank" class="evidence-link" style="font-size: 0.76rem; font-weight: 700; color: #dc2626; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ cleanFileName(t.evidence_file_name || t.evidence_url || 'Evidence Document') }}
+                              </a>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                              <button type="button" (click)="previewFile(t)" 
+                                      style="background: #ffffff; border: 1px solid #fca5a5; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #dc2626; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-eye" style="font-size: 0.68rem;"></i> Preview
+                              </button>
+                              <button type="button" (click)="downloadFile(t.evidence_url, t.evidence_file_name)" 
+                                      style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #475569; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-download" style="font-size: 0.68rem;"></i> Download
+                              </button>
+                              <button type="button" (click)="deleteTaskEvidenceDirect(t)" 
+                                      title="Delete this evidence file"
+                                      style="background: #fef2f2; border: 1px solid #f87171; border-radius: 4px; padding: 0.15rem 0.45rem; cursor: pointer; color: #b91c1c; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                                <i class="pi pi-trash" style="font-size: 0.68rem;"></i> Delete
+                              </button>
+                            </div>
+                          </div>
+                        </ng-template>
+
+                        <!-- Optional Add More Evidence button when evidence already exists -->
+                        <div style="display: flex; justify-content: flex-end; margin-top: 0.3rem;">
+                          <button type="button" 
+                                  (click)="openEvidencePicker(t)" 
+                                  style="padding: 0.15rem 0.55rem; height: 1.75rem; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 5px; font-weight: 600; border: 1px dashed #6366f1; background: rgba(99, 102, 241, 0.08); color: #4f46e5; cursor: pointer;">
+                            <i class="pi pi-upload" style="font-size: 0.68rem;"></i>
+                            <span>+ Upload Additional Evidence</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- When evidence is deleted or missing, show Upload Evidence option to Head Department -->
+                      <ng-template #noEvidenceTpl>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--surface-hover, #f8fafc); border: 1px dashed var(--surface-border, #cbd5e1); border-radius: 6px; padding: 0.4rem 0.65rem;">
+                          <span style="font-size: 0.73rem; color: var(--text-color-secondary, #64748b); display: inline-flex; align-items: center; gap: 0.35rem; font-style: italic;">
+                            <i class="pi pi-file-excel" style="font-size: 0.75rem; color: #94a3b8;"></i>
+                            No evidence attached (deleted or not provided by sub-dept)
+                          </span>
+                          <button type="button" 
+                                  (click)="openEvidencePicker(t)" 
+                                  style="padding: 0.25rem 0.65rem; height: 1.85rem; font-size: 0.72rem; display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 6px; font-weight: 600; border: 1px dashed #6366f1; background: rgba(99, 102, 241, 0.12); color: #4f46e5; cursor: pointer;">
+                            <i class="pi pi-upload" style="font-size: 0.72rem;"></i>
+                            {{ getSelectedFiles(t.assignment_task_id).length > 0 ? '+ Add More Evidence' : 'Upload Evidence' }}
+                          </button>
+                        </div>
+                      </ng-template>
+
+                      <!-- Staged Files Selected by Head for this Sub-Dept Task -->
+                      <div *ngIf="getSelectedFiles(t.assignment_task_id).length > 0" 
+                           style="display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.35rem; padding: 0.45rem 0.65rem; background: rgba(99, 102, 241, 0.05); border-radius: 6px; border: 1px dashed rgba(99, 102, 241, 0.3);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                          <span style="font-size: 0.725rem; font-weight: 700; color: #4338ca; display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <i class="pi pi-paperclip"></i>
+                            Staged Evidence ({{ getSelectedFiles(t.assignment_task_id).length }}):
+                          </span>
+                          <p-button label="Save Uploaded Evidence" 
+                                    icon="pi pi-cloud-upload" 
+                                    size="small" 
+                                    severity="help"
+                                    [loading]="!!rowSavingMap()[t.assignment_task_id]"
+                                    (click)="saveSubDeptEvidence(t)"
+                                    styleClass="p-button-sm text-xs font-semibold h-1.85rem"></p-button>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.15rem;">
+                          <div *ngFor="let file of getSelectedFiles(t.assignment_task_id); let fIdx = index"
+                               style="display: inline-flex; align-items: center; gap: 0.35rem; background: #ffffff; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; padding: 0.15rem 0.45rem; font-size: 0.72rem; color: #047857; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+                            <i [class]="getFileIcon(file.name)" [style.color]="getFileIconColor(file.name)" style="font-size: 0.8rem;"></i>
+                            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600;" [title]="file.name">
+                              {{ file.name }}
+                            </span>
+                            <button type="button" 
+                                    (click)="previewSelectedFile(file)" 
+                                    title="Preview File"
+                                    style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px; padding: 0.1rem 0.3rem; cursor: pointer; color: #10b981; display: inline-flex; align-items: center; font-size: 0.68rem; font-weight: 700;">
+                              <i class="pi pi-eye" style="font-size: 0.68rem;"></i>
+                            </button>
+                            <button type="button" 
+                                    (click)="removeSelectedFile(t.assignment_task_id, fIdx)" 
+                                    title="Remove file"
+                                    style="background: none; border: none; padding: 0.1rem 0.2rem; cursor: pointer; color: #ef4444; display: inline-flex; align-items: center;">
+                              <i class="pi pi-trash" style="font-size: 0.72rem;"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
 
                     <!-- Head Decision Action Bar (Only in Hierarchical Mode) -->
                     <div *ngIf="!isDirectSubDeptAssignment() && isHeadDepartmentUser() && assignmentStatus() !== 'COMPLETED' && !isReviewer()" class="mt-2 pt-2" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--surface-border, #e2e8f0);">
@@ -773,7 +947,7 @@ import { ConfirmationService } from 'primeng/api';
                           type="button"
                           pButton
                           icon="pi pi-comments"
-                          [label]="'Remark Chain (' + t.remarks_history.length + ')'"
+                          [label]="'Remark Chain (' + getVisibleRemarksHistory(t).length + ')'"
                           class="p-button-outlined p-button-sm p-button-secondary"
                           (click)="openRemarkChainDialog(t)"
                           style="font-size: 0.72rem; padding: 0.2rem 0.55rem; height: 1.75rem;">
@@ -1110,13 +1284,13 @@ import { ConfirmationService } from 'primeng/api';
         <div *ngIf="historyDialogMode === 'REMARK' && hasRemarksHistory(selectedTaskForChain)" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
           <div style="background: #f1f5f9; padding: 0.5rem 0.75rem; font-size: 0.78rem; font-weight: 700; color: #334155; display: flex; align-items: center; justify-content: space-between;">
             <span style="display: flex; align-items: center; gap: 0.4rem;">
-              <i class="pi pi-comments text-indigo-600"></i> Remark Chain Timeline ({{ selectedTaskForChain.remarks_history.length }})
+              <i class="pi pi-comments text-indigo-600"></i> Remark Chain Timeline ({{ getVisibleRemarksHistory(selectedTaskForChain).length }})
             </span>
             <span style="font-size: 0.68rem; color: #6b7280; font-weight: 500;">Role Chain: Department &rarr; CO &rarr; CCO</span>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 0.75rem; padding: 1rem; max-height: 320px; overflow-y: auto; background: #fafafa;">
-            <div *ngFor="let h of selectedTaskForChain.remarks_history; let last = last" 
+            <div *ngFor="let h of getVisibleRemarksHistory(selectedTaskForChain); let last = last" 
                  style="position: relative; padding-left: 1.75rem; text-align: left;">
                  
               <!-- Vertical Connector Line -->
@@ -1153,14 +1327,48 @@ import { ConfirmationService } from 'primeng/api';
                     </span>
                   </div>
                   
-                  <span style="font-size: 0.68rem; color: #6b7280; font-weight: 500;">
-                    <i class="pi pi-clock" style="font-size: 0.65rem; margin-right: 0.15rem;"></i> {{ h.created_at | date:'dd-MM-yyyy HH:mm' }}
-                  </span>
+                  <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span style="font-size: 0.68rem; color: #6b7280; font-weight: 500;">
+                      <i class="pi pi-clock" style="font-size: 0.65rem; margin-right: 0.15rem;"></i> {{ h.created_at | date:'dd-MM-yyyy HH:mm' }}
+                    </span>
+                    <button *ngIf="canEditRemark(h, selectedTaskForChain)" 
+                            type="button" 
+                            (click)="startEditTimelineRemark(h)"
+                            title="Edit this remark"
+                            style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 4px; padding: 0.12rem 0.45rem; cursor: pointer; color: #4f46e5; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.68rem; font-weight: 700;">
+                      <i class="pi pi-pencil" style="font-size: 0.65rem;"></i> Edit
+                    </button>
+                  </div>
                 </div>
 
-                <p style="margin: 0; font-weight: 500; line-height: 1.4; color: #1f2937;">
-                  {{ h.remark }}
-                </p>
+                <div *ngIf="!h.isEditing">
+                  <p style="margin: 0; font-weight: 500; line-height: 1.4; color: #1f2937;">
+                    {{ h.remark }}
+                  </p>
+                </div>
+                <div *ngIf="h.isEditing" style="margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.35rem;">
+                  <textarea pTextarea 
+                            [(ngModel)]="h.editedRemark" 
+                            rows="2" 
+                            class="w-full p-2 border rounded text-xs" 
+                            style="resize: none; font-size: 0.78rem;" 
+                            placeholder="Edit remark..."></textarea>
+                  <div style="display: flex; justify-content: flex-end; gap: 0.3rem;">
+                    <button type="button" 
+                            (click)="saveTimelineRemark(h, selectedTaskForChain)" 
+                            [disabled]="h.saving" 
+                            style="background: #10b981; border: 1px solid #059669; color: white; padding: 0.15rem 0.5rem; font-size: 0.7rem; font-weight: 700; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.2rem;">
+                      <i class="pi" [ngClass]="h.saving ? 'pi-spin pi-spinner' : 'pi-check'" style="font-size: 0.65rem;"></i>
+                      <span>Save</span>
+                    </button>
+                    <button type="button" 
+                            (click)="cancelEditTimelineRemark(h)" 
+                            [disabled]="h.saving" 
+                            style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #64748b; padding: 0.15rem 0.45rem; font-size: 0.7rem; font-weight: 600; border-radius: 4px; cursor: pointer;">
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1220,7 +1428,7 @@ import { ConfirmationService } from 'primeng/api';
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 0.2rem 0.55rem; border-radius: 6px; border: 1px solid #99f6e4;">
-              <i class="pi pi-building" style="font-size: 0.7rem;"></i> {{ branchName() || 'Department' }} Evidences
+              <i class="pi pi-building" style="font-size: 0.7rem;"></i> {{ deptEvidenceBadgeLabel }}
             </span>
             <span style="font-size: 0.75rem; color: #64748b;">({{ filteredDeptEvidences.length }} available)</span>
           </div>
@@ -1237,7 +1445,7 @@ import { ConfirmationService } from 'primeng/api';
         <div *ngIf="!loadingDeptEvidences && filteredDeptEvidences.length === 0" style="text-align: center; padding: 2rem 1rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
           <i class="pi pi-folder-open" style="font-size: 2rem; color: #94a3b8; margin-bottom: 0.5rem; display: block;"></i>
           <p style="font-size: 0.85rem; font-weight: 600; color: #334155; margin: 0 0 0.25rem 0;">No previous evidence found for this department</p>
-          <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 0.75rem 0;">You can upload a fresh PDF from your computer.</p>
+          <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 0.75rem 0;">You can upload a fresh file from your computer.</p>
           <button pButton label="Back to Source Selection" icon="pi pi-arrow-left" size="small" [outlined]="true" (click)="evidenceSourceStep = 'CHOOSE_SOURCE'"></button>
         </div>
 
@@ -1263,7 +1471,7 @@ import { ConfirmationService } from 'primeng/api';
             </div>
 
             <div style="display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0;">
-              <a *ngIf="item.url" [href]="item.url" target="_blank" 
+              <a *ngIf="item.url" [href]="resolveFileUrl(item.url)" target="_blank" 
                  class="p-button p-button-sm p-button-text p-button-secondary" 
                  style="text-decoration: none; padding: 0.25rem 0.5rem; font-size: 0.72rem; height: 1.85rem; display: inline-flex; align-items: center; gap: 0.25rem;"
                  title="Preview Evidence">
@@ -1380,16 +1588,14 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   cleanFileName(rawName: string): string {
-    if (!rawName) return 'Evidence Document';
+    if (!rawName) return 'evidence_document';
     let name = decodeURIComponent(rawName.trim().split('?')[0]);
     if (name.includes('/') || name.includes('\\')) {
       name = name.split(/[/\\]/).pop() || name;
     }
-    // Remove leading timestamp e.g. 1726483920192-file.pdf
+    // Remove leading timestamp prefix e.g. 1726483920192-file.pdf
     name = name.replace(/^\d{10,14}[-_]/, '');
-    // Remove trailing hex hash, uuid, or timestamp before extension
-    name = name.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.[a-zA-Z0-9]+$|$)/i, '');
-    return name || 'Evidence Document';
+    return name || 'evidence_document';
   }
 
   getFileIcon(nameOrUrl?: string): string {
@@ -1476,28 +1682,121 @@ export class AssignmentDetailsComponent implements OnInit {
     return false;
   }
 
+  private getDeletedRemarkKeys(): Set<string> {
+    return new Set<string>();
+  }
+
+  private markRemarkAsDeleted(remarkObj: any, taskId?: number) {
+    // Remarks are not deleteable; they are editable
+  }
+
+  isRemarkDeleted(h: any, taskId?: number): boolean {
+    if (!h) return true;
+    const rText = String(h.remark || '').trim();
+    if (!rText) return true; // empty or whitespace-only remarks are not displayed
+    return false;
+  }
+
+  get deptEvidenceBadgeLabel(): string {
+    const role = (this.userRole() || '').toUpperCase();
+    const isCcoOrCo = ['CCO', 'CO', 'CHIEF_COMPLIANCE_OFFICER', 'COMPLIANCE_OFFICER'].includes(role);
+    if (isCcoOrCo) {
+      return this.branchName() ? `${this.branchName()} & All Evidences` : 'All Department Evidences';
+    }
+    return `${this.branchName() || this.userBranchName() || 'Department'} Evidences`;
+  }
+
   loadDepartmentPreviousEvidences() {
+    const role = (this.userRole() || '').toUpperCase();
+    const isCcoOrCo = ['CCO', 'CO', 'CHIEF_COMPLIANCE_OFFICER', 'COMPLIANCE_OFFICER'].includes(role);
+
     const currentBranchName = (this.branchName() || '').toLowerCase().trim();
+    const userBranchName = (this.userBranchName() || '').toLowerCase().trim();
     const taskBranchId = this.tasks()[0]?.branch_id ? Number(this.tasks()[0].branch_id) : null;
     const userBranchId = this.userBranchId() ? Number(this.userBranchId()) : null;
     const targetBranchId = taskBranchId || userBranchId;
 
-    const branches = this.allBranches();
-    const targetBranchObj = targetBranchId ? branches.find((b: any) => Number(b.id) === targetBranchId) : null;
+    const branches = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
+    const targetBranchObj = targetBranchId 
+      ? (branches || []).find((b: any) => Number(b.id) === targetBranchId)
+      : (branches || []).find((b: any) => (b.name || '').toLowerCase().trim() === currentBranchName);
+
+    const actualDeptId = targetBranchObj?.id ? Number(targetBranchObj.id) : targetBranchId;
     const parentId = targetBranchObj?.parent_id ? Number(targetBranchObj.parent_id) : null;
-    const subDeptIds = targetBranchId ? branches.filter((b: any) => Number(b.parent_id) === targetBranchId).map((b: any) => Number(b.id)) : [];
 
-    this.loadingDeptEvidences = true;
+    // Sub-department branch objects for this department
+    const subDeptObjs = (branches || []).filter((b: any) => {
+      const bParentId = b.parent_id ? Number(b.parent_id) : null;
+      if (actualDeptId && bParentId === actualDeptId) return true;
+      if (parentId && bParentId === parentId) return true;
+      return false;
+    });
 
-    // Helper for robust deduplication by unique evidence name/url (avoids repetitive duplicates)
+    const allowedDeptIds = new Set<number>();
+    if (actualDeptId) allowedDeptIds.add(actualDeptId);
+    if (userBranchId) allowedDeptIds.add(userBranchId);
+    if (parentId) allowedDeptIds.add(parentId);
+    subDeptObjs.forEach((b: any) => allowedDeptIds.add(Number(b.id)));
+
+    const allowedDeptNames = new Set<string>();
+    if (currentBranchName) allowedDeptNames.add(currentBranchName);
+    if (userBranchName) allowedDeptNames.add(userBranchName);
+    if (targetBranchObj?.name) allowedDeptNames.add(targetBranchObj.name.toLowerCase().trim());
+    subDeptObjs.forEach((b: any) => {
+      if (b.name) allowedDeptNames.add(b.name.toLowerCase().trim());
+    });
+
+    // Filtering rule:
+    // CCO & CO see ALL department evidences.
+    // Branch / Department users see ONLY their department and its sub-departments.
+    const belongsToDeptOrSubDept = (doc: any): boolean => {
+      if (isCcoOrCo) return true; // CCO & CO show all!
+
+      const docDeptId = doc.department_id ? Number(doc.department_id) : null;
+      const docDeptName = (doc.department_name || '').toLowerCase().trim();
+
+      if (docDeptId && allowedDeptIds.has(docDeptId)) {
+        return true;
+      }
+
+      if (docDeptName) {
+        for (const name of allowedDeptNames) {
+          if (!name) continue;
+          if (docDeptName === name || docDeptName.includes(name) || name.includes(docDeptName)) {
+            return true;
+          }
+        }
+      }
+
+      if (doc.task_set_name) {
+        const tsn = doc.task_set_name.toLowerCase();
+        for (const name of allowedDeptNames) {
+          if (name && (tsn.includes(name) || name.includes(tsn))) return true;
+        }
+      }
+
+      return false;
+    };
+
+    // Helper to extract canonical filename key (strips hashes, random uuids, timestamps)
+    const getCanonicalKey = (nameOrUrl: string): string => {
+      if (!nameOrUrl) return '';
+      let s = decodeURIComponent(nameOrUrl.trim().split('?')[0]);
+      s = s.replace(/\\/g, '/').split('/').pop() || s;
+      s = s.replace(/^\d{10,14}[-_]/, '');
+      s = s.replace(/[-_]([0-9a-fA-F]{8,36}|\d{10,14}|[0-9a-fA-F]{4,8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?=\.[a-zA-Z0-9]+$|$)/i, '');
+      return s.toLowerCase().trim();
+    };
+
+    // Helper for robust deduplication (collapses hash vs non-hash duplicates e.g. sign.jpeg and sign_ddc2311e115ebd0a.jpeg)
     const deduplicateEvidences = (list: any[]) => {
       const seen = new Map<string, any>();
       list.forEach(item => {
         if (!item) return;
         let name = (item.name || '').trim();
-        if ((!name || name === 'Task Evidence Document.pdf') && item.url) {
+        if ((!name || name === 'Task Evidence Document.pdf' || name === 'evidence_document') && item.url) {
           const extracted = item.url.split('/').pop()?.split('?')[0];
-          if (extracted && extracted.toLowerCase().endsWith('.pdf')) {
+          if (extracted) {
             name = decodeURIComponent(extracted);
           }
         }
@@ -1506,33 +1805,42 @@ export class AssignmentDetailsComponent implements OnInit {
         const url = (item.url || '').trim();
         if (!name && !url) return;
 
-        // Key by unique cleaned document name so repeated documents don't show multiple times
-        const key = name.toLowerCase() || url.toLowerCase();
-        if (!seen.has(key)) {
-          seen.set(key, item);
+        const canonKey = getCanonicalKey(item.url) || getCanonicalKey(name) || name.toLowerCase();
+
+        if (!seen.has(canonKey)) {
+          seen.set(canonKey, item);
         } else {
-          const existing = seen.get(key);
-          if ((!existing.url && url) || (item.date && (!existing.date || new Date(item.date) > new Date(existing.date)))) {
-            seen.set(key, { ...existing, ...item, name });
-          }
+          const existing = seen.get(canonKey);
+          const itemHasTaskSet = item.source && item.source.startsWith('Task Set:');
+          const existingHasTaskSet = existing.source && existing.source.startsWith('Task Set:');
+          const preferredName = (item.name.length >= (existing.name || '').length) ? item.name : existing.name;
+          const preferredUrl = (item.url && item.url.length >= (existing.url || '').length) ? item.url : existing.url;
+          const preferredSource = itemHasTaskSet ? item.source : (existingHasTaskSet ? existing.source : (item.source || existing.source));
+
+          seen.set(canonKey, {
+            ...existing,
+            ...item,
+            name: preferredName,
+            url: preferredUrl,
+            source: preferredSource,
+            date: item.date || existing.date
+          });
         }
       });
       return Array.from(seen.values());
     };
 
-    // Collect from current loaded tasks history
+    this.loadingDeptEvidences = true;
+
+    // 1. Collect from current assignment tasks
     const taskEvidences: any[] = [];
     (this.tasks() || []).forEach(t => {
       if (t.evidence_history && Array.isArray(t.evidence_history)) {
         t.evidence_history.forEach((eh: any) => {
-          if (this.isEvidenceDeleted(eh)) return;
           if (eh.file_url) {
-            let fname = eh.file_name || eh.filename;
-            if (!fname && eh.file_url) {
-              fname = eh.file_url.split('/').pop()?.split('?')[0];
-            }
+            let fname = eh.file_name || eh.filename || eh.file_url.split('/').pop()?.split('?')[0];
             taskEvidences.push({
-              name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
+              name: this.cleanFileName(fname || 'evidence_document'),
               url: eh.file_url,
               date: eh.uploaded_at || eh.created_at,
               source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -1540,13 +1848,10 @@ export class AssignmentDetailsComponent implements OnInit {
             });
           }
         });
-      } else if (t.evidence_url && !this.isEvidenceDeleted(t)) {
-        let fname = t.evidence_file_name;
-        if (!fname && t.evidence_url) {
-          fname = t.evidence_url.split('/').pop()?.split('?')[0];
-        }
+      } else if (t.evidence_url) {
+        let fname = t.evidence_file_name || t.evidence_url.split('/').pop()?.split('?')[0];
         taskEvidences.push({
-          name: this.cleanFileName(fname || 'Task Evidence Document.pdf'),
+          name: this.cleanFileName(fname || 'evidence_document'),
           url: t.evidence_url,
           date: t.updated_at || t.created_at,
           source: `Task: ${t.task_title ? (t.task_title.substring(0, 45) + '...') : 'Compliance Task'}`,
@@ -1555,43 +1860,147 @@ export class AssignmentDetailsComponent implements OnInit {
       }
     });
 
-    // Also fetch from Document Master for this department & company-wide evidences
-    this.api.getDocuments().subscribe({
-      next: (docs) => {
-        const deptDocs = (docs || [])
-          .filter(d => {
-            if (!d.file_url || this.isEvidenceDeleted(d)) return false;
-            // 1. Company-wide / All Branches public documents
-            if (d.department_id === null || d.department_id === undefined) return true;
+    // 2. Collect from Evidence Management repository (localStorage store)
+    const storedEvidences: any[] = [];
+    const sharedDocs = this.api.getEvidenceDocuments() || [];
 
-            const docDeptId = Number(d.department_id);
-            // 2. Department ID match
-            if (targetBranchId && docDeptId === targetBranchId) return true;
-            if (userBranchId && docDeptId === userBranchId) return true;
+    sharedDocs.forEach((d: any) => {
+      if (!d.file_url) return;
+      if (!belongsToDeptOrSubDept(d)) return;
 
-            // 3. Parent / Sub-department hierarchy match
-            if (parentId && docDeptId === parentId) return true;
-            if (subDeptIds.includes(docDeptId)) return true;
+      storedEvidences.push({
+        name: this.cleanFileName(d.file_name || d.document_name),
+        url: d.file_url,
+        date: d.created_at || d.issue_date,
+        source: d.task_set_name ? `Task Set: ${d.task_set_name}` : (d.document_name ? `Evidence: ${d.document_name}` : 'Evidence Repository'),
+        type: 'TASK_EVIDENCE'
+      });
+    });
 
-            // 4. Exact department name match
-            if (currentBranchName && d.department_name && d.department_name.toLowerCase().trim() === currentBranchName) return true;
+    // Instantly display known evidences from current tasks and shared repository
+    const initialList = deduplicateEvidences([...taskEvidences, ...storedEvidences]);
+    this.deptPreviousEvidences.set(initialList);
+    if (initialList.length > 0) {
+      this.loadingDeptEvidences = false;
+    }
 
+    // 3. Live sync department evidences across all assignments of this department
+    this.api.getAssignments({ limit: 40 }).pipe(catchError(() => of({ data: [] }))).subscribe({
+      next: (asgRes) => {
+        const asgList = asgRes?.data || (Array.isArray(asgRes) ? asgRes : []);
+
+        let deptAssignments = asgList;
+        if (!isCcoOrCo) {
+          // Strictly filter assignments to this department and its sub-departments
+          deptAssignments = asgList.filter((a: any) => {
+            const bName = (a.branch_name || '').toLowerCase().trim();
+            for (const name of allowedDeptNames) {
+              if (name && (bName === name || bName.includes(name) || name.includes(bName))) return true;
+            }
             return false;
-          })
-          .map(d => ({
-            name: this.cleanFileName(d.file_name || d.document_name),
-            url: d.file_url,
-            date: d.created_at || d.issue_date,
-            source: `Evidence Management (${d.document_name})`,
-            type: 'DOC_MASTER'
-          }));
+          });
+        }
 
-        const combined = [...taskEvidences, ...deptDocs];
-        this.deptPreviousEvidences.set(deduplicateEvidences(combined));
-        this.loadingDeptEvidences = false;
+        const asgObs = deptAssignments.slice(0, 20).map((a: any) =>
+          forkJoin({
+            evList: this.api.getAssignmentEvidence(a.id).pipe(catchError(() => of([]))),
+            tasksList: this.api.getAssignmentTasks(a.id).pipe(catchError(() => of([])))
+          }).pipe(
+            map((res: any) => ({
+              asg: a,
+              evList: Array.isArray(res?.evList) ? res.evList : [],
+              tasksList: Array.isArray(res?.tasksList) ? res.tasksList : []
+            })),
+            catchError(() => of({ asg: a, evList: [], tasksList: [] }))
+          )
+        );
+
+        if (asgObs.length === 0) {
+          this.loadingDeptEvidences = false;
+          return;
+        }
+
+        forkJoin(asgObs).subscribe({
+          next: (results: any[]) => {
+            const liveAsgEvidences: any[] = [];
+            const newSharedDocs: any[] = [];
+
+            (results || []).forEach(({ asg, evList, tasksList }: any) => {
+              const taskMap = new Map<number, any>();
+              (tasksList || []).forEach((t: any) => {
+                if (t.assignment_task_id) taskMap.set(Number(t.assignment_task_id), t);
+                if (t.task_id) taskMap.set(Number(t.task_id), t);
+              });
+
+              evList.forEach((ev: any) => {
+                if (!ev.file_url) return;
+                const fname = this.cleanFileName(ev.file_name || ev.filename || ev.file_url.split('/').pop()?.split('?')[0]);
+                const matchedTask = taskMap.get(Number(ev.assignment_task_id || ev.task_id));
+                const targetDeptId = matchedTask?.sub_dept_id || matchedTask?.branch_id || ev.sub_dept_id || asg.branch_id || actualDeptId;
+                const targetDeptName = matchedTask?.sub_dept_name || matchedTask?.branch_name || ev.sub_dept_name || asg.branch_name || currentBranchName;
+
+                const evItem = {
+                  department_id: targetDeptId,
+                  department_name: targetDeptName,
+                  task_set_name: asg.task_set_name || asg.name || 'Compliance',
+                  file_url: ev.file_url
+                };
+
+                if (!belongsToDeptOrSubDept(evItem)) {
+                  return;
+                }
+
+                liveAsgEvidences.push({
+                  name: fname,
+                  url: ev.file_url,
+                  date: ev.submitted_at || ev.created_at || asg.created_at,
+                  source: `Task Set: ${asg.task_set_name || asg.name || 'Compliance'}`,
+                  type: 'TASK_EVIDENCE'
+                });
+
+                newSharedDocs.push({
+                  id: 9000000 + Number(ev.id || Math.floor(Math.random() * 1000000)),
+                  document_name: fname,
+                  document_number: asg.task_set_name ? `TASK: ${asg.task_set_name}` : 'TASK-EVIDENCE',
+                  issue_date: ev.submitted_at || ev.created_at || asg.created_at || null,
+                  created_at: ev.submitted_at || ev.created_at || asg.created_at || new Date().toISOString(),
+                  start_date: asg.start_date || null,
+                  department_id: targetDeptId ? Number(targetDeptId) : null,
+                  department_name: targetDeptName || null,
+                  user_id: ev.uploaded_by ? Number(ev.uploaded_by) : null,
+                  user_name: ev.uploader_name || ev.uploaded_by_name || 'Branch Member',
+                  file_url: ev.file_url,
+                  file_name: fname,
+                  description: ev.remark || `Evidence for "${matchedTask?.task_title || asg.task_set_name || 'Compliance Task'}"`,
+                  status: 'ACTIVE',
+                  access_level: 'PUBLIC',
+                  is_evidence: true,
+                  source_type: 'TASK_EVIDENCE',
+                  task_set_id: asg.task_set_id ? Number(asg.task_set_id) : null,
+                  task_set_name: asg.task_set_name || null,
+                  frequency: asg.frequency ? String(asg.frequency) : null
+                });
+              });
+            });
+
+            if (newSharedDocs.length > 0) {
+              this.api.saveEvidenceDocuments(newSharedDocs);
+            }
+
+            const updatedCombined = deduplicateEvidences([
+              ...taskEvidences,
+              ...storedEvidences,
+              ...liveAsgEvidences
+            ]);
+            this.deptPreviousEvidences.set(updatedCombined);
+            this.loadingDeptEvidences = false;
+          },
+          error: () => {
+            this.loadingDeptEvidences = false;
+          }
+        });
       },
       error: () => {
-        this.deptPreviousEvidences.set(deduplicateEvidences(taskEvidences));
         this.loadingDeptEvidences = false;
       }
     });
@@ -1610,17 +2019,20 @@ export class AssignmentDetailsComponent implements OnInit {
   attachPreviousEvidence(item: any) {
     if (!this.activeEvidenceTaskId) return;
     const taskId = this.activeEvidenceTaskId;
+    const fullUrl = this.resolveFileUrl(item.url) || item.url;
 
-    fetch(item.url)
+    fetch(fullUrl)
       .then(res => res.blob())
       .then(blob => {
-        const file = new File([blob], item.name, { type: blob.type || 'application/pdf' });
+        const mimeType = blob.type || (item.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : (item.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'));
+        const file = new File([blob], item.name, { type: mimeType });
         this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Attached "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
       })
       .catch(() => {
-        const file = new File([new Blob()], item.name, { type: 'application/pdf' });
+        const mimeType = item.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : (item.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+        const file = new File([new Blob()], item.name, { type: mimeType });
         this.addSelectedFiles(taskId, [file]);
         this.notification.success(`Selected "${item.name}" from department evidence repository.`);
         this.displayEvidenceSourceModal = false;
@@ -2314,10 +2726,13 @@ export class AssignmentDetailsComponent implements OnInit {
               next: (tsDetails) => {
                 const tsTasks = tsDetails?.tasks || [];
                 const tsSubDeptMap = new Map<number, number>();
+                const tsTaskDateMap = new Map<number, string | null>();
                 tsTasks.forEach((tt: any) => {
                   if (tt.sub_dept_id || tt.branch_id) {
                     tsSubDeptMap.set(tt.id, tt.sub_dept_id || tt.branch_id);
                   }
+                  const dStr = tt.due_date ? String(tt.due_date).trim() : null;
+                  tsTaskDateMap.set(tt.id, dStr || null);
                 });
 
                 mappedTasks.forEach((mt: any) => {
@@ -2325,6 +2740,17 @@ export class AssignmentDetailsComponent implements OnInit {
                     const sId = tsSubDeptMap.get(mt.task_id)!;
                     mt.sub_dept_id = sId;
                     this.api.delegateTaskToSubDept(this.assignmentId!, mt.assignment_task_id, sId).subscribe();
+                  }
+
+                  if (tsTaskDateMap.has(mt.task_id)) {
+                    const origTsDueDate = tsTaskDateMap.get(mt.task_id);
+                    if (!origTsDueDate) {
+                      mt.has_explicit_due_date = false;
+                      mt.due_date = null;
+                    } else {
+                      mt.has_explicit_due_date = true;
+                      mt.due_date = origTsDueDate;
+                    }
                   }
                 });
                 this.tasks.set(mappedTasks);
@@ -2429,9 +2855,10 @@ export class AssignmentDetailsComponent implements OnInit {
               mappedTasks.forEach((task: any) => {
                 this.api.getTaskRemarksHistory(this.assignmentId!, task.assignment_task_id).subscribe({
                   next: (history) => {
-                    const historyList = history || [];
+                    const rawList = history || [];
+                    const historyList = rawList.filter((h: any) => !this.isRemarkDeleted(h, task.assignment_task_id));
                     const reviewRemarkText = task.assignment_review_remark || task.review_remark;
-                    if (reviewRemarkText && reviewRemarkText.trim()) {
+                    if (reviewRemarkText && reviewRemarkText.trim() && !this.isRemarkDeleted({ remark: reviewRemarkText }, task.assignment_task_id)) {
                       const exists = historyList.some((h: any) => h.remark.includes(reviewRemarkText) || reviewRemarkText.includes(h.remark));
                       if (!exists) {
                         historyList.push({
@@ -2592,10 +3019,7 @@ export class AssignmentDetailsComponent implements OnInit {
     const subDeptName = isTargetSubDeptOfUser ? targetBranchObj.name : (ts.sub_dept_name || targetBranchName);
 
     const fallbackTasks = ts.tasks.map((t: any, idx: number) => {
-      const d20 = new Date();
-      d20.setDate(d20.getDate() + 20);
-      const default20DaysStr = d20.toISOString().split('T')[0];
-      const rawDate = t.due_date || ts.default_due_date || ts.end_date || ts.start_date || default20DaysStr;
+      const rawDate = t.due_date ? String(t.due_date).split('T')[0] : null;
       const desc = t.description || t.task_description || t.title || 'Compliance Task';
       const compStatus = t.compliance_status && t.compliance_status !== 'PENDING' ? t.compliance_status : (t.remarks ? 'COMPLIED' : 'PENDING');
       const hasEv = !!(t.has_evidence || t.evidence_file_name || t.file_url || t.evidence_url);
@@ -2607,6 +3031,7 @@ export class AssignmentDetailsComponent implements OnInit {
         header_name: t.header_name || 'General',
         priority: t.priority || 'Medium',
         due_date: rawDate,
+        has_explicit_due_date: !!rawDate,
         proposed_due_date: rawDate,
         compliance_status: compStatus,
         status: t.status || (t.remarks ? 'COMPLETED' : 'PENDING'),
@@ -2868,7 +3293,12 @@ export class AssignmentDetailsComponent implements OnInit {
   }
 
   hasRemarksHistory(task: any): boolean {
-    return !!(task.remarks_history && task.remarks_history.length > 0);
+    return this.getVisibleRemarksHistory(task).length > 0;
+  }
+
+  getVisibleRemarksHistory(task: any): any[] {
+    if (!task || !task.remarks_history) return [];
+    return task.remarks_history.filter((h: any) => !this.isRemarkDeleted(h, task.assignment_task_id));
   }
 
   hasEvidenceHistory(task: any): boolean {
@@ -3049,33 +3479,7 @@ export class AssignmentDetailsComponent implements OnInit {
   canDeleteEvidence(ev: any, task: any, idx?: number): boolean {
     if (!task || !ev) return false;
     if (this.assignmentStatus() === 'COMPLETED') return false;
-
-    // Head Department user is strictly prohibited from deleting any sub-department evidence
-    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(ev, task)) {
-      return false;
-    }
-
-    const isSubDeptUser = this.isSubDepartmentUser();
-
-    // 1. If task is delegated to / submitted by a sub-department:
-    if (this.isSubDeptSubmission(ev, task)) {
-      // Head Department reviewing a sub-dept task CANNOT delete sub-dept's evidence!
-      if (!isSubDeptUser) {
-        return false;
-      }
-      // Sub-department user can only delete if not yet submitted (or rejected for redo)
-      if (this.subDeptSubmitted() && task.review_status !== 'NEEDS_REDO') {
-        return false;
-      }
-    } else {
-      // 2. Direct task (Self-compliance): Sub-dept user cannot delete direct task
-      if (isSubDeptUser) {
-        return false;
-      }
-    }
-
-    // 3. Must be recent evidence (latest upload batch), older records are protected audit trail
-    return this.isRecentEvidence(ev, task, idx);
+    return true;
   }
 
   isRecentEvidence(ev: any, task: any, idx?: number): boolean {
@@ -3084,16 +3488,11 @@ export class AssignmentDetailsComponent implements OnInit {
     if (!ev || !ev.submitted_at) return false;
     const latestTime = new Date(task.evidence_history[0].submitted_at).getTime();
     const evTime = new Date(ev.submitted_at).getTime();
-    // Consider items within same 2-minute window as part of the same recent upload batch
     return Math.abs(latestTime - evTime) < 120000;
   }
 
   deleteSavedEvidence(ev: any, task: any) {
     if (!ev || !task) return;
-    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(ev, task)) {
-      this.notification.warn('Sub-department evidence cannot be deleted by Head of Department.');
-      return;
-    }
     const fileName = ev.file_name || 'Evidence Document.pdf';
 
     this.confirmationService.confirm({
@@ -3113,6 +3512,9 @@ export class AssignmentDetailsComponent implements OnInit {
           task.evidence_history = task.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
           task.has_evidence = task.evidence_history.length > 0;
           task.evidence_url = task.evidence_history[0]?.file_url || null;
+        } else {
+          task.has_evidence = false;
+          task.evidence_url = null;
         }
         if (this.selectedTaskForChain && this.selectedTaskForChain.evidence_history) {
           this.selectedTaskForChain.evidence_history = this.selectedTaskForChain.evidence_history.filter((e: any) => e.id !== ev.id && e.file_url !== ev.file_url);
@@ -3134,21 +3536,203 @@ export class AssignmentDetailsComponent implements OnInit {
         } else {
           this.notification.success(`Evidence "${fileName}" deleted successfully.`);
           this.loadDepartmentPreviousEvidences();
+          this.loadTasks();
         }
       }
     });
   }
 
+  deleteTaskEvidenceDirect(task: any, ev?: any) {
+    if (!task) return;
+    const targetEv = ev || (task.evidence_history && task.evidence_history[0]) || {
+      id: task.evidence_id,
+      file_url: task.evidence_url,
+      file_name: task.evidence_file_name || this.cleanFileName(task.evidence_url)
+    };
+
+    const fileName = targetEv.file_name || this.cleanFileName(targetEv.file_url || 'Evidence Document');
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete the evidence "${fileName}"?`,
+      header: 'Confirm Evidence Deletion',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Yes, Delete',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-outlined p-button-secondary p-button-sm',
+      accept: () => {
+        const taskId = task.assignment_task_id;
+        this.markEvidenceAsDeleted(targetEv);
+
+        if (task.evidence_history) {
+          task.evidence_history = task.evidence_history.filter((e: any) => e.id !== targetEv.id && e.file_url !== targetEv.file_url);
+          task.has_evidence = task.evidence_history.length > 0;
+          task.evidence_url = task.evidence_history[0]?.file_url || null;
+        } else {
+          task.has_evidence = false;
+          task.evidence_url = null;
+        }
+
+        if (targetEv.id && this.assignmentId) {
+          this.api.deleteTaskEvidence(this.assignmentId, taskId, targetEv.id).subscribe({
+            next: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            },
+            error: () => {
+              this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+              this.loadDepartmentPreviousEvidences();
+              this.loadTasks();
+            }
+          });
+        } else {
+          this.notification.success(`Evidence "${fileName}" deleted successfully.`);
+          this.loadDepartmentPreviousEvidences();
+          this.loadTasks();
+        }
+      }
+    });
+  }
+
+  startEditSubDeptRemark(task: any) {
+    if (!task || !task.remarks?.trim()) return;
+    task.editedRemark = task.remarks || '';
+    task.isEditingRemark = true;
+  }
+
+  cancelEditSubDeptRemark(task: any) {
+    if (!task) return;
+    task.editedRemark = task.remarks || '';
+    task.isEditingRemark = false;
+  }
+
+  saveSubDeptRemark(task: any) {
+    if (!task) return;
+    if (!this.assignmentId || !task.assignment_task_id) return;
+    const taskId = task.assignment_task_id;
+    const newRemark = (task.editedRemark ?? '').trim();
+    const compStatus = task.compliance_status || 'COMPLIED';
+
+    task.savingRemark = true;
+    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark).subscribe({
+      next: () => {
+        task.remarks = newRemark;
+        task.temp_remarks = newRemark;
+        task.isEditingRemark = false;
+        task.savingRemark = false;
+        this.notification.success('Sub-department remark updated successfully.');
+        this.loadTasks();
+      },
+      error: (err) => {
+        task.savingRemark = false;
+        this.notification.error('Failed to update remark: ' + (err.message || 'Error'));
+      }
+    });
+  }
+
+  canEditRemark(h: any, task: any): boolean {
+    if (!h || !task) return false;
+    if (!h.remark || !h.remark.trim()) return false;
+    if (this.assignmentStatus() === 'COMPLETED') return false;
+    return true;
+  }
+
+  hasTaskDueDate(task: any): boolean {
+    if (!task) return false;
+    if (task.has_explicit_due_date === false) return false;
+    if (!task.due_date) return false;
+    return true;
+  }
+
+  startEditTimelineRemark(h: any) {
+    if (!h) return;
+    h.editedRemark = h.remark || '';
+    h.isEditing = true;
+  }
+
+  cancelEditTimelineRemark(h: any) {
+    if (!h) return;
+    h.isEditing = false;
+  }
+
+  saveTimelineRemark(h: any, task: any) {
+    if (!h || !task || !this.assignmentId) return;
+    const taskId = task.assignment_task_id;
+    const newRemark = (h.editedRemark ?? '').trim();
+    const compStatus = task.compliance_status || 'COMPLIED';
+
+    h.saving = true;
+    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark).subscribe({
+      next: () => {
+        h.remark = newRemark;
+        h.isEditing = false;
+        h.saving = false;
+
+        // Sync with the task remarks if active
+        task.remarks = newRemark;
+        task.temp_remarks = newRemark;
+
+        this.notification.success('Remark updated successfully.');
+        this.loadTasks();
+      },
+      error: (err) => {
+        h.saving = false;
+        this.notification.error('Failed to update remark: ' + (err.message || 'Error'));
+      }
+    });
+  }
+
+  async saveSubDeptEvidence(task: any): Promise<boolean> {
+    if (!this.assignmentId) return false;
+    const taskId = task.assignment_task_id;
+    const files = this.getSelectedFiles(taskId);
+    if (!files || files.length === 0) {
+      this.notification.warn('No evidence files selected to upload.');
+      return false;
+    }
+
+    this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: true }));
+
+    const formData = new FormData();
+    files.forEach((f: File) => {
+      formData.append('files', f, f.name);
+    });
+    formData.append('remark', task.remarks || task.temp_remarks || 'Evidence uploaded');
+    formData.append('compliance_status', task.compliance_status || 'COMPLIED');
+
+    return new Promise((resolve) => {
+      this.api.uploadTaskEvidence(this.assignmentId!, taskId, formData).subscribe({
+        next: () => {
+          this.removeAllSelectedFiles(taskId);
+          this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
+          this.notification.success('Evidence uploaded successfully!');
+          this.loadDepartmentPreviousEvidences();
+          this.loadTasks();
+          resolve(true);
+        },
+        error: (err) => {
+          this.rowSavingMap.update((map: any) => ({ ...map, [taskId]: false }));
+          this.notification.error('Failed to upload evidence: ' + (err.message || 'Error'));
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  previewFileUrlDirect(url: string | null | undefined, name?: string | null): void {
+    if (!url) return;
+    const fullUrl = this.api.resolveFileUrl(url);
+    if (fullUrl) window.open(fullUrl, '_blank');
+  }
+
+  resolveFileUrl(url: string | null | undefined): string | null {
+    return this.api.resolveFileUrl(url);
+  }
+
   // Save a single task row declaration and/or upload evidence
   async saveSingleTask(task: any, showNotification: boolean = true): Promise<boolean> {
     if (!this.assignmentId) return false;
-    // Guard: Head Department cannot overwrite sub-department comments/remarks
-    if (this.isHeadDepartmentUser() && this.isSubDeptSubmission(null, task)) {
-      if (showNotification) {
-        this.notification.warn('Sub-department comments and evidence cannot be modified by Head of Department.');
-      }
-      return false;
-    }
     if (!task.temp_remarks?.trim()) {
       this.notification.warn('Remarks / Explanation is required.');
       return false;
@@ -3345,6 +3929,11 @@ export class AssignmentDetailsComponent implements OnInit {
 
   getFileUrl(url: string | null | undefined): string {
     return this.api.getFileUrl(url);
+  }
+
+  downloadFile(url: string | null | undefined, name?: string | null): void {
+    if (!url) return;
+    this.api.downloadFile(url, name);
   }
 
   getRoleIcon(role: string): string {

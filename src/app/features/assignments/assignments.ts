@@ -278,10 +278,11 @@ export class AssignmentsComponent implements OnInit {
         }
       });
 
-      // Also add any sub-department that appears in loaded assignments
+      // Also add any sub-department that appears in loaded assignments, strictly belonging to mySubDepts
+      const mySubNames = new Set(mySubDepts.map((sub: any) => (sub.name || '').trim().toLowerCase()));
       (this.assignments() || []).forEach((a: any) => {
         (a.sub_dept_stats?.subDeptNames || []).forEach((sdn: string) => {
-          if (!list.some(o => o.value.toLowerCase() === sdn.toLowerCase())) {
+          if (mySubNames.has(sdn.trim().toLowerCase()) && !list.some(o => o.value.toLowerCase() === sdn.toLowerCase())) {
             list.push({ label: sdn, value: sdn });
           }
         });
@@ -789,17 +790,19 @@ export class AssignmentsComponent implements OnInit {
             const subDeptNamesSet = new Set<string>();
 
             rTasks.forEach((t: any) => {
-              const isAssignedSubDept = !!t.sub_dept_id ||
-                (t.sub_dept_name && subDeptNames.has((t.sub_dept_name || '').trim().toLowerCase())) ||
-                (subDeptIds.has(Number(t.sub_dept_id))) ||
-                (subDeptIds.has(Number(r.branch_id)));
+              const targetSubDeptId = t.sub_dept_id ? Number(t.sub_dept_id) : (r.branch_id ? Number(r.branch_id) : null);
+              const targetSubDeptName = (t.sub_dept_name || '').trim().toLowerCase();
+
+              const isAssignedSubDept =
+                (targetSubDeptId !== null && subDeptIds.has(targetSubDeptId)) ||
+                (targetSubDeptName && subDeptNames.has(targetSubDeptName));
 
               if (isAssignedSubDept) {
                 aTotal++;
-                if (t.sub_dept_name) {
-                  subDeptNamesSet.add(t.sub_dept_name.trim());
-                } else if (t.sub_dept_id) {
-                  const sObj = allBranchesList.find((b: any) => String(b.id) === String(t.sub_dept_id));
+                if (targetSubDeptName && subDeptNames.has(targetSubDeptName)) {
+                  subDeptNamesSet.add((t.sub_dept_name || '').trim());
+                } else if (targetSubDeptId !== null && subDeptIds.has(targetSubDeptId)) {
+                  const sObj = allBranchesList.find((b: any) => Number(b.id) === targetSubDeptId);
                   if (sObj?.name) subDeptNamesSet.add(sObj.name.trim());
                 }
 
@@ -1052,7 +1055,10 @@ export class AssignmentsComponent implements OnInit {
       const isInternal = typeStr === 'INTERNAL' || (!row.circular_id && !row.circular_name && !row.circular_no);
 
       const isHeadUser = !isSubDeptUser && this.isBranchUser;
-      const subDeptTasks = tsTasks.filter((t: any) => !!t.sub_dept_id);
+      const subDeptTasks = tsTasks.filter((t: any) =>
+        (t.sub_dept_id && subDeptIds.has(Number(t.sub_dept_id))) ||
+        (t.sub_dept_name && subDeptNames.has(String(t.sub_dept_name).trim().toLowerCase()))
+      );
       const submittedSubDeptTasks = subDeptTasks.filter((t: any) =>
         (t.compliance_status === 'COMPLIED' || t.compliance_status === 'NOT_COMPLIED' || !!t.remarks?.trim() || !!t.temp_remarks?.trim() || t.has_evidence || !!t.evidence_file_name || t.status === 'COMPLETED') &&
         t.review_status !== 'APPROVED'
@@ -1068,7 +1074,7 @@ export class AssignmentsComponent implements OnInit {
         }
       } else if (tsTasks.length > 0 && isHeadUser) {
         // For circular task sets: if sub-department tasks are still pending Head review/acceptance, keep status In_Progress
-        const hasUnapprovedSubTasks = tsTasks.some((t: any) => !!t.sub_dept_id && t.review_status !== 'APPROVED');
+        const hasUnapprovedSubTasks = subDeptTasks.some((t: any) => t.review_status !== 'APPROVED');
         if (hasUnapprovedSubTasks && (String(rowStatus).toUpperCase() === 'REVIEW_PENDING' || String(rowStatus).toUpperCase() === 'REVIEW PENDING')) {
           rowStatus = 'In_Progress';
         }

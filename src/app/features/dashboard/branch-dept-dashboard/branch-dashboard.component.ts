@@ -81,17 +81,31 @@ export class BranchDashboardComponent implements OnInit, OnChanges {
     this.isLoadingSubDept = true;
 
     const u = this.currentUser;
-    const userBranchId = u?.branch_id ?? u?.branchId;
-    const headDeptName = this.branchDisplayName || 'IT DEPARTMENT';
+    let userBranchId = u?.branch_id ?? u?.branchId;
+    const userBranchName = (u?.branch_name || u?.branchName || '').trim().toLowerCase();
 
     this.api.getBranches().pipe(
       catchError(() => of([]))
     ).subscribe((branches: any[]) => {
+      if (!userBranchId && userBranchName) {
+        const found = (branches || []).find((b: any) => (b.name || '').trim().toLowerCase() === userBranchName);
+        if (found) userBranchId = found.id;
+      }
+
       const childBranches = (branches || []).filter((b: any) =>
         userBranchId && String(b.parent_id) === String(userBranchId)
       );
       const childBranchIds = new Set<number>(childBranches.map((b: any) => Number(b.id)));
       const childBranchNames = new Set<string>(childBranches.map((b: any) => (b.name || '').trim().toLowerCase()));
+
+      // If current department has NO sub-departments registered in DB, immediately clear stats and return
+      if (childBranches.length === 0) {
+        this.departmentTaskStats = [];
+        this.subDeptStats = { total: 0, completed: 0, pending: 0, reviewPending: 0 };
+        this.isLoadingSubDept = false;
+        this.cdr.markForCheck();
+        return;
+      }
 
       // 1. Gather all unique assignments to scan (from recentAssignments + API call)
       const assignmentMap = new Map<number, any>();
@@ -160,15 +174,15 @@ export class BranchDashboardComponent implements OnInit, OnChanges {
               const aSubDeptNames = new Set<string>();
 
               tasks.forEach((t: any) => {
-                // Determine if task is assigned to a sub-department
+                // Determine if task is assigned to a genuine sub-department of THIS department
                 let targetSubDeptName: string | null = null;
                 let targetSubDeptId: number | null = null;
 
-                if (t.sub_dept_id && String(t.sub_dept_id) !== String(userBranchId)) {
+                if (t.sub_dept_id && childBranchIds.has(Number(t.sub_dept_id))) {
                   targetSubDeptId = Number(t.sub_dept_id);
                   const bObj = (branches || []).find((b: any) => Number(b.id) === targetSubDeptId);
                   targetSubDeptName = bObj ? (bObj.name || '').trim() : (t.sub_dept_name || `Sub-Dept ${targetSubDeptId}`).trim();
-                } else if (t.sub_dept_name && t.sub_dept_name.trim().toLowerCase() !== headDeptName.trim().toLowerCase()) {
+                } else if (t.sub_dept_name && childBranchNames.has(t.sub_dept_name.trim().toLowerCase())) {
                   targetSubDeptName = t.sub_dept_name.trim();
                   const bObj = (branches || []).find((b: any) => (b.name || '').trim().toLowerCase() === targetSubDeptName!.toLowerCase());
                   if (bObj) targetSubDeptId = Number(bObj.id);
@@ -188,10 +202,10 @@ export class BranchDashboardComponent implements OnInit, OnChanges {
 
                   const sKey = targetSubDeptName.toLowerCase();
                   let subItem = subDeptMap.get(sKey);
-                  if (!subItem) {
+                  if (!subItem && targetSubDeptId && childBranchIds.has(targetSubDeptId)) {
                     const theme = subDeptThemes[subDeptMap.size % subDeptThemes.length];
                     subItem = {
-                      id: targetSubDeptId || 0,
+                      id: targetSubDeptId,
                       name: targetSubDeptName,
                       isParent: false,
                       typeLabel: 'Sub-Dept',
@@ -209,19 +223,21 @@ export class BranchDashboardComponent implements OnInit, OnChanges {
                     subDeptMap.set(sKey, subItem);
                   }
 
-                  subItem.total++;
-                  if (isApproved) {
-                    subItem.completed++;
-                    aCompleted++;
-                  } else if (t.review_status === 'NEEDS_REDO') {
-                    subItem.pending++;
-                    aPending++;
-                  } else if (hasSubSubmission || t.review_status === 'IN_REVIEW' || t.review_status === 'REVIEW_PENDING' || t.status === 'REVIEW_PENDING') {
-                    subItem.reviewPending++;
-                    aReviewPending++;
-                  } else {
-                    subItem.pending++;
-                    aPending++;
+                  if (subItem) {
+                    subItem.total++;
+                    if (isApproved) {
+                      subItem.completed++;
+                      aCompleted++;
+                    } else if (t.review_status === 'NEEDS_REDO') {
+                      subItem.pending++;
+                      aPending++;
+                    } else if (hasSubSubmission || t.review_status === 'IN_REVIEW' || t.review_status === 'REVIEW_PENDING' || t.status === 'REVIEW_PENDING') {
+                      subItem.reviewPending++;
+                      aReviewPending++;
+                    } else {
+                      subItem.pending++;
+                      aPending++;
+                    }
                   }
                 }
               });
@@ -241,8 +257,8 @@ export class BranchDashboardComponent implements OnInit, OnChanges {
               }
             });
 
-            // Gather active sub-departments (those with tasks or configured child branches)
-            const activeSubDepts = Array.from(subDeptMap.values()).filter(s => s.total > 0 || childBranchIds.has(s.id));
+            // Gather active sub-departments (strictly only child branches belonging to this department)
+            const activeSubDepts = Array.from(subDeptMap.values()).filter(s => childBranchIds.has(s.id));
 
             // Aggregate sub-department statistics
             let subTotal = 0;

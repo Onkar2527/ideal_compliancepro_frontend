@@ -2742,7 +2742,7 @@ export class TaskSetsComponent implements OnInit {
     return ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role);
   });
   showDeptColumn = computed(() => {
-    return this.isBranchUser() || (this.branches() && this.branches().length > 0);
+    return this.branches() && this.branches().length > 0;
   });
   proposedDate = signal<Date | null>(null);
   parentPage: number | null = null;
@@ -2884,15 +2884,9 @@ export class TaskSetsComponent implements OnInit {
       let managed: any[] = [];
 
       if (['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT'].includes(userRole)) {
-        // For branch users, show ONLY sub-departments belonging to their department/branch
+        // For branch/department users, strictly show ONLY sub-departments belonging to their department
         const mySubDepts = allBranches.filter((b: any) => userBranchId && String(b.parent_id) === String(userBranchId));
-        if (mySubDepts.length > 0) {
-          managed = mySubDepts;
-        } else {
-          // Fallback if not directly matched by parent_id
-          const anySubDepts = allBranches.filter((b: any) => b.parent_id !== null && b.parent_id !== undefined);
-          managed = anySubDepts.length > 0 ? anySubDepts : allBranches.filter((b: any) => userBranchId && String(b.id) === String(userBranchId));
-        }
+        managed = mySubDepts;
       } else {
         // Filter out sub-departments: show only top-level departments and branches for Admin/CO/CCO
         const topLevelBranches = allBranches.filter((b: any) => !b.parent_id);
@@ -3434,14 +3428,9 @@ export class TaskSetsComponent implements OnInit {
         }
       }
       
-      const d20 = new Date();
-      d20.setDate(d20.getDate() + 20);
-      const default20DaysStr = d20.toISOString().split('T')[0];
-      const fallbackDate = this.formatDate(this.newTaskSetEndDate()) || default20DaysStr;
-
       const taskTimelines = this.targetTasks.map(t => ({
         task_id: t.id,
-        due_date: (t.due_date ? this.formatDate(t.due_date) : fallbackDate) || default20DaysStr,
+        due_date: (t.due_date && this.formatDate(t.due_date)) ? this.formatDate(t.due_date)! : null,
         sub_dept_id: t.sub_dept_id || null,
         branch_id: t.sub_dept_id || null
       }));

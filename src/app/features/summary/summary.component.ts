@@ -15,6 +15,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { RippleModule } from 'primeng/ripple';
 import { ComplianceApiService, ComplianceDocument } from '../../core/services/api/compliance-api.service';
+import { AuthService } from '../../core/services/auth/auth.service';
 import { ExportService } from '../../core/services/export/export.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
 import { getCompliancePeriodInfo } from '../../shared/utils/compliance-period.util';
@@ -76,6 +77,7 @@ export interface SummaryRow {
   evidence_count: number;
   has_evidence: boolean;
   details_loaded?: boolean;
+  creator_name?: string | null;
 }
 
 @Component({
@@ -103,6 +105,7 @@ export class SummaryComponent implements OnInit {
   private notification = inject(NotificationService);
   private router = inject(Router);
   private sanitizer = inject(DomSanitizer);
+  private auth = inject(AuthService);
 
   loading = signal<boolean>(true);
   enrichingDetails = signal<boolean>(false);
@@ -113,11 +116,14 @@ export class SummaryComponent implements OnInit {
 
   // Filter signals
   selectedTaskId = signal<number | null>(null);
+  selectedUser = signal<string | null>(null);
   selectedFrequency = signal<string | null>(null);
   selectedCycle = signal<string | null>(null);
   selectedStatus = signal<string | null>(null);
   selectedEvidenceFilter = signal<string | null>(null);
   searchText = signal<string>('');
+  rawUsers = signal<any[]>([]);
+  rawBranches = signal<any[]>([]);
 
   // Dialog signals
   showRemarksDialog = signal<boolean>(false);
@@ -169,6 +175,178 @@ export class SummaryComponent implements OnInit {
     { label: 'With Evidence Uploaded', value: 'WITH_EVIDENCE' },
     { label: 'Missing / No Evidence', value: 'NO_EVIDENCE' }
   ];
+
+  getCurrentUser(): any {
+    try {
+      const u = this.auth.currentUser();
+      if (u) return u;
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  // User Dropdown Options
+  userOptions = computed(() => {
+    const allUsers = this.rawUsers();
+    const rows = this.allRows();
+    const allBranches = this.rawBranches().length > 0 ? this.rawBranches() : this.api.getCachedBranches();
+    const map = new Map<string, { label: string; value: string }>();
+
+    const currentUser: any = this.getCurrentUser();
+    const role = String(currentUser?.role || currentUser?.designation || '').toUpperCase().trim();
+    const isElevated = role === 'ADMIN' || role === 'CCO' || role === 'CO';
+
+    let allowedUsers = allUsers;
+    let relevantRows = rows;
+
+    if (!isElevated) {
+      // Find current user's branch & its sub-branches (children)
+      let userBranchId = currentUser?.branch_id ?? currentUser?.branchId;
+      const userBranchName = (currentUser?.branch_name || currentUser?.branchName || '').trim().toLowerCase();
+
+      // Resolve branch id from name if missing
+      if ((userBranchId === null || userBranchId === undefined) && userBranchName && allBranches.length > 0) {
+        const found = allBranches.find((b: any) => (b.name || '').trim().toLowerCase() === userBranchName);
+        if (found) userBranchId = found.id;
+      }
+
+      const branchIds = new Set<number>();
+      const branchNames = new Set<string>();
+
+      if (userBranchId !== null && userBranchId !== undefined) {
+        const bId = Number(userBranchId);
+        branchIds.add(bId);
+
+        const currentBranch = allBranches.find((b: any) => Number(b.id) === bId);
+        if (currentBranch?.name) branchNames.add(currentBranch.name.trim().toLowerCase());
+
+        // If current user is in a sub-department, also include its parent department & sibling sub-departments
+        const parentId = currentBranch?.parent_id ? Number(currentBranch.parent_id) : bId;
+        branchIds.add(parentId);
+
+        const parentBranch = allBranches.find((b: any) => Number(b.id) === parentId);
+        if (parentBranch?.name) branchNames.add(parentBranch.name.trim().toLowerCase());
+
+        // Add all sub-departments / children where parent matches this branch or root branch
+        allBranches.forEach((b: any) => {
+          const bParentId = b.parent_id ? Number(b.parent_id) : null;
+          if (bParentId === bId || bParentId === parentId) {
+            branchIds.add(Number(b.id));
+            if (b.name) branchNames.add(b.name.trim().toLowerCase());
+          }
+        });
+      } else if (userBranchName) {
+        branchNames.add(userBranchName);
+        allBranches.forEach((b: any) => {
+          const bName = (b.name || '').trim().toLowerCase();
+          if (bName === userBranchName || bName.includes(userBranchName) || userBranchName.includes(bName)) {
+            branchIds.add(Number(b.id));
+            branchNames.add(bName);
+          }
+        });
+      }
+
+      const currentUserId = currentUser?.id ?? currentUser?.user_id;
+
+      // Filter registered users: Only include users belonging to that branch and sub-branches
+      allowedUsers = allUsers.filter((u: any) => {
+        if (currentUserId && Number(u.id) === Number(currentUserId)) return true;
+
+        const uBranchId = (u.branch_id !== null && u.branch_id !== undefined) ? Number(u.branch_id) : null;
+        if (uBranchId !== null && branchIds.has(uBranchId)) return true;
+
+        const uBranchName = (u.branch_name || '').trim().toLowerCase();
+        if (uBranchName && uBranchName !== '—') {
+          if (branchNames.has(uBranchName)) return true;
+          for (const bName of branchNames) {
+            if (bName && (uBranchName === bName || uBranchName.includes(bName) || bName.includes(uBranchName))) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      });
+
+      // Filter rows to only this branch and sub-branches for discovering contributors
+      relevantRows = rows.filter((r: SummaryRow) => {
+        const rBranchId = (r.branch_id !== null && r.branch_id !== undefined) ? Number(r.branch_id) : null;
+        if (rBranchId !== null && branchIds.has(rBranchId)) return true;
+
+        const rBranchName = (r.branch_name || '').trim().toLowerCase();
+        if (rBranchName && branchNames.has(rBranchName)) return true;
+
+        const rDeptName = (r.department_name || '').trim().toLowerCase();
+        if (rDeptName && branchNames.has(rDeptName)) return true;
+
+        return false;
+      });
+    }
+
+    // 1. Registered system users from API
+    allowedUsers.forEach((u: any) => {
+      const name = (u.full_name || u.username || '').trim();
+      if (!name) return;
+      const key = `user_${u.id}`;
+      const roleStr = u.role ? u.role.replace(/_/g, ' ') : '';
+      const branchStr = u.branch_name && u.branch_name !== '—' ? u.branch_name : '';
+      let badge = '';
+      if (branchStr && roleStr) {
+        badge = ` (${branchStr} • ${roleStr})`;
+      } else if (roleStr) {
+        badge = ` (${roleStr})`;
+      } else if (branchStr) {
+        badge = ` (${branchStr})`;
+      }
+
+      map.set(key, {
+        label: `${name}${badge}`,
+        value: key
+      });
+    });
+
+    // 2. Discover any additional active contributors from remarks history or evidence
+    relevantRows.forEach(r => {
+      (r.remarks_history || []).forEach(h => {
+        const uName = (h.username || '').trim();
+        if (uName && uName !== 'System') {
+          const exists = Array.from(map.values()).some(item =>
+            item.label.toLowerCase().includes(uName.toLowerCase())
+          );
+          if (!exists) {
+            const key = `remark_user_${uName.toLowerCase()}`;
+            map.set(key, {
+              label: `${uName} (${h.role || 'Contributor'})`,
+              value: key
+            });
+          }
+        }
+      });
+
+      (r.evidence_list || []).forEach(ev => {
+        const uName = (ev.uploader_name || '').trim();
+        if (uName && uName !== 'Branch Member') {
+          const exists = Array.from(map.values()).some(item =>
+            item.label.toLowerCase().includes(uName.toLowerCase())
+          );
+          if (!exists) {
+            const key = `uploader_${uName.toLowerCase()}`;
+            map.set(key, {
+              label: `${uName} (Evidence Uploader)`,
+              value: key
+            });
+          }
+        }
+      });
+    });
+
+    const opts: { label: string; value: string | null }[] = [{ label: 'All Users', value: null }];
+    const sorted = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+    sorted.forEach(s => opts.push({ label: s.label, value: s.value }));
+    return opts;
+  });
 
   // Frequency Dropdown Options
   frequencyOptions = computed(() => {
@@ -252,6 +430,7 @@ export class SummaryComponent implements OnInit {
   filteredRows = computed(() => {
     const rows = this.allRows();
     const tId = this.selectedTaskId();
+    const chosenUser = this.selectedUser();
     const freq = this.selectedFrequency();
     const cycle = this.selectedCycle();
     const status = this.selectedStatus();
@@ -260,6 +439,7 @@ export class SummaryComponent implements OnInit {
 
     return rows.filter(r => {
       if (tId !== null && Number(r.task_id) !== Number(tId)) return false;
+      if (chosenUser !== null && !this.matchesUserFilter(r, chosenUser)) return false;
       if (freq !== null && r.frequency !== freq) return false;
       if (cycle !== null && r.cycle_label !== cycle) return false;
       if (status !== null && r.compliance_status !== status) return false;
@@ -273,16 +453,93 @@ export class SummaryComponent implements OnInit {
           (r.task_title && r.task_title.toLowerCase().includes(search)) ||
           (r.task_header && r.task_header.toLowerCase().includes(search)) ||
           (r.branch_name && r.branch_name.toLowerCase().includes(search)) ||
+          (r.department_name && r.department_name.toLowerCase().includes(search)) ||
           (r.cycle_label && r.cycle_label.toLowerCase().includes(search)) ||
           (r.maker_remarks && r.maker_remarks.toLowerCase().includes(search)) ||
           (r.reviewer_remarks && r.reviewer_remarks.toLowerCase().includes(search)) ||
-          (r.evidence_list || []).some(e => e.file_name && e.file_name.toLowerCase().includes(search));
+          (r.creator_name && r.creator_name.toLowerCase().includes(search)) ||
+          (r.remarks_history || []).some(h => h.username && h.username.toLowerCase().includes(search)) ||
+          (r.evidence_list || []).some(e =>
+            (e.file_name && e.file_name.toLowerCase().includes(search)) ||
+            (e.uploader_name && e.uploader_name.toLowerCase().includes(search))
+          );
         if (!matches) return false;
       }
 
       return true;
     });
   });
+
+  matchesUserFilter(row: SummaryRow, selectedKey: string): boolean {
+    if (!selectedKey) return true;
+
+    if (selectedKey.startsWith('user_')) {
+      const uId = selectedKey.replace('user_', '');
+      const user = this.rawUsers().find(u => String(u.id) === uId);
+      if (!user) return true;
+
+      const userName = (user.username || '').toLowerCase().trim();
+      const userFullName = (user.full_name || '').toLowerCase().trim();
+      const userBranchId = user.branch_id ? Number(user.branch_id) : null;
+      const userBranchName = (user.branch_name || '').toLowerCase().trim();
+      const managedIds: number[] = Array.isArray(user.managed_branch_ids)
+        ? user.managed_branch_ids.map((id: any) => Number(id))
+        : [];
+
+      // 1. Direct remark author match in history
+      const hasRemark = (row.remarks_history || []).some(h => {
+        const u = (h.username || '').toLowerCase().trim();
+        return (userName && u.includes(userName)) || (userFullName && u.includes(userFullName));
+      });
+      if (hasRemark) return true;
+
+      // 2. Evidence uploader match
+      const hasEvidence = (row.evidence_list || []).some(e => {
+        const u = (e.uploader_name || '').toLowerCase().trim();
+        return (userName && u.includes(userName)) || (userFullName && u.includes(userFullName));
+      });
+      if (hasEvidence) return true;
+
+      // 3. Task set creator match
+      if (row.creator_name) {
+        const c = row.creator_name.toLowerCase().trim();
+        if ((userName && c.includes(userName)) || (userFullName && c.includes(userFullName))) {
+          return true;
+        }
+      }
+
+      // 4. Branch / Department affiliation
+      if (userBranchId && row.branch_id && Number(row.branch_id) === userBranchId) {
+        return true;
+      }
+      if (userBranchName && userBranchName !== '—') {
+        const b = (row.branch_name || '').toLowerCase().trim();
+        const d = (row.department_name || '').toLowerCase().trim();
+        if (b.includes(userBranchName) || userBranchName.includes(b) || d.includes(userBranchName) || userBranchName.includes(d)) {
+          return true;
+        }
+      }
+
+      // 5. Managed branch by CO/CCO
+      if (row.branch_id && managedIds.includes(Number(row.branch_id))) {
+        return true;
+      }
+
+      return false;
+    }
+
+    if (selectedKey.startsWith('remark_user_')) {
+      const target = selectedKey.replace('remark_user_', '').toLowerCase().trim();
+      return (row.remarks_history || []).some(h => (h.username || '').toLowerCase().trim().includes(target));
+    }
+
+    if (selectedKey.startsWith('uploader_')) {
+      const target = selectedKey.replace('uploader_', '').toLowerCase().trim();
+      return (row.evidence_list || []).some(e => (e.uploader_name || '').toLowerCase().trim().includes(target));
+    }
+
+    return true;
+  }
 
   // KPI Statistics
   stats = computed(() => {
@@ -324,6 +581,10 @@ export class SummaryComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const cachedBranches = this.api.getCachedBranches();
+    if (cachedBranches && cachedBranches.length > 0) {
+      this.rawBranches.set(cachedBranches);
+    }
     this.loadSummaryData();
   }
 
@@ -334,12 +595,15 @@ export class SummaryComponent implements OnInit {
     forkJoin({
       taskSets: this.api.getTaskSets().pipe(catchError(() => of([]))),
       assignmentsRes: this.api.getAssignments({ limit: 1000 }).pipe(catchError(() => of({ data: [] }))),
-      branches: this.api.getBranches().pipe(catchError(() => of([])))
+      branches: this.api.getBranches().pipe(catchError(() => of([]))),
+      users: this.api.getUsers().pipe(catchError(() => of([])))
     }).subscribe({
-      next: ({ taskSets, assignmentsRes, branches }) => {
+      next: ({ taskSets, assignmentsRes, branches, users }) => {
+        this.rawUsers.set(Array.isArray(users) ? users : []);
         const tsList: any[] = Array.isArray(taskSets) ? taskSets : [];
         const asgList: any[] = (assignmentsRes && assignmentsRes.data) ? assignmentsRes.data : (Array.isArray(assignmentsRes) ? assignmentsRes : []);
         const branchList: any[] = Array.isArray(branches) ? branches : [];
+        this.rawBranches.set(branchList);
 
         // Build branch map
         const branchMap = new Map<number, any>();
@@ -450,7 +714,8 @@ export class SummaryComponent implements OnInit {
           evidence_list: [],
           evidence_count: 0,
           has_evidence: false,
-          details_loaded: false
+          details_loaded: false,
+          creator_name: matchedTs?.created_by_name || asg.created_by_name || null
         });
         return;
       }
@@ -539,7 +804,8 @@ export class SummaryComponent implements OnInit {
           evidence_list: evList,
           evidence_count: evList.length,
           has_evidence: evList.length > 0,
-          details_loaded: false
+          details_loaded: false,
+          creator_name: matchedTs?.created_by_name || asg.created_by_name || null
         });
       });
     });
@@ -615,7 +881,8 @@ export class SummaryComponent implements OnInit {
           evidence_list: evList,
           evidence_count: evList.length,
           has_evidence: evList.length > 0,
-          details_loaded: true
+          details_loaded: true,
+          creator_name: ts.created_by_name || null
         });
       });
     });
@@ -814,7 +1081,8 @@ export class SummaryComponent implements OnInit {
           evidence_list: evList,
           evidence_count: evList.length,
           has_evidence: evList.length > 0,
-          details_loaded: true
+          details_loaded: true,
+          creator_name: t.created_by_name || t.created_by_username || baseRow.creator_name || null
         };
       });
 
@@ -833,6 +1101,7 @@ export class SummaryComponent implements OnInit {
   // Filter Reset
   resetFilters(): void {
     this.selectedTaskId.set(null);
+    this.selectedUser.set(null);
     this.selectedFrequency.set(null);
     this.selectedCycle.set(null);
     this.selectedStatus.set(null);
@@ -912,25 +1181,41 @@ export class SummaryComponent implements OnInit {
       this.previewFileType.set('pdf');
       this.previewSafeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
       this.showPreviewModal.set(true);
-    } else if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.webp')) {
+    } else if (
+      lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.svg') ||
+      lower.endsWith('.gif') ||
+      lower.endsWith('.bmp')
+    ) {
       this.previewFileType.set('image');
       this.previewSafeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(url));
       this.showPreviewModal.set(true);
     } else {
-      // Direct download / new window for DOC, XLSX, etc.
-      window.open(url, '_blank');
+      // Direct download for non-previewable files (DOC, XLSX, ZIP, etc.)
+      this.downloadFile(file);
     }
   }
 
-  downloadFile(file: SummaryEvidenceItem): void {
-    if (!file.file_url) return;
-    const link = document.createElement('a');
-    link.href = file.file_url;
-    link.download = file.file_name || 'evidence_document';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  async downloadFile(file: SummaryEvidenceItem): Promise<void> {
+    if (!file || !file.file_url) return;
+    try {
+      await this.api.downloadFile(file.file_url, file.file_name);
+      this.notification.success(`Downloaded ${file.file_name || 'evidence document'}`);
+    } catch (err) {
+      this.notification.error('Failed to download evidence file.');
+    }
+  }
+
+  downloadCurrentPreview(): void {
+    const url = this.previewFileUrl();
+    if (!url) return;
+    this.downloadFile({
+      file_url: url,
+      file_name: this.previewFileName() || this.cleanFileName(url)
+    });
   }
 
   navigateToAssignment(assignmentId: number | null | undefined): void {
@@ -1119,16 +1404,29 @@ export class SummaryComponent implements OnInit {
   getFileIcon(filename: string): string {
     const f = (filename || '').toLowerCase();
     if (f.endsWith('.pdf')) return 'pi pi-file-pdf text-red-500';
-    if (f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg')) return 'pi pi-image text-blue-500';
+    if (
+      f.endsWith('.png') ||
+      f.endsWith('.jpg') ||
+      f.endsWith('.jpeg') ||
+      f.endsWith('.webp') ||
+      f.endsWith('.svg') ||
+      f.endsWith('.gif') ||
+      f.endsWith('.bmp')
+    ) {
+      return 'pi pi-image text-blue-500';
+    }
     if (f.endsWith('.xls') || f.endsWith('.xlsx') || f.endsWith('.csv')) return 'pi pi-file-excel text-green-500';
     if (f.endsWith('.doc') || f.endsWith('.docx')) return 'pi pi-file-word text-blue-600';
+    if (f.endsWith('.zip') || f.endsWith('.rar') || f.endsWith('.7z')) return 'pi pi-box text-amber-500';
+    if (f.endsWith('.txt')) return 'pi pi-file-edit text-slate-500';
     return 'pi pi-file text-slate-500';
   }
 
   cleanFileName(url: string | null | undefined): string {
     if (!url) return 'Evidence Document';
     try {
-      const parts = url.split('/');
+      const normalized = url.replace(/\\/g, '/');
+      const parts = normalized.split('/');
       const last = parts[parts.length - 1];
       const clean = last.split('?')[0];
       return decodeURIComponent(clean);

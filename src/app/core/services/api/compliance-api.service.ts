@@ -148,6 +148,77 @@ export class ComplianceApiService {
     return `${serverUrl}/${cleanPath}`;
   }
 
+  /**
+   * Universal downloader that handles any file type (images, PDFs, documents, spreadsheets, etc.)
+   * by fetching the binary content as a Blob and triggering a same-origin object URL download.
+   * This bypasses the browser's cross-origin <a download> limitation.
+   */
+  async downloadFile(pathOrUrl: string | null | undefined, desiredFileName?: string | null): Promise<void> {
+    if (!pathOrUrl) return;
+    const resolvedUrl = this.getFileUrl(pathOrUrl);
+    const resolvedName = this.ensureFileName(desiredFileName, resolvedUrl);
+
+    try {
+      const response = await fetch(resolvedUrl, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file: ${response.statusText} (${response.status})`);
+      }
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = resolvedName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 1000);
+    } catch (err) {
+      console.warn('Direct blob download failed, falling back to direct anchor:', err);
+      const link = document.createElement('a');
+      link.href = resolvedUrl;
+      link.download = resolvedName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
+  ensureFileName(name: string | null | undefined, url: string): string {
+    let cleanName = (name || '').trim();
+    if (!cleanName) {
+      cleanName = this.extractFileName(url);
+    }
+    cleanName = cleanName.replace(/[<>:"/\\|?*]/g, '_');
+    const hasExt = cleanName.lastIndexOf('.') > 0;
+    if (!hasExt && url) {
+      const urlClean = url.split('?')[0].replace(/\\/g, '/');
+      const lastSegment = urlClean.substring(urlClean.lastIndexOf('/') + 1);
+      const dotIdx = lastSegment.lastIndexOf('.');
+      if (dotIdx > 0) {
+        const ext = lastSegment.substring(dotIdx);
+        if (ext.length <= 6) {
+          cleanName += ext;
+        }
+      }
+    }
+    return cleanName || 'download';
+  }
+
+  extractFileName(url: string | null | undefined): string {
+    if (!url) return 'file';
+    try {
+      const clean = url.split('?')[0].replace(/\\/g, '/');
+      const last = clean.substring(clean.lastIndexOf('/') + 1);
+      return decodeURIComponent(last) || 'file';
+    } catch {
+      return 'file';
+    }
+  }
+
   getCirculars(params?: any) {
     let httpParams = new HttpParams();
     if (params) {

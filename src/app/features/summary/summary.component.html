@@ -171,6 +171,22 @@
         </p-select>
       </div>
 
+      <!-- 2. User Filter -->
+      <div class="filter-item">
+        <label class="filter-label">User</label>
+        <p-select 
+          [options]="userOptions()" 
+          [ngModel]="selectedUser()" 
+          (ngModelChange)="selectedUser.set($event)"
+          optionLabel="label" 
+          optionValue="value"
+          placeholder="Filter by User"
+          [filter]="true"
+          class="w-full custom-select"
+          appendTo="body">
+        </p-select>
+      </div>
+
       <!-- 3. Frequency Filter -->
       <div class="filter-item">
         <label class="filter-label">Frequency</label>
@@ -634,14 +650,14 @@
 
     <ng-template pTemplate="footer">
       <div class="flex justify-between items-center w-full">
-        <a 
+        <button 
           *ngIf="previewFileUrl()" 
-          [href]="previewFileUrl()!" 
-          target="_blank" 
-          download 
-          class="p-button p-button-sm p-button-outlined">
+          type="button" 
+          pButton 
+          class="p-button-sm p-button-outlined" 
+          (click)="downloadCurrentPreview()">
           <i class="pi pi-download mr-1"></i> Download File
-        </a>
+        </button>
         <button pButton label="Close" class="p-button-text p-button-sm" (click)="showPreviewModal.set(false)"></button>
       </div>
     </ng-template>

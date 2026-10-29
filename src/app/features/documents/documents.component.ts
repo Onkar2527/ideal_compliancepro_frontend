@@ -480,10 +480,10 @@ export class DocumentsComponent implements OnInit {
   }
 
   /**
-   * Filtered List matching search and toolbar filters
+   * Filtered List matching search and toolbar filters (Master Documents only)
    */
   get filteredDocumentsList(): ComplianceDocument[] {
-    let list = this.visibleDocuments;
+    let list = this.visibleDocuments.filter(d => !d.is_evidence);
     const search = (this.searchTerm || '').toLowerCase().trim();
     const dept = this.selectedDeptFilter;
     const access = this.selectedAccessFilter;
@@ -495,28 +495,8 @@ export class DocumentsComponent implements OnInit {
         (d.document_number && d.document_number.toLowerCase().includes(search)) ||
         (d.department_name && d.department_name.toLowerCase().includes(search)) ||
         (d.user_name && d.user_name.toLowerCase().includes(search)) ||
-        (d.description && d.description.toLowerCase().includes(search)) ||
-        (d.task_set_name && d.task_set_name.toLowerCase().includes(search)) ||
-        (d.frequency && this.getFrequencyLabel(d.frequency).toLowerCase().includes(search))
+        (d.description && d.description.toLowerCase().includes(search))
       );
-    }
-
-    // Filter by Task Set
-    const ts = this.selectedTaskSetFilter();
-    if (ts) {
-      list = list.filter(d => {
-        const name = d.task_set_name || (d.document_number?.startsWith('TASK: ') ? d.document_number.replace('TASK: ', '').trim() : '');
-        return name.toLowerCase() === ts.toLowerCase();
-      });
-    }
-
-    // Filter by Frequency
-    const fr = this.selectedFrequencyFilter();
-    if (fr) {
-      list = list.filter(d => {
-        if (!d.frequency) return false;
-        return this.getFrequencyLabel(d.frequency).toLowerCase() === fr.toLowerCase();
-      });
     }
 
     if (dept !== null && dept !== undefined) {
@@ -539,12 +519,6 @@ export class DocumentsComponent implements OnInit {
 
     if (st !== null && st !== undefined) {
       list = list.filter(d => this.getDocumentStatus(d) === st);
-    }
-
-    if (this.selectedTypeFilter === 'DOCUMENT') {
-      list = list.filter(d => !d.is_evidence);
-    } else if (this.selectedTypeFilter === 'EVIDENCE') {
-      list = list.filter(d => !!d.is_evidence);
     }
 
     return list;
@@ -739,153 +713,20 @@ export class DocumentsComponent implements OnInit {
   loadDocuments(isRefresh = false): void {
     this.loading.set(true);
 
-    const cachedEvidences = this.api.getEvidenceDocuments();
-
-    // 1 single fast HTTP call to get master documents
     this.api.getDocuments().subscribe({
       next: (masterDocs) => {
-        const seenUrls = new Set<string>();
-        (masterDocs || []).forEach(d => {
-          if (d.file_url) seenUrls.add(d.file_url.toLowerCase().trim());
-        });
-
-        const dedupedEvidences = cachedEvidences.filter(ev => {
-          if (!ev.file_url) return true;
-          return !seenUrls.has(ev.file_url.toLowerCase().trim());
-        });
-
-        const combined = [...(masterDocs || []), ...dedupedEvidences];
-        this.documents.set(combined);
+        // Exclude task evidence - Internal Circular / Docs handles only master documents
+        const docs = (masterDocs || []).filter(d => !d.is_evidence);
+        this.documents.set(docs);
         this.loading.set(false);
         if (isRefresh) {
-          this.notification.info('Evidence Management list refreshed');
-        }
-
-        // Lightweight background sync (only if cache is empty or on manual refresh)
-        if (cachedEvidences.length === 0 || isRefresh) {
-          this.syncRecentEvidencesInBackground();
+          this.notification.info('Internal Circular / Docs list refreshed');
         }
       },
       error: (err) => {
-        this.documents.set(cachedEvidences);
+        this.documents.set([]);
         this.loading.set(false);
         this.notification.error('Failed to load documents: ' + (err.message || 'Error'));
-      }
-    });
-  }
-
-  /**
-   * Non-blocking background sync for recent assignments
-   */
-  private syncRecentEvidencesInBackground(): void {
-    const userBranchId = this.currentUserBranchId;
-    const isElevated = this.isElevatedUser;
-
-    this.api.getAssignments({ limit: 15 }).pipe(catchError(() => of({ data: [] }))).subscribe({
-      next: (res) => {
-        const rawAssignments = res?.data || [];
-        const currentBranches = this.rawBranches();
-
-        let relevantAssignments = rawAssignments;
-        if (!isElevated && userBranchId) {
-          const userBranch = currentBranches.find(b => Number(b.id) === Number(userBranchId));
-          const parentId = userBranch?.parent_id ? Number(userBranch.parent_id) : null;
-          const subDeptIds = currentBranches
-            .filter(b => Number(b.parent_id) === Number(userBranchId))
-            .map(b => Number(b.id));
-          const allowedDeptIds = new Set([Number(userBranchId), ...(parentId ? [parentId] : []), ...subDeptIds]);
-
-          relevantAssignments = rawAssignments.filter((asg: any) => {
-            const bId = asg.branch_id ? Number(asg.branch_id) : null;
-            if (bId !== null && allowedDeptIds.has(bId)) return true;
-            if (userBranch?.name && asg.branch_name && asg.branch_name.toLowerCase().trim() === userBranch.name.toLowerCase().trim()) return true;
-            return false;
-          });
-        }
-
-        if (relevantAssignments.length === 0) return;
-
-        const observables = relevantAssignments.slice(0, 10).map((asg: any) =>
-          forkJoin({
-            evidenceList: this.api.getAssignmentEvidence(asg.id).pipe(catchError(() => of([]))),
-            tasksList: this.api.getAssignmentTasks(asg.id).pipe(catchError(() => of([])))
-          }).pipe(
-            map(({ evidenceList, tasksList }) => ({
-              asg,
-              evidenceList: Array.isArray(evidenceList) ? evidenceList : [],
-              tasksList: Array.isArray(tasksList) ? tasksList : []
-            })),
-            catchError(() => of({ asg, evidenceList: [], tasksList: [] }))
-          )
-        );
-
-        forkJoin(observables).subscribe({
-          next: (results) => {
-            const newEvDocs: ComplianceDocument[] = [];
-            const seenUrls = new Set<string>();
-
-            results.forEach(({ asg, evidenceList, tasksList }) => {
-              const taskMap = new Map<number, any>();
-              tasksList.forEach(t => {
-                if (t.assignment_task_id) taskMap.set(Number(t.assignment_task_id), t);
-                if (t.task_id) taskMap.set(Number(t.task_id), t);
-              });
-
-              evidenceList.forEach((ev: any) => {
-                if (!ev.file_url) return;
-                const normalizedUrl = ev.file_url.toLowerCase().trim();
-                if (seenUrls.has(normalizedUrl)) return;
-                seenUrls.add(normalizedUrl);
-
-                const matchedTask = taskMap.get(Number(ev.assignment_task_id || ev.task_id));
-                const targetDeptId = matchedTask?.sub_dept_id || matchedTask?.branch_id || ev.sub_dept_id || asg.branch_id;
-                const targetDeptName = matchedTask?.sub_dept_name || matchedTask?.branch_name || ev.sub_dept_name || asg.branch_name;
-                const fileName = this.cleanFileName(ev.file_name || ev.filename || ev.file_url.split('/').pop()?.split('?')[0]);
-                const docName = ev.name ? this.cleanFileName(ev.name) : fileName;
-
-                newEvDocs.push({
-                  id: 9000000 + Number(ev.id || Math.floor(Math.random() * 1000000)),
-                  document_name: docName,
-                  document_number: asg.task_set_name ? `TASK: ${asg.task_set_name}` : (ev.assignment_task_id ? `TASK-#${ev.assignment_task_id}` : 'TASK-EVIDENCE'),
-                  issue_date: ev.created_at || ev.uploaded_at || asg.created_at || null,
-                  created_at: ev.created_at || ev.uploaded_at || asg.created_at || new Date().toISOString(),
-                  start_date: asg.start_date || null,
-                  end_date: null,
-                  department_id: targetDeptId ? Number(targetDeptId) : null,
-                  department_name: targetDeptName || null,
-                  user_id: ev.uploaded_by ? Number(ev.uploaded_by) : null,
-                  user_name: ev.uploader_name || ev.uploaded_by_name || 'Branch Member',
-                  file_url: ev.file_url,
-                  file_name: fileName,
-                  description: `Evidence for "${matchedTask?.task_title || matchedTask?.description || asg.task_set_name || 'Task Assignment'}"`,
-                  status: 'ACTIVE',
-                  access_level: 'PUBLIC',
-                  is_evidence: true,
-                  source_type: 'TASK_EVIDENCE',
-                  task_set_id: asg.task_set_id ? Number(asg.task_set_id) : null,
-                  task_set_name: asg.task_set_name || null,
-                  frequency: asg.frequency ? String(asg.frequency) : null,
-                  cycle_label: getCompliancePeriodInfo({
-                    frequency: asg.frequency,
-                    startDate: asg.start_date,
-                    endDate: asg.end_date,
-                    proposedTimeline: asg.proposed_timeline,
-                    createdAt: ev.created_at || asg.created_at
-                  })?.cycleLabel || null
-                });
-              });
-            });
-
-            if (newEvDocs.length > 0) {
-              this.api.saveEvidenceDocuments(newEvDocs);
-              // Re-merge with current master documents smoothly
-              const currentDocs = this.documents().filter(d => !d.is_evidence);
-              const masterUrls = new Set(currentDocs.map(d => (d.file_url || '').toLowerCase().trim()));
-              const allCachedEvs = this.api.getEvidenceDocuments().filter(ev => !ev.file_url || !masterUrls.has(ev.file_url.toLowerCase().trim()));
-              this.documents.set([...currentDocs, ...allCachedEvs]);
-            }
-          }
-        });
       }
     });
   }
@@ -1043,6 +884,18 @@ export class DocumentsComponent implements OnInit {
     this.previewDialog.set(true);
   }
 
+  async downloadDocument(doc: ComplianceDocument): Promise<void> {
+    if (!doc.file_url) return;
+    const name = doc.file_name || doc.document_name || 'document';
+    await this.api.downloadFile(doc.file_url, name);
+  }
+
+  async downloadCurrentPreview(): Promise<void> {
+    const url = this.previewFileUrl();
+    if (!url) return;
+    await this.api.downloadFile(url, this.previewFileName() || 'document');
+  }
+
   saveDocument(): void {
     this.submitted.set(true);
 
@@ -1086,7 +939,7 @@ export class DocumentsComponent implements OnInit {
         next: () => {
           this.saving.set(false);
           this.displayDialog.set(false);
-          this.notification.success('Document updated successfully');
+          this.notification.success('Circular / Doc updated successfully');
           this.loadDocuments();
         },
         error: (err) => {
@@ -1099,7 +952,7 @@ export class DocumentsComponent implements OnInit {
         next: () => {
           this.saving.set(false);
           this.displayDialog.set(false);
-          this.notification.success('Document created successfully');
+          this.notification.success('Circular / Doc created successfully');
           this.loadDocuments();
         },
         error: (err) => {
@@ -1124,7 +977,7 @@ export class DocumentsComponent implements OnInit {
         this.api.deleteDocument(doc.id).subscribe({
           next: () => {
             this.documents.update(docs => docs.filter(d => d.id !== doc.id));
-            this.notification.success('Document deleted successfully');
+            this.notification.success('Circular / Doc deleted successfully');
           },
           error: (err) => {
             this.notification.error('Failed to delete document: ' + (err.message || 'Error'));
