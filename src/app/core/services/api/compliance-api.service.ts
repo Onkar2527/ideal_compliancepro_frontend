@@ -562,8 +562,12 @@ export class ComplianceApiService {
     });
   }
 
-  completeTaskDirectly(assignmentId: number, taskId: number, complianceStatus: 'COMPLIED' | 'NOT_COMPLIED', remarks: string) {
-    return this.http.patch<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/complete`, { compliance_status: complianceStatus, remarks });
+  completeTaskDirectly(assignmentId: number, taskId: number, complianceStatus: 'COMPLIED' | 'NOT_COMPLIED', remarks: string, isHeadEdit: boolean = false) {
+    const body: any = { compliance_status: complianceStatus, remarks };
+    if (isHeadEdit) {
+      body.is_head_edit = true;
+    }
+    return this.http.patch<any>(`${this.baseUrl}/assignments/${assignmentId}/tasks/${taskId}/complete`, body);
   }
 
   delegateTaskToSubDept(assignmentId: number, taskId: number, subDeptId: number | null) {

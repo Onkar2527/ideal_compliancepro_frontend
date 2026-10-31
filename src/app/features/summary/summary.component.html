@@ -543,10 +543,10 @@
         </div>
 
         <div *ngFor="let rem of row.remarks_history" class="timeline-item">
-          <div class="timeline-dot" [ngClass]="rem.role.includes('REVIEW') || rem.role.includes('CO') ? 'dot-reviewer' : 'dot-maker'"></div>
+          <div class="timeline-dot" [ngClass]="rem.role === 'HEAD_EDIT' ? 'dot-head-edit' : ((rem.role.includes('REVIEW') || rem.role.includes('CO')) ? 'dot-reviewer' : 'dot-maker')"></div>
           <div class="timeline-card">
             <div class="timeline-header">
-              <span class="timeline-role">{{ rem.role }}</span>
+              <span class="timeline-role">{{ rem.role === 'HEAD_EDIT' ? 'EDITED BY HEAD' : rem.role }}</span>
               <span class="timeline-user">({{ rem.username }})</span>
               <span *ngIf="rem.created_at" class="timeline-time">{{ rem.created_at | date:'dd/MM/yyyy, hh:mm a' }}</span>
             </div>

@@ -2455,6 +2455,99 @@ export class TaskSetsComponent implements OnInit {
     this.selectionTick.set(this.selectionTick() + 1);
   }
 
+  // Selected Task Reference Document Upload Signals & Methods
+  uploadingTaskId = signal<number | string | null>(null);
+
+  onSelectedTaskFileUpload(event: any, task: any): void {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+
+    this.uploadingTaskId.set(task.id);
+    this.api.uploadTaskFile(file).subscribe({
+      next: (res) => {
+        this.uploadingTaskId.set(null);
+        task.file_url = res.file_url;
+        task.file_name = res.filename || file.name;
+
+        // Persist to compliance_task in database if task has a valid number id
+        if (task.id && typeof task.id === 'number') {
+          this.api.updateTaskDescription(task.id, {
+            description: task.description,
+            header_id: task.header_id,
+            priority: task.priority,
+            file_url: res.file_url
+          }).subscribe({
+            next: () => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Document Attached',
+                detail: `Reference document attached to task.`
+              });
+            },
+            error: () => {
+              this.messageService.add({
+                severity: 'info',
+                summary: 'Document Attached',
+                detail: `Document attached to selected task.`
+              });
+            }
+          });
+        } else {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Document Attached',
+            detail: `Document attached to selected task.`
+          });
+        }
+        this.selectionTick.set(this.selectionTick() + 1);
+      },
+      error: (err) => {
+        this.uploadingTaskId.set(null);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Upload Failed',
+          detail: err?.error?.message || 'Failed to upload document.'
+        });
+      }
+    });
+  }
+
+  removeTaskFile(task: any): void {
+    task.file_url = null;
+    task.file_name = null;
+    if (task.id && typeof task.id === 'number') {
+      this.api.updateTaskDescription(task.id, {
+        description: task.description,
+        header_id: task.header_id,
+        priority: task.priority,
+        file_url: '__REMOVE__'
+      }).subscribe();
+    }
+    this.selectionTick.set(this.selectionTick() + 1);
+  }
+
+  downloadTaskFile(fileUrl: string | null | undefined, fileName?: string): void {
+    if (!fileUrl) return;
+    this.api.downloadFile(fileUrl, fileName || this.cleanFileName(fileUrl));
+  }
+
+  cleanFileName(urlOrName?: string | null): string {
+    if (!urlOrName) return 'Document';
+    try {
+      const normalized = urlOrName.replace(/\\/g, '/');
+      const parts = normalized.split('/');
+      const last = parts[parts.length - 1];
+      const clean = last.split('?')[0];
+      let decoded = decodeURIComponent(clean);
+      decoded = decoded.replace(/^\d{10,14}[-_]/, '');
+      decoded = decoded.replace(/_[0-9a-fA-F]{8,32}(\.[a-zA-Z0-9]+)$/, '$1');
+      decoded = decoded.replace(/_[0-9a-fA-F]{8,32}$/, '');
+      return decoded || 'Document';
+    } catch {
+      return urlOrName;
+    }
+  }
+
   getPrioritySeverity(priority: string | undefined): 'danger' | 'warn' | 'info' | 'secondary' {
     const p = (priority || '').toUpperCase();
     if (p === 'HIGH' || p === 'CRITICAL') return 'danger';

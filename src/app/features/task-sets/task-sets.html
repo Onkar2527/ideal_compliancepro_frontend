@@ -784,7 +784,7 @@
                     </th>
                     <th style="width: 32px; text-align: center; white-space: nowrap; padding: 0.45rem 0.2rem;">#</th>
                     <th style="white-space: nowrap; padding: 0.45rem 0.6rem;">Description</th>
-                    <th style="width: 76px; text-align: center; white-space: nowrap; padding: 0.45rem 0.3rem;">Priority
+                    <th style="width: 110px; text-align: center; white-space: nowrap; padding: 0.45rem 0.3rem;">Attach Doc
                     </th>
                     <th *ngIf="showDeptColumn()" style="width: 175px; white-space: nowrap; padding: 0.45rem 0.4rem;"
                       pTooltip="Assignee / Department (editable per task below)" tooltipPosition="top">Assignee / Dept
@@ -822,11 +822,46 @@
                         <span *ngIf="task.authority_name" class="chip-subtle task-tag-authority">
                           <i class="pi pi-shield" style="font-size: 0.58rem;"></i> {{ task.authority_name }}
                         </span>
+                        <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)"
+                          [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
                       </div>
                     </td>
-                    <td style="text-align: center; width: 76px; padding: 0.35rem 0.3rem;">
-                      <p-tag [value]="task.priority || 'MEDIUM'" [severity]="getPrioritySeverity(task.priority)"
-                        [rounded]="true" styleClass="text-xs font-bold uppercase"></p-tag>
+                    <td style="text-align: center; width: 110px; padding: 0.35rem 0.3rem;">
+                      <!-- Attached Doc Pill -->
+                      <div *ngIf="task.file_url"
+                           style="display: inline-flex; align-items: center; gap: 0.25rem; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 0.12rem 0.35rem; font-size: 0.68rem; color: #065f46; font-weight: 600; max-width: 105px;">
+                        <i class="pi pi-paperclip" style="font-size: 0.68rem; color: #059669; flex-shrink: 0;"></i>
+                        <span style="max-width: 45px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="cleanFileName(task.file_name || task.file_url)">
+                          {{ cleanFileName(task.file_name || task.file_url) }}
+                        </span>
+                        <button type="button" (click)="downloadTaskFile(task.file_url, task.file_name)"
+                                pTooltip="Download Document" tooltipPosition="top"
+                                style="background: transparent; border: none; cursor: pointer; color: #059669; padding: 0 0.05rem; font-size: 0.68rem; display: inline-flex; align-items: center;">
+                          <i class="pi pi-download"></i>
+                        </button>
+                        <label pTooltip="Replace Document" tooltipPosition="top"
+                               style="cursor: pointer; color: #0284c7; padding: 0 0.05rem; font-size: 0.68rem; display: inline-flex; align-items: center; margin: 0;">
+                          <i class="pi pi-sync"></i>
+                          <input type="file" style="display: none;" (change)="onSelectedTaskFileUpload($event, task)" />
+                        </label>
+                        <button type="button" (click)="removeTaskFile(task)"
+                                pTooltip="Remove Document" tooltipPosition="top"
+                                style="background: transparent; border: none; cursor: pointer; color: #dc2626; padding: 0 0.05rem; font-size: 0.68rem; display: inline-flex; align-items: center;">
+                          <i class="pi pi-times"></i>
+                        </button>
+                      </div>
+
+                      <!-- Attach Doc Button (if none attached) -->
+                      <div *ngIf="!task.file_url" style="display: flex; justify-content: center;">
+                        <label style="display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.45rem; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 4px; font-size: 0.68rem; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.15s ease; white-space: nowrap;"
+                               onmouseover="this.style.borderColor='#6366f1'; this.style.color='#4f46e5'; this.style.background='#eef2ff'"
+                               onmouseout="this.style.borderColor='#cbd5e1'; this.style.color='#475569'; this.style.background='#f8fafc'">
+                          <i *ngIf="uploadingTaskId() !== task.id" class="pi pi-paperclip" style="font-size: 0.68rem;"></i>
+                          <i *ngIf="uploadingTaskId() === task.id" class="pi pi-spin pi-spinner" style="font-size: 0.68rem; color: #4f46e5;"></i>
+                          <span>{{ uploadingTaskId() === task.id ? 'Uploading...' : 'Attach Doc' }}</span>
+                          <input type="file" style="display: none;" [disabled]="uploadingTaskId() === task.id" (change)="onSelectedTaskFileUpload($event, task)" />
+                        </label>
+                      </div>
                     </td>
                     <td *ngIf="showDeptColumn()" style="width: 175px; padding: 0.35rem 0.4rem;">
                       <p-select [options]="branchDropdownOptions()" [ngModel]="task.sub_dept_id"

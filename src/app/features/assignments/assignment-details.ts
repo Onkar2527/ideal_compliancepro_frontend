@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DomSanitizer, SafeResourceUrl, SafeHtml } from '@angular/platform-browser';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ComplianceApiService } from '../../core/services/api/compliance-api.service';
@@ -221,42 +222,56 @@ import { ConfirmationService } from 'primeng/api';
                style="margin-bottom: 0.75rem;">
             
             <!-- Left Column: Serial Number & Task Info -->
-            <div class="question-main" style="padding: 1.1rem; border-right: 1px solid var(--surface-border, #f1f5f9); display: flex; gap: 0.85rem; align-items: flex-start;">
+            <div class="question-main" style="padding: 1.1rem; border-right: 1px solid var(--surface-border, #f1f5f9); display: flex; gap: 0.85rem; align-items: stretch;">
               <div class="question-number">
                 {{ i + 1 }}
               </div>
-              <div style="flex: 1; display: flex; flex-direction: column; gap: 0.4rem;">
-                
-                <!-- Top Tags Bar -->
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-                  <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                    <span class="circular-ref-tag" *ngIf="t.circular_title" style="color: #93c5fd; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;">
-                      {{ t.circular_title }}
-                    </span>
-                    <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                      <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #10b981;"></i> Accepted
-                    </span>
-                    <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                      <i class="pi pi-times-circle" style="font-size: 0.65rem;"></i> Rejected
-                    </span>
-                    <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
-                      <i class="pi pi-exclamation-triangle" style="font-size: 0.65rem;"></i> Escalated to CCO
-                    </span>
+              <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0;">
+                <div>
+                  <!-- Top Tags Bar -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                      <span class="circular-ref-tag" *ngIf="t.circular_title" style="color: #93c5fd; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;">
+                        {{ t.circular_title }}
+                      </span>
+                      <span *ngIf="t.review_status === 'APPROVED'" style="padding: 0.15rem 0.55rem; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="pi pi-check-circle" style="font-size: 0.65rem; color: #10b981;"></i> Accepted
+                      </span>
+                      <span *ngIf="t.review_status === 'NEEDS_REDO'" style="padding: 0.15rem 0.55rem; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="pi pi-times-circle" style="font-size: 0.65rem;"></i> Rejected
+                      </span>
+                      <span *ngIf="t.review_status === 'ESCALATED'" style="padding: 0.15rem 0.55rem; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); border-radius: 9999px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="pi pi-exclamation-triangle" style="font-size: 0.65rem;"></i> Escalated to CCO
+                      </span>
+                    </div>
                   </div>
+
+                  <!-- Task Description -->
+                  <p class="task-description" style="margin-top: 0.35rem; margin-bottom: 0;">
+                    {{ t.description || t.task_description || t.title }}
+                  </p>
                 </div>
 
-                <!-- Task Description -->
-                <p class="task-description">
-                  {{ t.description || t.task_description || t.title }}
-                </p>
-
-                <!-- Task Attachment Download Link -->
-                <div *ngIf="t.file_url" style="margin-top: 0.35rem;">
-                  <button type="button" (click)="downloadFile(t.file_url)" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold no-underline transition-colors border-none cursor-pointer" title="Download Task Attachment" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem; background-color: var(--surface-hover, #f1f5f9); color: var(--text-color, #0f2942); border: 1px solid var(--surface-border, #cbd5e1); border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
-                    <i class="pi pi-file" style="color: var(--primary-color, #4f46e5);"></i>
-                    <span>Attached Task Document</span>
-                    <i class="pi pi-download text-xs" style="margin-left: 0.25rem; color: var(--text-color-secondary, #94a3b8);"></i>
-                  </button>
+                <!-- Task Reference Document (Small Size in Left Bottom) -->
+                <div *ngIf="t.file_url" 
+                     style="margin-top: 0.6rem; display: flex; align-items: center; align-self: flex-start; max-width: 100%;">
+                  <div style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.15rem 0.45rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.68rem; max-width: 100%; box-sizing: border-box;">
+                    <i [class]="getFileIcon(t.file_name || t.file_url)" [style.color]="getFileIconColor(t.file_name || t.file_url)" style="font-size: 0.8rem; flex-shrink: 0;"></i>
+                    <span style="font-weight: 700; color: #4f46e5; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap;">Ref Doc:</span>
+                    <span style="font-weight: 600; color: #334155; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.7rem;" [title]="cleanFileName(t.file_name || t.file_url)">
+                      {{ cleanFileName(t.file_name || t.file_url) }}
+                    </span>
+                    <button type="button" (click)="previewFileUrlDirect(t.file_url, t.file_name)"
+                            style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0.08rem 0.3rem; cursor: pointer; color: #4f46e5; display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.65rem; font-weight: 600;"
+                            title="Preview Reference Document">
+                      <i class="pi pi-eye" style="font-size: 0.62rem;"></i> Preview
+                    </button>
+                    <button type="button" (click)="downloadFile(t.file_url, t.file_name)"
+                            style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0.08rem 0.3rem; cursor: pointer; color: #475569; display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.65rem; font-weight: 600;"
+                            title="Download Reference Document">
+                      <i class="pi pi-download" style="font-size: 0.62rem;"></i> Download
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -522,11 +537,19 @@ import { ConfirmationService } from 'primeng/api';
                          style="background: var(--surface-hover, #f8fafc); padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid var(--surface-border, #e2e8f0); margin-top: 0.25rem;">
                       
                       <!-- View Mode (when not editing) -->
-                      <div *ngIf="!t.isEditingRemark" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                        <div style="flex: 1; min-width: 0; font-size: 0.775rem;">
+                      <div *ngIf="!t.isEditingRemark" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 0; font-size: 0.775rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem;">
                           <span style="font-weight: 700; color: var(--text-color-secondary, #64748b);">Sub-Dept Remarks:</span>
-                          <span *ngIf="t.remarks" style="margin-left: 0.35rem; color: var(--text-color, #0f172a); font-weight: 600;">"{{ t.remarks }}"</span>
-                          <span *ngIf="!t.remarks" style="margin-left: 0.35rem; color: #94a3b8; font-style: italic;">No remarks provided</span>
+                          <span *ngIf="t.remarks" style="color: var(--text-color, #0f172a); font-weight: 600;">"{{ t.remarks }}"</span>
+                          <span *ngIf="!t.remarks" style="color: #94a3b8; font-style: italic;">No remarks provided</span>
+                          
+                          <!-- Edited by Head badge -->
+                          <span *ngIf="isTaskSubDeptRemarkEditedByHead(t)" 
+                                style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.25rem;"
+                                [title]="'Remark modified by Head' + (getHeadEditorName(t) ? ' (' + getHeadEditorName(t) + ')' : '')">
+                            <i class="pi pi-pencil" style="font-size: 0.62rem;"></i>
+                            <span>Edited by Head{{ getHeadEditorName(t) ? ' (' + getHeadEditorName(t) + ')' : '' }}</span>
+                          </span>
                         </div>
                         <button *ngIf="t.remarks && t.remarks.trim() && assignmentStatus() !== 'COMPLETED'"
                                 type="button" 
@@ -1298,32 +1321,47 @@ import { ConfirmationService } from 'primeng/api';
               
               <!-- Node Icon Bullet -->
               <div [ngClass]="{
-                     'bg-purple-600 text-white': (h.role || '').toUpperCase() === 'CCO',
-                     'bg-amber-500 text-white': (h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER',
-                     'bg-indigo-600 text-white': (h.role || '').toUpperCase() === 'COMPLIER' || (h.role || '').toUpperCase() === 'DEPARTMENT' || (h.role || '').toUpperCase() === 'BRANCH'
+                     'bg-amber-600 text-white': isHeadEditRemark(h, selectedTaskForChain),
+                     'bg-purple-600 text-white': !isHeadEditRemark(h, selectedTaskForChain) && (h.role || '').toUpperCase() === 'CCO',
+                     'bg-amber-500 text-white': !isHeadEditRemark(h, selectedTaskForChain) && ((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER'),
+                     'bg-indigo-600 text-white': !isHeadEditRemark(h, selectedTaskForChain) && ((h.role || '').toUpperCase() === 'COMPLIER' || (h.role || '').toUpperCase() === 'DEPARTMENT' || (h.role || '').toUpperCase() === 'BRANCH')
                    }" 
                    style="position: absolute; left: 0; top: 0.15rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">
-                <i [class]="(h.role || '').toUpperCase() === 'CCO' ? 'pi pi-verified' : ((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER' ? 'pi pi-shield' : 'pi pi-user')"></i>
+                <i [class]="isHeadEditRemark(h, selectedTaskForChain) ? 'pi pi-pencil' : ((h.role || '').toUpperCase() === 'CCO' ? 'pi pi-verified' : (((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER') ? 'pi pi-shield' : 'pi pi-user'))"></i>
               </div>
 
               <!-- Node Content Card -->
               <div [ngClass]="{
-                     'bg-purple-50/70 border-purple-200': (h.role || '').toUpperCase() === 'CCO',
-                     'bg-amber-50/70 border-amber-200': (h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER',
-                     'bg-indigo-50/70 border-indigo-200': (h.role || '').toUpperCase() === 'COMPLIER' || (h.role || '').toUpperCase() === 'DEPARTMENT' || (h.role || '').toUpperCase() === 'BRANCH'
+                     'bg-amber-50/90 border-amber-300': isHeadEditRemark(h, selectedTaskForChain),
+                     'bg-purple-50/70 border-purple-200': !isHeadEditRemark(h, selectedTaskForChain) && (h.role || '').toUpperCase() === 'CCO',
+                     'bg-amber-50/70 border-amber-200': !isHeadEditRemark(h, selectedTaskForChain) && ((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER'),
+                     'bg-indigo-50/70 border-indigo-200': !isHeadEditRemark(h, selectedTaskForChain) && ((h.role || '').toUpperCase() === 'COMPLIER' || (h.role || '').toUpperCase() === 'DEPARTMENT' || (h.role || '').toUpperCase() === 'BRANCH')
                    }"
                    style="padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid; font-size: 0.78rem;">
                 
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.25rem;">
-                  <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
                     <span style="font-size: 0.8rem; font-weight: 700; color: #111827;">{{ h.username }}</span>
-                    <span [ngClass]="{
+                    
+                    <!-- Head Edit Badge -->
+                    <ng-container *ngIf="isHeadEditRemark(h, selectedTaskForChain)">
+                      <span style="font-size: 0.65rem; padding: 0.1rem 0.5rem; border-radius: 9999px; font-weight: 700; text-transform: uppercase; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i class="pi pi-pencil" style="font-size: 0.6rem;"></i> Edited by Head
+                      </span>
+                      <span style="font-size: 0.65rem; color: #92400e; font-weight: 600;">
+                        (Sub-Dept Remark Modified)
+                      </span>
+                    </ng-container>
+
+                    <!-- Standard Role Badge -->
+                    <span *ngIf="!isHeadEditRemark(h, selectedTaskForChain)"
+                          [ngClass]="{
                             'bg-purple-200 text-purple-800': (h.role || '').toUpperCase() === 'CCO',
                             'bg-amber-200 text-amber-800': (h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER',
                             'bg-indigo-200 text-indigo-800': (h.role || '').toUpperCase() === 'COMPLIER' || (h.role || '').toUpperCase() === 'DEPARTMENT' || (h.role || '').toUpperCase() === 'BRANCH'
                           }"
                           style="font-size: 0.65rem; padding: 0.1rem 0.45rem; border-radius: 9999px; font-weight: 700; text-transform: uppercase;">
-                      {{ (h.role || '').toUpperCase() === 'CCO' ? 'CCO' : ((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER' ? 'CO Reviewer' : 'Department/Branch') }}
+                      {{ (h.role || '').toUpperCase() === 'CCO' ? 'CCO' : (((h.role || '').toUpperCase() === 'CO' || (h.role || '').toUpperCase() === 'REVIEWER') ? 'CO Reviewer' : (selectedTaskForChain?.sub_dept_name ? 'Sub-Department' : 'Department/Branch')) }}
                     </span>
                   </div>
                   
@@ -1342,7 +1380,10 @@ import { ConfirmationService } from 'primeng/api';
                 </div>
 
                 <div *ngIf="!h.isEditing">
-                  <p style="margin: 0; font-weight: 500; line-height: 1.4; color: #1f2937;">
+                  <div *ngIf="isHeadEditRemark(h, selectedTaskForChain)" style="font-size: 0.68rem; color: #b45309; font-weight: 700; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.25rem;">
+                    <i class="pi pi-pencil" style="font-size: 0.62rem;"></i> Modified Sub-Dept Remark:
+                  </div>
+                  <p style="margin: 0; font-weight: 500; line-height: 1.4;" [style.color]="isHeadEditRemark(h, selectedTaskForChain) ? '#78350f' : '#1f2937'">
                     {{ h.remark }}
                   </p>
                 </div>
@@ -1540,11 +1581,131 @@ import { ConfirmationService } from 'primeng/api';
     
     <p-confirmDialog [style]="{ width: '450px', maxWidth: '95vw' }" appendTo="body"></p-confirmDialog>
 
+    <!-- Dedicated In-App Document Preview Modal (Renders PDF, Images, Word DOCX, and Text directly) -->
+    <p-dialog [(visible)]="showPreviewModal" 
+              [modal]="true" 
+              [maximizable]="true" 
+              [dismissableMask]="true"
+              [style]="{ width: '75rem', maxWidth: '96vw', height: '88vh' }"
+              appendTo="body"
+              styleClass="doc-preview-dialog">
+      
+      <ng-template pTemplate="header">
+        <div style="display: flex; align-items: center; gap: 0.5rem; max-width: calc(100% - 60px);">
+          <i [class]="getFileIcon(previewFileName() || previewFileUrl() || '')" [style.color]="getFileIconColor(previewFileName() || previewFileUrl() || '')" style="font-size: 1.2rem;"></i>
+          <span style="font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" [title]="previewFileName()">
+            Preview: {{ previewFileName() || 'Document' }}
+          </span>
+          <span style="padding: 0.15rem 0.5rem; background: #e0e7ff; color: #4338ca; border-radius: 9999px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;">
+            {{ previewFileType() }}
+          </span>
+        </div>
+      </ng-template>
+
+      <!-- Main Preview Body Area -->
+      <div style="height: calc(88vh - 130px); width: 100%; overflow: auto; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 1rem; box-sizing: border-box;">
+        
+        <!-- Loading Spinner -->
+        <div *ngIf="previewLoading()" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 0.75rem;">
+          <i class="pi pi-spin pi-spinner text-3xl text-indigo-500"></i>
+          <span style="color: #64748b; font-size: 0.85rem; font-weight: 600;">Loading document preview...</span>
+        </div>
+
+        <!-- 1. PDF Preview -->
+        <iframe *ngIf="!previewLoading() && previewFileType() === 'pdf' && previewSafeUrl()" 
+                [src]="previewSafeUrl()!" 
+                style="width: 100%; height: 100%; border: none; border-radius: 6px; background: #ffffff;">
+        </iframe>
+
+        <!-- 2. Image Preview -->
+        <div *ngIf="!previewLoading() && previewFileType() === 'image' && previewSafeUrl()"
+             style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+          <img [src]="previewSafeUrl()!" 
+               alt="Document Image" 
+               style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />
+        </div>
+
+        <!-- 3. Word (.docx) Rendered Document Preview -->
+        <div *ngIf="!previewLoading() && previewFileType() === 'docx'" style="width: 100%;">
+          <div *ngIf="previewDocxHtml()" [innerHTML]="previewDocxHtml()" style="width: 100%;"></div>
+
+          <!-- Fallback if docx parsing not available -->
+          <div *ngIf="!previewDocxHtml()" 
+               style="background: #ffffff; padding: 3rem 2rem; border-radius: 8px; border: 1px solid #cbd5e1; max-width: 600px; margin: 3rem auto; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <i class="pi pi-file-word" style="font-size: 3rem; color: #2563eb; display: block; margin-bottom: 1rem;"></i>
+            <h4 style="margin: 0 0 0.5rem 0; font-weight: 700; color: #1e293b;">{{ previewFileName() }}</h4>
+            <p style="color: #64748b; font-size: 0.82rem; margin-bottom: 1.5rem;">
+              Microsoft Word Document (.docx). You can view the document by downloading or opening in Word.
+            </p>
+            <div style="display: flex; justify-content: center; gap: 0.5rem;">
+              <button type="button" (click)="downloadFile(previewFileUrl(), previewFileName())"
+                      style="background: #2563eb; border: 1px solid #2563eb; border-radius: 6px; padding: 0.45rem 1rem; color: #ffffff; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="pi pi-download"></i> Download to Open
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Text Preview -->
+        <pre *ngIf="!previewLoading() && previewFileType() === 'text' && previewTextContent()"
+             style="width: 100%; height: 100%; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 1.25rem; overflow: auto; font-family: monospace; font-size: 0.85rem; color: #1e293b; box-sizing: border-box; margin: 0;">{{ previewTextContent() }}</pre>
+
+        <!-- 5. Other File Types Fallback -->
+        <div *ngIf="!previewLoading() && previewFileType() === 'other'"
+             style="background: #ffffff; padding: 3rem 2rem; border-radius: 8px; border: 1px solid #cbd5e1; max-width: 600px; margin: 3rem auto; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+          <i [class]="getFileIcon(previewFileName() || previewFileUrl() || '')" [style.color]="getFileIconColor(previewFileName() || previewFileUrl() || '')" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+          <h4 style="margin: 0 0 0.5rem 0; font-weight: 700; color: #1e293b;">{{ previewFileName() }}</h4>
+          <p style="color: #64748b; font-size: 0.82rem; margin-bottom: 1.5rem;">
+            Click below to download or view the file in its default application.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 0.5rem;">
+            <button type="button" (click)="downloadFile(previewFileUrl(), previewFileName())"
+                    style="background: #4f46e5; border: 1px solid #4f46e5; border-radius: 6px; padding: 0.45rem 1rem; color: #ffffff; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <i class="pi pi-download"></i> Download Document
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dialog Footer -->
+      <ng-template pTemplate="footer">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button type="button" *ngIf="previewFileUrl()" (click)="downloadFile(previewFileUrl(), previewFileName())"
+                    style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.3rem 0.75rem; cursor: pointer; color: #10b981; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+              <i class="pi pi-download"></i> Download
+            </button>
+            <button type="button" *ngIf="previewFileUrl()" (click)="openInNewTab(previewFileUrl())"
+                    style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.3rem 0.75rem; cursor: pointer; color: #475569; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+              <i class="pi pi-external-link"></i> Open Direct URL
+            </button>
+          </div>
+          <button type="button" (click)="showPreviewModal.set(false)"
+                  style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.3rem 0.85rem; cursor: pointer; color: #475569; font-weight: 700; font-size: 0.75rem;">
+            Close
+          </button>
+        </div>
+      </ng-template>
+
+    </p-dialog>
+
     <div style="height: 4rem;"></div> <!-- bottom padding spacing -->
   `,
 })
 export class AssignmentDetailsComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
+  private sanitizer = inject(DomSanitizer);
+
+  // In-App Document Preview Modal Signals
+  showPreviewModal = signal<boolean>(false);
+  previewFileUrl = signal<string | null>(null);
+  previewFileName = signal<string>('');
+  previewFileType = signal<'pdf' | 'image' | 'docx' | 'text' | 'other'>('other');
+  previewSafeUrl = signal<SafeResourceUrl | null>(null);
+  previewLoading = signal<boolean>(false);
+  previewDocxHtml = signal<SafeHtml | null>(null);
+  previewTextContent = signal<string | null>(null);
   displayRemarkChainDialog = false;
   selectedTaskForChain: any = null;
   historyDialogMode: 'REMARK' | 'EVIDENCE' = 'REMARK';
@@ -1564,6 +1725,9 @@ export class AssignmentDetailsComponent implements OnInit {
   openRemarkChainDialog(task: any) {
     this.selectedTaskForChain = task;
     this.historyDialogMode = 'REMARK';
+    if (task?.remarks_history) {
+      task.remarks_history.forEach((h: any) => (h.isEditing = false));
+    }
     this.displayRemarkChainDialog = true;
   }
 
@@ -1595,10 +1759,13 @@ export class AssignmentDetailsComponent implements OnInit {
     }
     // Remove leading timestamp prefix e.g. 1726483920192-file.pdf
     name = name.replace(/^\d{10,14}[-_]/, '');
+    // Remove trailing hex hash suffix e.g. filename_2dd9801a2b.docx -> filename.docx
+    name = name.replace(/_[0-9a-fA-F]{8,32}(\.[a-zA-Z0-9]+)$/, '$1');
+    name = name.replace(/_[0-9a-fA-F]{8,32}$/, '');
     return name || 'evidence_document';
   }
 
-  getFileIcon(nameOrUrl?: string): string {
+  getFileIcon(nameOrUrl?: string | null): string {
     if (!nameOrUrl) return 'pi pi-file';
     const lower = nameOrUrl.toLowerCase();
     if (lower.endsWith('.pdf')) return 'pi pi-file-pdf';
@@ -1608,7 +1775,7 @@ export class AssignmentDetailsComponent implements OnInit {
     return 'pi pi-file';
   }
 
-  getFileIconColor(nameOrUrl?: string): string {
+  getFileIconColor(nameOrUrl?: string | null): string {
     if (!nameOrUrl) return '#6b7280';
     const lower = nameOrUrl.toLowerCase();
     if (lower.endsWith('.pdf')) return '#dc2626';
@@ -1618,7 +1785,7 @@ export class AssignmentDetailsComponent implements OnInit {
     return '#6b7280';
   }
 
-  getFileTypeName(nameOrUrl?: string): string {
+  getFileTypeName(nameOrUrl?: string | null): string {
     if (!nameOrUrl) return 'Document';
     const lower = nameOrUrl.toLowerCase();
     if (lower.endsWith('.pdf')) return 'PDF Document';
@@ -1717,7 +1884,7 @@ export class AssignmentDetailsComponent implements OnInit {
     const targetBranchId = taskBranchId || userBranchId;
 
     const branches = this.allBranches().length > 0 ? this.allBranches() : this.api.getCachedBranches();
-    const targetBranchObj = targetBranchId 
+    const targetBranchObj = targetBranchId
       ? (branches || []).find((b: any) => Number(b.id) === targetBranchId)
       : (branches || []).find((b: any) => (b.name || '').toLowerCase().trim() === currentBranchName);
 
@@ -3022,12 +3189,14 @@ export class AssignmentDetailsComponent implements OnInit {
       const rawDate = t.due_date ? String(t.due_date).split('T')[0] : null;
       const desc = t.description || t.task_description || t.title || 'Compliance Task';
       const compStatus = t.compliance_status && t.compliance_status !== 'PENDING' ? t.compliance_status : (t.remarks ? 'COMPLIED' : 'PENDING');
-      const hasEv = !!(t.has_evidence || t.evidence_file_name || t.file_url || t.evidence_url);
+      const hasEv = !!(t.has_evidence || t.evidence_file_name || t.evidence_url);
       return {
         assignment_task_id: t.id || (idx + 1),
         task_id: t.id,
         description: desc,
         task_description: desc,
+        file_url: t.file_url || null,
+        file_name: t.file_name || (t.file_url ? t.file_url.split('/').pop() : ''),
         header_name: t.header_name || 'General',
         priority: t.priority || 'Medium',
         due_date: rawDate,
@@ -3039,8 +3208,8 @@ export class AssignmentDetailsComponent implements OnInit {
         review_status: t.review_status || null,
         review_remark: t.review_remark || '',
         has_evidence: hasEv,
-        evidence_file_name: t.evidence_file_name || (t.file_url ? t.file_url.split('/').pop() : ''),
-        evidence_file_url: t.evidence_file_url || t.file_url || '',
+        evidence_file_name: t.evidence_file_name || '',
+        evidence_file_url: t.evidence_file_url || t.evidence_url || '',
         sub_dept_id: t.sub_dept_id || subDeptId,
         sub_dept_name: t.sub_dept_name || subDeptName,
         temp_compliance_status: compStatus === 'PENDING' ? 'COMPLIED' : compStatus,
@@ -3310,6 +3479,78 @@ export class AssignmentDetailsComponent implements OnInit {
     return task.remarks_history.some((h: any) => h.role === 'REVIEWER');
   }
 
+  normalizeDeptName(str: string): string {
+    return (str || '')
+      .toLowerCase()
+      .replace(/department|dept|branch|user|_|-|\s/g, '')
+      .trim();
+  }
+
+  isHeadEditRemark(h: any, task: any): boolean {
+    if (!h) return false;
+    const role = (h.role || '').toUpperCase();
+    if (role === 'HEAD_EDIT' || role === 'HEAD' || h.is_head_edit) {
+      return true;
+    }
+    if (role === 'CO' || role === 'CCO' || role === 'REVIEWER') {
+      return false;
+    }
+    // If this task is assigned or delegated to a sub-department
+    if (task && (task.sub_dept_id || task.sub_dept_name)) {
+      const subDeptNormalized = this.normalizeDeptName(task.sub_dept_name);
+      const hUserNormalized = this.normalizeDeptName(h.username);
+
+      // If this history entry is from the sub-department, it is NEVER a Head edit
+      if (subDeptNormalized && hUserNormalized && (subDeptNormalized === hUserNormalized || subDeptNormalized.includes(hUserNormalized) || hUserNormalized.includes(subDeptNormalized))) {
+        return false;
+      }
+
+      const history = (task.remarks_history || []).filter((item: any) => {
+        const r = (item.role || '').toUpperCase();
+        return r !== 'CO' && r !== 'CCO' && r !== 'REVIEWER';
+      });
+
+      // The very first department entry is the sub-department's initial submission
+      if (history.length > 0 && history[0] === h) {
+        return false;
+      }
+
+      // Any subsequent non-subdept entry is an edit by Head
+      if (history.length > 1 && history[0] !== h) {
+        return true;
+      }
+
+      // If username does not match the assigned sub-department
+      if (subDeptNormalized && hUserNormalized && subDeptNormalized !== hUserNormalized) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  isTaskSubDeptRemarkEditedByHead(task: any): boolean {
+    if (!task || !task.remarks || !task.remarks.trim()) return false;
+    if (!task.sub_dept_id && !task.sub_dept_name) return false;
+    const history = task.remarks_history || [];
+    if (history.length === 0) return false;
+
+    const deptRemarks = history.filter((h: any) => {
+      const r = (h.role || '').toUpperCase();
+      return r !== 'CO' && r !== 'CCO' && r !== 'REVIEWER';
+    });
+    if (deptRemarks.length === 0) return false;
+
+    const latestDeptRemark = deptRemarks[deptRemarks.length - 1];
+    return this.isHeadEditRemark(latestDeptRemark, task);
+  }
+
+  getHeadEditorName(task: any): string {
+    if (!task) return '';
+    const history = (task.remarks_history || []).slice().reverse();
+    const headEdit = history.find((h: any) => this.isHeadEditRemark(h, task));
+    return headEdit?.username || '';
+  }
+
   goBack() {
     this.router.navigate(['/assignments']);
   }
@@ -3454,13 +3695,11 @@ export class AssignmentDetailsComponent implements OnInit {
       return;
     }
     if (task.evidence_url) {
-      const fullUrl = this.api.resolveFileUrl(task.evidence_url);
-      if (fullUrl) window.open(fullUrl, '_blank');
+      this.previewFileUrlDirect(task.evidence_url, task.evidence_file_name);
       return;
     }
     if (task.has_evidence && task.evidence_history && task.evidence_history.length > 0) {
-      const fullUrl = this.api.resolveFileUrl(task.evidence_history[0].file_url);
-      if (fullUrl) window.open(fullUrl, '_blank');
+      this.previewFileUrlDirect(task.evidence_history[0].file_url, task.evidence_history[0].file_name);
       return;
     }
   }
@@ -3615,12 +3854,27 @@ export class AssignmentDetailsComponent implements OnInit {
     const compStatus = task.compliance_status || 'COMPLIED';
 
     task.savingRemark = true;
-    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark).subscribe({
+    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark, true).subscribe({
       next: () => {
         task.remarks = newRemark;
         task.temp_remarks = newRemark;
         task.isEditingRemark = false;
         task.savingRemark = false;
+
+        // Optimistically add to remarks_history with HEAD_EDIT role
+        const user = this.currentUser() as any;
+        const uname = user?.username || this.userBranchName() || 'Head Department';
+        if (!task.remarks_history) {
+          task.remarks_history = [];
+        }
+        task.remarks_history.push({
+          role: 'HEAD_EDIT',
+          username: uname,
+          remark: newRemark,
+          created_at: new Date().toISOString(),
+          is_head_edit: true
+        });
+
         this.notification.success('Sub-department remark updated successfully.');
         this.loadTasks();
       },
@@ -3631,11 +3885,50 @@ export class AssignmentDetailsComponent implements OnInit {
     });
   }
 
+  isLatestRemark(h: any, task: any): boolean {
+    if (!h || !task) return false;
+    const history = this.getVisibleRemarksHistory(task);
+    if (!history || history.length === 0) return false;
+
+    // Check if this is the latest remark overall in the chain
+    if (history[history.length - 1] === h) return true;
+
+    // If it is a department-level remark, check if it is the latest department-level remark
+    const hRole = (h.role || '').toUpperCase();
+    const isDept = !['CO', 'CCO', 'REVIEWER'].includes(hRole);
+    if (isDept) {
+      const deptItems = history.filter((item: any) => !['CO', 'CCO', 'REVIEWER'].includes((item.role || '').toUpperCase()));
+      return deptItems.length > 0 && deptItems[deptItems.length - 1] === h;
+    }
+
+    return false;
+  }
+
   canEditRemark(h: any, task: any): boolean {
     if (!h || !task) return false;
     if (!h.remark || !h.remark.trim()) return false;
     if (this.assignmentStatus() === 'COMPLETED') return false;
-    return true;
+
+    // Sub-department user should NEVER see or have edit option like head in the timeline
+    if (this.isSubDepartmentUser()) {
+      return false;
+    }
+
+    // ONLY the latest remark in the chain can be edited (older entries are immutable history snapshots)
+    if (!this.isLatestRemark(h, task)) {
+      return false;
+    }
+
+    // Head Department user can edit the latest remark (head edits or sub-dept remark modification)
+    if (this.isHeadDepartmentUser()) {
+      return true;
+    }
+
+    // Reviewers/CO can edit their own review remarks if it is the latest
+    const user = this.currentUser() as any;
+    const currentUsername = (user?.username || '').toLowerCase().trim();
+    const hUser = (h.username || '').toLowerCase().trim();
+    return currentUsername === hUser;
   }
 
   hasTaskDueDate(task: any): boolean {
@@ -3661,9 +3954,10 @@ export class AssignmentDetailsComponent implements OnInit {
     const taskId = task.assignment_task_id;
     const newRemark = (h.editedRemark ?? '').trim();
     const compStatus = task.compliance_status || 'COMPLIED';
+    const isHeadEdit = this.isHeadEditRemark(h, task);
 
     h.saving = true;
-    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark).subscribe({
+    this.api.completeTaskDirectly(this.assignmentId, taskId, compStatus, newRemark, isHeadEdit).subscribe({
       next: () => {
         h.remark = newRemark;
         h.isEditing = false;
@@ -3723,7 +4017,207 @@ export class AssignmentDetailsComponent implements OnInit {
   previewFileUrlDirect(url: string | null | undefined, name?: string | null): void {
     if (!url) return;
     const fullUrl = this.api.resolveFileUrl(url);
-    if (fullUrl) window.open(fullUrl, '_blank');
+    if (!fullUrl) return;
+
+    const fileName = name || this.cleanFileName(url);
+    this.previewFileName.set(fileName);
+    this.previewFileUrl.set(fullUrl);
+    this.previewDocxHtml.set(null);
+    this.previewTextContent.set(null);
+
+    const lower = (url || '').toLowerCase().split('?')[0];
+
+    if (lower.endsWith('.pdf')) {
+      this.previewFileType.set('pdf');
+      this.previewSafeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl));
+      this.showPreviewModal.set(true);
+    } else if (
+      lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.webp') ||
+      lower.endsWith('.svg') ||
+      lower.endsWith('.gif') ||
+      lower.endsWith('.bmp')
+    ) {
+      this.previewFileType.set('image');
+      this.previewSafeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl));
+      this.showPreviewModal.set(true);
+    } else if (lower.endsWith('.docx')) {
+      this.previewFileType.set('docx');
+      this.showPreviewModal.set(true);
+      this.loadDocxPreview(fullUrl);
+    } else if (lower.endsWith('.txt') || lower.endsWith('.log') || lower.endsWith('.json') || lower.endsWith('.sql')) {
+      this.previewFileType.set('text');
+      this.showPreviewModal.set(true);
+      this.loadTextPreview(fullUrl);
+    } else {
+      this.previewFileType.set('other');
+      this.previewSafeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl));
+      this.showPreviewModal.set(true);
+    }
+  }
+
+  openInNewTab(url: string | null): void {
+    if (url) window.open(url, '_blank');
+  }
+
+  async loadDocxPreview(url: string): Promise<void> {
+    this.previewLoading.set(true);
+    this.previewDocxHtml.set(null);
+    try {
+      const res = await fetch(url);
+      const buf = await res.arrayBuffer();
+      const xmlText = await this.extractDocxXml(buf);
+      if (xmlText) {
+        const html = this.parseDocxXmlToHtml(xmlText);
+        this.previewDocxHtml.set(this.sanitizer.bypassSecurityTrustHtml(html));
+      } else {
+        this.previewDocxHtml.set(null);
+      }
+    } catch (err) {
+      console.warn('Docx preview load failed, falling back:', err);
+      this.previewDocxHtml.set(null);
+    } finally {
+      this.previewLoading.set(false);
+    }
+  }
+
+  async extractDocxXml(buf: ArrayBuffer): Promise<string | null> {
+    try {
+      const view = new DataView(buf);
+      let offset = 0;
+      const len = buf.byteLength;
+
+      while (offset + 30 < len) {
+        const sig = view.getUint32(offset, true);
+        if (sig !== 0x04034b50) break; // Local file header signature
+
+        const method = view.getUint16(offset + 8, true);
+        const compressedSize = view.getUint32(offset + 18, true);
+        const nameLen = view.getUint16(offset + 26, true);
+        const extraLen = view.getUint16(offset + 28, true);
+
+        const nameBytes = new Uint8Array(buf, offset + 30, nameLen);
+        const filename = new TextDecoder('utf-8').decode(nameBytes);
+
+        const dataStart = offset + 30 + nameLen + extraLen;
+        const dataEnd = dataStart + compressedSize;
+
+        if (filename === 'word/document.xml') {
+          const compressedData = new Uint8Array(buf, dataStart, compressedSize);
+          if (method === 8) { // Deflate compressed
+            if (typeof DecompressionStream !== 'undefined') {
+              const ds = new DecompressionStream('deflate-raw');
+              const writer = ds.writable.getWriter();
+              writer.write(compressedData);
+              writer.close();
+              const response = new Response(ds.readable);
+              return await response.text();
+            }
+          } else if (method === 0) { // Uncompressed
+            return new TextDecoder('utf-8').decode(compressedData);
+          }
+        }
+
+        offset = dataEnd;
+      }
+    } catch (e) {
+      console.error('Failed to unpack word/document.xml:', e);
+    }
+    return null;
+  }
+
+  parseDocxXmlToHtml(xmlText: string): string {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlText, 'text/xml');
+      const body = doc.getElementsByTagName('w:body')[0] || doc.documentElement;
+      let html = '<div class="docx-doc-page" style="background:#ffffff; padding:2.5rem 3rem; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.08); max-width:850px; margin:0 auto; font-family:\'Segoe UI\', Calibri, Arial, sans-serif; font-size:0.95rem; line-height:1.65; color:#1e293b;">';
+
+      for (let i = 0; i < body.childNodes.length; i++) {
+        const node = body.childNodes[i];
+        if (node.nodeName === 'w:p') {
+          const pText = this.parseDocxParagraph(node);
+          if (pText.trim().length > 0) {
+            html += `<p style="margin: 0.6rem 0; line-height: 1.6;">${pText}</p>`;
+          } else {
+            html += `<div style="height: 0.6rem;"></div>`;
+          }
+        } else if (node.nodeName === 'w:tbl') {
+          html += this.parseDocxTable(node);
+        }
+      }
+
+      html += '</div>';
+      return html;
+    } catch (e) {
+      console.error('Failed to parse docx xml:', e);
+      return '<div class="p-4 text-center text-slate-500">Could not render Word Document preview.</div>';
+    }
+  }
+
+  private parseDocxParagraph(pNode: Node): string {
+    let text = '';
+    const runs = (pNode as Element).getElementsByTagName('w:r');
+    if (runs.length === 0) {
+      return pNode.textContent || '';
+    }
+    for (let r = 0; r < runs.length; r++) {
+      const run = runs[r];
+      const isBold = run.getElementsByTagName('w:b').length > 0;
+      const isItalic = run.getElementsByTagName('w:i').length > 0;
+      const isUnderline = run.getElementsByTagName('w:u').length > 0;
+
+      const tNodes = run.getElementsByTagName('w:t');
+      let runText = '';
+      for (let t = 0; t < tNodes.length; t++) {
+        runText += tNodes[t].textContent || '';
+      }
+
+      runText = runText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      if (isBold) runText = `<strong>${runText}</strong>`;
+      if (isItalic) runText = `<em>${runText}</em>`;
+      if (isUnderline) runText = `<u>${runText}</u>`;
+
+      text += runText;
+    }
+    return text;
+  }
+
+  private parseDocxTable(tblNode: Node): string {
+    let tblHtml = '<div style="overflow-x: auto; margin: 1.25rem 0;"><table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; border: 1px solid #cbd5e1;">';
+    const rows = (tblNode as Element).getElementsByTagName('w:tr');
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r];
+      const isHeaderRow = r === 0;
+      tblHtml += `<tr style="${isHeaderRow ? 'background: #f8fafc; font-weight: 700;' : ''}">`;
+      const cells = row.getElementsByTagName('w:tc');
+      for (let c = 0; c < cells.length; c++) {
+        const cell = cells[c];
+        const cellText = cell.textContent || '';
+        const tag = isHeaderRow ? 'th' : 'td';
+        tblHtml += `<${tag} style="border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top;">${cellText}</${tag}>`;
+      }
+      tblHtml += '</tr>';
+    }
+    tblHtml += '</table></div>';
+    return tblHtml;
+  }
+
+  async loadTextPreview(url: string): Promise<void> {
+    this.previewLoading.set(true);
+    this.previewTextContent.set(null);
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      this.previewTextContent.set(text);
+    } catch {
+      this.previewTextContent.set('Could not load text file content.');
+    } finally {
+      this.previewLoading.set(false);
+    }
   }
 
   resolveFileUrl(url: string | null | undefined): string | null {
