@@ -74,7 +74,7 @@ export class LoginComponent {
       label: 'CCO',
       title: 'Chief Compliance Officer',
       icon: 'pi pi-star-fill',
-      username: 'cco',
+      username: 'CCO',
       password: 'Emp@2026',
       color: '#0891b2'
     },
@@ -128,7 +128,12 @@ export class LoginComponent {
       },
       error: (err: any) => {
         this.loading.set(false);
-        const errorMessage = err?.error?.message || 'Invalid employee code or password. Please check your details and try again.';
+        let errorMessage = 'Invalid employee code or password. Please check your details and try again.';
+        if (err?.status === 0) {
+          errorMessage = 'Cannot connect to backend server. Please verify network access and ensure backend is running.';
+        } else if (err?.error?.message) {
+          errorMessage = typeof err.error.message === 'string' ? err.error.message : err.error.message.join(', ');
+        }
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
