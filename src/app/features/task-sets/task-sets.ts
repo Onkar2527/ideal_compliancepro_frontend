@@ -2834,9 +2834,10 @@ export class TaskSetsComponent implements OnInit {
     const role = String(this.auth.currentUser()?.role || '').toUpperCase();
     return ['BRANCH_USER', 'BRANCH', 'DEPARTMENT', 'SUB_DEPARTMENT', 'BRANCH USER'].includes(role);
   });
-  showDeptColumn = computed(() => {
-    return this.branches() && this.branches().length > 0;
+showDeptColumn = computed(() => {
+  return this.isBranchUser();
   });
+
   proposedDate = signal<Date | null>(null);
   parentPage: number | null = null;
   parentLimit: number | null = null;
