@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, NavigationEnd, RouterModule } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
 import { ComplianceApiService } from '../../../core/services/api/compliance-api.service';
+import { DocumentNotificationService } from '../../../core/services/notification/document-notification.service';
 
 @Component({
   selector: 'app-menu',
@@ -20,19 +22,47 @@ import { ComplianceApiService } from '../../../core/services/api/compliance-api.
 })
 export class AppMenu implements OnInit {
   model: MenuItem[] = [];
+  private lastBranches?: any[];
 
-  constructor(private api: ComplianceApiService) {}
+  constructor(
+    private api: ComplianceApiService,
+    public docNotificationService: DocumentNotificationService,
+    private router: Router
+  ) {
+    effect(() => {
+      // Reactively re-render menu whenever docBadgeCount changes
+      this.docNotificationService.docBadgeCount();
+      this.buildMenu(this.lastBranches);
+    });
+  }
 
   ngOnInit(): void {
     const cached = this.api.getCachedBranches();
-    this.buildMenu(cached.length > 0 ? cached : undefined);
+    this.lastBranches = cached.length > 0 ? cached : undefined;
+    this.buildMenu(this.lastBranches);
 
     // Fetch branches to refresh/ensure accuracy
     this.api.getBranches().subscribe({
       next: (branches) => {
+        this.lastBranches = branches;
         this.buildMenu(branches);
       },
-      error: () => {}
+      error: () => { }
+    });
+
+    // Listen to notification events
+    this.docNotificationService.refreshNotifications$.subscribe(() => {
+      this.buildMenu(this.lastBranches);
+    });
+
+    // Clear badge when user navigates to /admin/documents
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationEnd)
+    ).subscribe((e: any) => {
+      if (e.urlAfterRedirects && e.urlAfterRedirects.includes('/admin/documents')) {
+        this.docNotificationService.clearDocBadge();
+      }
+      this.buildMenu(this.lastBranches);
     });
   }
 
@@ -183,12 +213,22 @@ export class AppMenu implements OnInit {
     // Internal Circular / Docs & Evidence Management - Accessible to all roles including sub department
     const canAccessDocuments = isAdminOrCoOrCco || ['branch', 'branch_user', 'department', 'sub_department'].includes(userRole);
     if (canAccessDocuments) {
-      masterItems.push({
+      const isCurrentlyOnDocs = this.router.url.includes('/admin/documents') ||
+        (typeof window !== 'undefined' && window.location.hash.includes('/admin/documents'));
+
+      const docCount = this.docNotificationService.docBadgeCount();
+      const docMenuItem: MenuItem = {
         label: 'Internal Circular / Docs',
         icon: 'pi pi-fw pi-file',
         routerLink: ['/admin/documents'],
         routerLinkActiveOptions: { paths: 'exact', queryParams: 'exact', matrixParams: 'ignored', fragment: 'ignored' }
-      });
+      };
+
+      if (docCount > 0 && !isCurrentlyOnDocs) {
+        docMenuItem['badge'] = `${docCount}`;
+      }
+
+      masterItems.push(docMenuItem);
       masterItems.push({
         label: 'Evidence Management',
         icon: 'pi pi-fw pi-paperclip',

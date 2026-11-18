@@ -45,17 +45,9 @@
               <label for="username">Employee Code</label>
               <div class="input-icon-wrapper">
                 <i class="pi pi-user input-icon"></i>
-                <input
-                  id="username"
-                  pInputText
-                  type="text"
-                  [(ngModel)]="username"
-                  name="username"
-                  placeholder="Enter Employee Code"
-                  class="w-full custom-input icon-indent"
-                  required
-                  autocomplete="username"
-                />
+                <input id="username" pInputText type="text" [(ngModel)]="username" name="username"
+                  placeholder="Enter Employee Code" class="w-full custom-input icon-indent" required
+                  autocomplete="username" />
               </div>
             </div>
 
@@ -64,18 +56,9 @@
               <label for="password">Password</label>
               <div class="input-icon-wrapper">
                 <i class="pi pi-lock input-icon"></i>
-                <p-password
-                  inputId="password"
-                  [(ngModel)]="password"
-                  name="password"
-                  [toggleMask]="true"
-                  [feedback]="false"
-                  placeholder="Enter Password"
-                  styleClass="w-full"
-                  inputStyleClass="w-full custom-input icon-indent"
-                  autocomplete="current-password"
-                  required
-                >
+                <p-password inputId="password" [(ngModel)]="password" name="password" [toggleMask]="true"
+                  [feedback]="false" placeholder="Enter Password" styleClass="w-full"
+                  inputStyleClass="w-full custom-input icon-indent" autocomplete="current-password" required>
                 </p-password>
               </div>
             </div>
@@ -89,13 +72,8 @@
             </div>
 
             <!-- Login Button -->
-            <button
-              pButton
-              type="submit"
-              [loading]="loading()"
-              [disabled]="loading() || !username || !password"
-              class="login-btn animate-item delay-4"
-            >
+            <button pButton type="submit" [loading]="loading()" [disabled]="loading() || !username || !password"
+              class="login-btn animate-item delay-4">
               {{ loading() ? 'Logging in...' : 'Login' }}
             </button>
 
@@ -105,14 +83,9 @@
                 <span>Demo Auto Login</span>
               </div>
               <div class="demo-buttons-grid">
-                <button
-                  *ngFor="let user of demoUsers"
-                  type="button"
-                  class="demo-user-btn"
-                  [attr.data-role]="user.label.toLowerCase()"
-                  (click)="quickLogin(user.username, user.password)"
-                  [disabled]="loading()"
-                >
+                <button *ngFor="let user of demoUsers" type="button" class="demo-user-btn"
+                  [attr.data-role]="user.label.toLowerCase()" (click)="quickLogin(user.username, user.password)"
+                  [disabled]="loading()">
                   {{ user.label }}
                 </button>
               </div>
@@ -121,24 +94,12 @@
             <!-- Language Selector (Segmented Control matching ideal-auditpro) -->
             <div class="login-language-selector animate-item delay-4">
               <div class="segmented-control">
-                <input
-                  type="radio"
-                  id="lang-en"
-                  name="lang"
-                  value="en"
-                  [(ngModel)]="selectedLanguage"
-                  (change)="onLanguageChange('en')"
-                />
+                <input type="radio" id="lang-en" name="lang" value="en" [(ngModel)]="selectedLanguage"
+                  (change)="onLanguageChange('en')" />
                 <label for="lang-en">English</label>
 
-                <input
-                  type="radio"
-                  id="lang-mr"
-                  name="lang"
-                  value="mr"
-                  [(ngModel)]="selectedLanguage"
-                  (change)="onLanguageChange('mr')"
-                />
+                <input type="radio" id="lang-mr" name="lang" value="mr" [(ngModel)]="selectedLanguage"
+                  (change)="onLanguageChange('mr')" />
                 <label for="lang-mr">मराठी</label>
               </div>
             </div>

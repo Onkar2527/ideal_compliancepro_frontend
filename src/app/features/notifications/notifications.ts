@@ -9,6 +9,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { APP_CONFIG } from '../../core/services/config/config.token';
+import { DocumentNotificationService } from '../../core/services/notification/document-notification.service';
 
 @Component({
   selector: 'app-notifications',
@@ -168,6 +169,7 @@ export class NotificationsComponent implements OnInit {
   private config = inject(APP_CONFIG);
   private messageService = inject(MessageService);
   private cdr = inject(ChangeDetectorRef);
+  private docNotificationService = inject(DocumentNotificationService);
 
   ngOnInit() {
     this.loadNotifications();
@@ -176,15 +178,46 @@ export class NotificationsComponent implements OnInit {
   loadNotifications() {
     this.http.get<any[]>(`${this.config.apiUrl}/notifications`).subscribe({
       next: (data) => {
-        this.notifications.set(data);
+        let currentUserId = '';
+        let currentUsername = '';
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          currentUserId = user.id ? String(user.id) : '';
+          currentUsername = user.username ? String(user.username) : '';
+        } catch {}
+
+        const serverList = (Array.isArray(data) ? data : []).filter(n => {
+          const createdBy = String(n.created_by || n.createdBy || '');
+          if (!createdBy) return true;
+          return createdBy !== currentUserId && createdBy !== currentUsername;
+        });
+
+        const local = this.docNotificationService.getLocalNotifications();
+        const combined = [...serverList];
+
+        for (const loc of local) {
+          const exists = combined.some(m => m.id === loc.id || (m.title === loc.title && Math.abs(new Date(m.created_at).getTime() - new Date(loc.created_at).getTime()) < 60000));
+          if (!exists) {
+            combined.push(loc);
+          }
+        }
+        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        this.notifications.set(combined);
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to load notifications list: ' + (err.message || err.statusText)
-        });
+        const local = this.docNotificationService.getLocalNotifications();
+        if (local.length > 0) {
+          this.notifications.set(local);
+          this.cdr.detectChanges();
+        } else {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load notifications list: ' + (err.message || err.statusText)
+          });
+        }
       }
     });
   }
@@ -216,40 +249,42 @@ export class NotificationsComponent implements OnInit {
 
   markAsRead(n: any) {
     if (n.is_read) return;
-    this.http.put(`${this.config.apiUrl}/notifications/${n.id}/read`, {}).subscribe(() => {
-      this.notifications.update(list => 
-        list.map(x => x.id === n.id ? { ...x, is_read: true } : x)
-      );
-      this.cdr.detectChanges();
+    this.docNotificationService.markLocalAsRead(n.id);
+    this.http.put(`${this.config.apiUrl}/notifications/${n.id}/read`, {}).subscribe({
+      next: () => {},
+      error: () => {}
     });
+    this.notifications.update(list => 
+      list.map(x => x.id === n.id ? { ...x, is_read: true } : x)
+    );
+    this.cdr.detectChanges();
   }
 
   markAllAsRead() {
+    this.docNotificationService.markAllLocalAsRead();
     this.http.put(`${this.config.apiUrl}/notifications/read-all`, {}).subscribe({
-      next: () => {
-        this.notifications.update(list => 
-          list.map(x => ({ ...x, is_read: true }))
-        );
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'All notifications marked as read.'
-        });
-        this.cdr.detectChanges();
-      },
+      next: () => {},
       error: (err) => {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Update Failed',
-          detail: 'Could not mark all as read: ' + (err.message || err.statusText)
-        });
+        console.error('Failed to mark all as read on server:', err);
       }
     });
+    this.notifications.update(list => 
+      list.map(x => ({ ...x, is_read: true }))
+    );
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'All notifications marked as read.'
+    });
+    this.cdr.detectChanges();
   }
 
   getNotificationIcon(n: any): string {
     const title = String(n.title || '').toLowerCase();
     const msg = String(n.message || '').toLowerCase();
+    if (title.includes('circular') || title.includes('doc') || msg.includes('document')) {
+      return 'pi pi-file';
+    }
     if (title.includes('reject') || msg.includes('reject')) {
       return 'pi pi-times-circle';
     }
@@ -265,6 +300,9 @@ export class NotificationsComponent implements OnInit {
   getNotificationSeverityClass(n: any): string {
     const title = String(n.title || '').toLowerCase();
     const msg = String(n.message || '').toLowerCase();
+    if (title.includes('circular') || title.includes('doc') || msg.includes('document')) {
+      return 'bg-blue-50 text-blue-600 border border-blue-100';
+    }
     if (title.includes('reject') || msg.includes('reject')) {
       return 'bg-red-50 text-red-600 border border-red-100';
     }

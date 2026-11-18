@@ -34,6 +34,7 @@ import { KeyboardShortcutService } from '../../../core/services/keyboard-shortcu
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { APP_CONFIG } from '../../../core/services/config/config.token';
 import { OfflineTranslationService } from '../../../core/services/offline-translation.service';
+import { DocumentNotificationService } from '../../../core/services/notification/document-notification.service';
 
 interface SearchItem {
   label: string;
@@ -1016,6 +1017,7 @@ export class AppTopbar implements OnInit, OnDestroy {
   unreadCount = signal(0);
   private notificationInterval: any;
   http = inject(HttpClient);
+  docNotificationService = inject(DocumentNotificationService);
 
   cdr = inject(ChangeDetectorRef);
 
@@ -1057,6 +1059,11 @@ export class AppTopbar implements OnInit, OnDestroy {
     // Poll every 30 seconds
     this.notificationInterval = setInterval(() => this.loadNotifications(), 30000);
 
+    // Listen to document notification events for immediate reactive refresh
+    this.docNotificationService.refreshNotifications$.subscribe(() => {
+      this.loadNotifications();
+    });
+
     // Subscribe to search focus requests
     this.searchSubscription = this.searchService.searchFocus$.subscribe(() => {
       if (this.searchInput) {
@@ -1082,43 +1089,81 @@ export class AppTopbar implements OnInit, OnDestroy {
     // No branch_id param needed — backend reads identity from the JWT Bearer token
     this.http.get<any[]>(`${this.config.apiUrl}/notifications`).subscribe({
       next: (data) => {
-        this.notifications = data;
-        this.unreadCount.set(data.filter(n => !n.is_read).length);
+        const user = this.authService.currentUser();
+        const currentUserId = user?.id ? String(user.id) : '';
+        const currentUsername = user?.username ? String(user.username) : '';
+
+        // Exclude notifications created by current user
+        const serverList = (Array.isArray(data) ? data : []).filter(n => {
+          const createdBy = String(n.created_by || n.createdBy || '');
+          if (!createdBy) return true;
+          return createdBy !== currentUserId && createdBy !== currentUsername;
+        });
+
+        const local = this.docNotificationService.getLocalNotifications();
+        const combined = [...serverList];
+
+        for (const loc of local) {
+          const exists = combined.some(m => m.id === loc.id || (m.title === loc.title && Math.abs(new Date(m.created_at).getTime() - new Date(loc.created_at).getTime()) < 60000));
+          if (!exists) {
+            combined.push(loc);
+          }
+        }
+        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        this.notifications = combined;
+        this.unreadCount.set(combined.filter(n => !n.is_read).length);
+
+        // Sync route badge count (only unread docs from other users)
+        this.docNotificationService.syncWithNotifications(combined);
+
         this.cdr.detectChanges();
       },
-      error: () => {} // silently ignore — topbar should not break on notification errors
+      error: () => {
+        const local = this.docNotificationService.getLocalNotifications();
+        this.notifications = local;
+        this.unreadCount.set(local.filter(n => !n.is_read).length);
+        this.docNotificationService.syncWithNotifications(local);
+        this.cdr.detectChanges();
+      }
     });
   }
 
 
   markAsRead(n: any) {
     if (n.is_read) return;
-    this.http.put(`${this.config.apiUrl}/notifications/${n.id}/read`, {}).subscribe(() => {
-      n.is_read = true;
-      this.unreadCount.set(this.notifications.filter(x => !x.is_read).length);
-      this.cdr.detectChanges();
+    this.docNotificationService.markLocalAsRead(n.id);
+    this.http.put(`${this.config.apiUrl}/notifications/${n.id}/read`, {}).subscribe({
+      next: () => {},
+      error: () => {}
     });
+    n.is_read = true;
+    this.unreadCount.set(this.notifications.filter(x => !x.is_read).length);
+    this.cdr.detectChanges();
   }
 
   markAllAsRead(event?: Event) {
     if (event) {
       event.stopPropagation();
     }
+    this.docNotificationService.markAllLocalAsRead();
     this.http.put(`${this.config.apiUrl}/notifications/read-all`, {}).subscribe({
-      next: () => {
-        this.notifications.forEach(n => n.is_read = true);
-        this.unreadCount.set(0);
-        this.cdr.detectChanges();
-      },
+      next: () => {},
       error: (err) => {
-        console.error('Failed to mark all as read:', err);
+        console.error('Failed to mark all as read on server:', err);
       }
     });
+    this.notifications.forEach(n => n.is_read = true);
+    this.unreadCount.set(0);
+    this.cdr.detectChanges();
   }
 
   getNotificationIcon(n: any): string {
     const title = String(n.title || '').toLowerCase();
     const msg = String(n.message || '').toLowerCase();
+    if (title.includes('circular') || title.includes('doc') || msg.includes('document')) {
+      return 'pi pi-file';
+    }
     if (title.includes('reject') || msg.includes('reject')) {
       return 'pi pi-times-circle';
     }
@@ -1134,6 +1179,9 @@ export class AppTopbar implements OnInit, OnDestroy {
   getNotificationSeverityClass(n: any): string {
     const title = String(n.title || '').toLowerCase();
     const msg = String(n.message || '').toLowerCase();
+    if (title.includes('circular') || title.includes('doc') || msg.includes('document')) {
+      return 'bg-blue-50 text-blue-600 border border-blue-100';
+    }
     if (title.includes('reject') || msg.includes('reject')) {
       return 'bg-red-50 text-red-600 border border-red-100';
     }

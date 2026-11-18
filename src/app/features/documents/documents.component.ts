@@ -18,6 +18,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ComplianceApiService, ComplianceDocument } from '../../core/services/api/compliance-api.service';
 import { NotificationService } from '../../core/services/notification/notification.service';
+import { DocumentNotificationService } from '../../core/services/notification/document-notification.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 import { getCompliancePeriodInfo } from '../../shared/utils/compliance-period.util';
 
@@ -70,6 +71,7 @@ export class DocumentsComponent implements OnInit {
   private auth = inject(AuthService);
   private confirmationService = inject(ConfirmationService);
   private notification = inject(NotificationService);
+  private docNotificationService = inject(DocumentNotificationService);
   private sanitizer = inject(DomSanitizer);
 
   documents = signal<ComplianceDocument[]>([]);
@@ -525,6 +527,9 @@ export class DocumentsComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Clear route notification badge and acknowledge notifications since user is currently on the documents page
+    this.docNotificationService.acknowledgeDocumentNotifications();
+
     const cached = this.api.getCachedBranches();
     if (cached && cached.length > 0) {
       this.rawBranches.set(cached);
@@ -949,10 +954,26 @@ export class DocumentsComponent implements OnInit {
       });
     } else {
       this.api.createDocument(payload).subscribe({
-        next: () => {
+        next: (createdDoc) => {
           this.saving.set(false);
           this.displayDialog.set(false);
           this.notification.success('Circular / Doc created successfully');
+
+          // If document is PUBLIC (or has assigned user/dept), notify target users (excluding creator)
+          if (payload.access_level === 'PUBLIC' || payload.user_id) {
+            this.docNotificationService.publishDocumentNotification({
+              id: createdDoc?.id,
+              document_name: payload.document_name || '',
+              document_number: payload.document_number,
+              department_id: payload.department_id,
+              department_name: payload.department_name,
+              user_id: payload.user_id,
+              user_name: payload.user_name,
+              access_level: payload.access_level,
+              created_by_user_id: this.currentUserId
+            }, this.currentUserId);
+          }
+
           this.loadDocuments();
         },
         error: (err) => {

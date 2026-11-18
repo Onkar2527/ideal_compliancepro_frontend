@@ -30,6 +30,12 @@ import { LayoutService } from '../service/layout.service';
                     </span>
                     <small *ngIf="item['meta']" class="layout-menuitem-meta">{{ item['meta'] }}</small>
                 </span>
+                <span
+                    *ngIf="item['badge']"
+                    class="route-count-badge"
+                >
+                    {{ item['badge'] }}
+                </span>
                 <i class="pi pi-fw pi-angle-down layout-submenu-toggler" *ngIf="item.items"></i>
             </a>
             <a
@@ -64,12 +70,18 @@ import { LayoutService } from '../service/layout.service';
                     </span>
                     <small *ngIf="item['meta']" class="layout-menuitem-meta">{{ item['meta'] }}</small>
                 </span>
+                <span
+                    *ngIf="item['badge']"
+                    class="route-count-badge"
+                >
+                    {{ item['badge'] }}
+                </span>
                 <i class="pi pi-fw pi-angle-down layout-submenu-toggler" *ngIf="item.items"></i>
             </a>
 
             <ul *ngIf="item.items && item.visible !== false" [@children]="submenuAnimation">
                 <ng-template ngFor let-child let-i="index" [ngForOf]="item.items">
-                    <li app-menuitem [item]="child" [index]="i" [parentKey]="key" [class]="child['badgeClass']"></li>
+                    <li app-menuitem [item]="child" [index]="i" [parentKey]="key" [class]="child['badgeClass'] === 'live-compliance-pending' ? 'live-compliance-pending' : ''"></li>
                 </ng-template>
             </ul>
         </ng-container>
@@ -103,7 +115,13 @@ import { LayoutService } from '../service/layout.service';
             display: flex;
             min-width: 0;
             align-items: center;
-            gap: .4rem;
+            gap: .35rem;
+        }
+
+        .layout-menuitem-text {
+            font-size: 0.83rem;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
         }
 
         .live-compliance-indicator {
@@ -132,6 +150,24 @@ import { LayoutService } from '../service/layout.service';
                 opacity: .72;
                 box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
             }
+        }
+
+        .route-count-badge {
+            margin-left: auto;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.25rem;
+            height: 1.25rem;
+            padding: 0 0.32rem;
+            border-radius: 999px;
+            background-color: #ef4444;
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(239, 68, 68, 0.35);
         }
 
         .layout-menuitem-meta {
