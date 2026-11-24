@@ -130,9 +130,10 @@ export class Authorities implements OnInit {
 
     if (this.authName().trim()) {
       this.saving.set(true);
+      const trimmedUrl = this.authSourceUrl()?.trim() || null;
       const payload: any = {
         name: this.authName(),
-        source_url: this.authSourceUrl()
+        source_url: trimmedUrl
       };
 
       const id = this.authId();
