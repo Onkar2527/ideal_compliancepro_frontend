@@ -6,8 +6,6 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "config:local": "copy src\\assets\\config\\config.local.json src\\assets\\config\\config.json",
-    "config:prod": "copy src\\assets\\config\\config.prod.json src\\assets\\config\\config.json",
     "start": "ng serve --host 0.0.0.0 --port 4200",
     "serve": "ng serve",
     "build": "ng build --configuration production --output-path ./out/ng --base-href ./",

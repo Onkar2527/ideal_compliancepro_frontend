@@ -1,6 +1,6 @@
 # Configuration Flags Guide
 
-Quick guide for settings in config.json, config.local.json, and config.prod.json.
+Quick guide for settings in config.json.
 
 ---
 
